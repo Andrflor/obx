@@ -9,9 +9,14 @@ class Test extends StatelessWidget {
     // print(display2.isDistinct);
   }
 
-  late final cond = false.nobs.indistinct().dupe();
+  final cond = false.obs
+    ..listen((e) {
+      print(e);
+    });
 
-  late final display = cond
+  late final iCond = cond.distinct();
+
+  late final display = iCond
       .pipe(
         (e) => e.map((event) => "Yes"),
         init: (e) => "Yes",
@@ -38,19 +43,14 @@ class Test extends StatelessWidget {
         //   print("Building ObxValue");
         //   return Text(data.toString());
         // }, false.obs),
-        Obctx(
-          (context) {
-            print("Building 1");
-            return Text("$display");
-          },
-        ),
-        Obctx(
-          (context) {
+
+        Obx(
+          () {
             print("Building 2");
-            return Text("$cond");
+            return Text("$iCond");
           },
         ),
-        ElevatedButton(onPressed: () => cond(cond()!), child: Text("Toggle")),
+        ElevatedButton(onPressed: () => iCond(iCond()), child: Text("Toggle")),
       ],
     );
   }

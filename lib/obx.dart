@@ -418,6 +418,7 @@ class RxListenable<T> extends ListNotifierSingle implements RxInterface<T> {
 
   @override
   T get value {
+    print("read distinct: $isDistinct");
     reportRead();
     return _value;
   }
@@ -429,6 +430,7 @@ class RxListenable<T> extends ListNotifierSingle implements RxInterface<T> {
   set value(T newValue) {
     if (_distinct && _value == newValue) {
       _value = newValue;
+      subject.add(_value);
       return;
     }
     _value = newValue;
@@ -449,7 +451,8 @@ class RxListenable<T> extends ListNotifierSingle implements RxInterface<T> {
     void Function()? onDone,
     bool? cancelOnError,
   }) =>
-      stream.listen(
+      (isDistinct ? stream.skipWhile((e) => e == _value).distinct() : stream)
+          .listen(
         onData,
         onError: onError,
         onDone: onDone,
@@ -511,7 +514,6 @@ mixin RxObjectMixin<T> on RxListenable<T> {
   @override
   set value(T val) {
     if (isDisposed) return;
-    if (_distinct && _value == val) return;
     super.value = val;
   }
 
