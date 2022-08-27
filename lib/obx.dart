@@ -457,6 +457,21 @@ class RxListenable<T> extends ListNotifierSingle implements RxInterface<T> {
         cancelOnError: cancelOnError ?? false,
       );
 
+  StreamSubscription<T> listenNow(
+    void Function(T)? onData, {
+    Function? onError,
+    void Function()? onDone,
+    bool? cancelOnError,
+  }) {
+    onData?.call(_value);
+    return stream.listen(
+      onData,
+      onError: onError,
+      onDone: onDone,
+      cancelOnError: cancelOnError ?? false,
+    );
+  }
+
   @override
   String toString() => value.toString();
 }
@@ -518,12 +533,12 @@ extension RxOperators<T> on Rx<T> {
       _clone(distinct: distinct)..bindStream(stream);
 
   /// Generate an obserable based on stream transformation observable
-  Rx<S> pipe<S>(Stream<S> Function(Stream<T> e) transform, {bool? distinct}) {
-    return _clone(
-      distinct: distinct,
-      // TODO: call the stream function on the base value
-    )..bindStream(transform(stream));
-  }
+  Rx<S> pipe<S>(Stream<S> Function(Stream<T> e) transformer,
+          {S Function(T e)? init, bool? distinct}) =>
+      _clone(
+        convert: init,
+        distinct: distinct,
+      )..bindStream(transformer(stream));
 
   /// Create a standalone copy of the observale
   /// distinct parameter is used to enforce distinct or indistinct
