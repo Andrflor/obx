@@ -93,6 +93,7 @@ class Obx extends ObxWidget {
 ///   ),
 // class ObxValue<T extends RxInteface> extends ObxWidget {
 
+// TODO: Revert to standard to figure out how to implement controller with it
 class ObxValue<S extends Rx<T>, T> extends ObxWidget {
   final Widget Function(T) builder;
   final S data;
@@ -367,9 +368,6 @@ abstract class RxInterface<T> extends Listenable {
 
   T get value;
 
-  /// Close the Rx Variable
-  void close();
-
   /// Calls `callback` with current value, when the value changes.
   StreamSubscription<T> listen(void Function(T event) onData,
       {Function? onError, void Function()? onDone, bool? cancelOnError});
@@ -399,14 +397,6 @@ class RxListenable<T> extends ListNotifierSingle implements RxInterface<T> {
 
   void _streamListener() {
     _controller?.add(_value);
-  }
-
-  @override
-  @mustCallSuper
-  void close() {
-    removeListener(_streamListener);
-    _controller?.close();
-    dispose();
   }
 
   Stream<T> get stream {
