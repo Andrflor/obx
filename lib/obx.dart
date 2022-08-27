@@ -327,13 +327,16 @@ class Rx<T> extends _RxImpl<T> {
 }
 
 extension RxT<T> on T {
-  // Observable of the specified type
+  /// Observable of the specified type
   Rx<T> get obs => Rx<T>(this);
-  // Observable of the nullbale type
+
+  /// Observable of the nullbale type
   Rx<T?> get nobs => Rx<T?>(this);
-  // Indistinct observable of the specified type
+
+  /// Indistinct observable of the specified type
   Rx<T> get iobs => Rx<T>(this, distinct: false);
-  // Indistinct observable of the nullable type
+
+  /// Indistinct observable of the nullable type
   Rx<T?> get inobs => Rx<T?>(this, distinct: false);
 }
 
@@ -494,26 +497,8 @@ mixin RxObjectMixin<T> on RxListenable<T> {
   @override
   set value(T val) {
     if (isDisposed) return;
-    if (_distinct && value == val) return;
+    if (_distinct && _value == val) return;
     super.value = val;
-  }
-
-  /// Returns a [StreamSubscription] similar to [listen], but with the
-  /// added benefit that it primes the stream with the current [value], rather
-  /// than waiting for the next [value]. This should not be called in [onInit]
-  /// or anywhere else during the build process.
-  StreamSubscription<T> listenAndPump(void Function(T event) onData,
-      {Function? onError, void Function()? onDone, bool? cancelOnError}) {
-    final subscription = listen(
-      onData,
-      onError: onError,
-      onDone: onDone,
-      cancelOnError: cancelOnError,
-    );
-
-    subject.add(value);
-
-    return subscription;
   }
 
   /// Binds an existing `Stream<T>` to this Rx<T> to keep the values in sync.
@@ -527,19 +512,32 @@ mixin RxObjectMixin<T> on RxListenable<T> {
 }
 
 extension RxOperators<T> on Rx<T> {
+  Rx<S> _clone<S>({bool? distinct, S Function(T e)? convert}) =>
+      Rx(convert?.call(value) ?? value as S, distinct: distinct ?? isDistinct);
+  Rx<T> _dupe({bool? distinct}) =>
+      _clone(distinct: distinct)..bindStream(stream);
+
+  /// Transform one obersable into another base on function
   Rx<S> pipe<S>(S Function(T e) convert, {bool? distinct}) =>
-      derive(distinct: distinct, convert: convert)
+      _clone(distinct: distinct, convert: convert)
         ..bindStream(stream.map(convert));
 
+  /// Take observable only on certain condition
   Rx<T> obsWhere(bool Function(T e) test, {bool? distinct}) =>
-      derive(distinct: distinct)..bindStream(stream.where((e) => test(e)));
+      _clone(distinct: distinct)..bindStream(stream.where((e) => test(e)));
 
-  Rx<S> derive<S>({bool? distinct, S Function(T e)? convert}) =>
-      Rx(convert?.call(value) ?? value as S, distinct: distinct ?? isDistinct);
-  Rx<T> clone({bool? distinct}) =>
-      derive(distinct: distinct)..bindStream(stream);
-  Rx<T> distinct() => clone(distinct: true);
-  Rx<T> indistinct() => clone(distinct: false);
+  /// Create a standalone copy of the observale
+  /// distinct parameter is used to enforce distinct or indistinct
+  Rx<T> clone({bool? distinct}) => _clone(distinct: distinct);
+
+  /// Create an exact copy with same stream of the observable
+  Rx<T> dupe() => _dupe();
+
+  /// Same as dupe but enforce distinct
+  Rx<T> distinct() => _dupe(distinct: true);
+
+  /// Same as dupe but enforce indistinct
+  Rx<T> indistinct() => _dupe(distinct: false);
 
   void bind(dynamic other) =>
       bindStream(other is Stream ? other : other.stream);
