@@ -517,14 +517,13 @@ extension RxOperators<T> on Rx<T> {
   Rx<T> _dupe({bool? distinct}) =>
       _clone(distinct: distinct)..bindStream(stream);
 
-  /// Transform one obersable into another base on function
-  Rx<S> pipe<S>(S Function(T e) convert, {bool? distinct}) =>
-      _clone(distinct: distinct, convert: convert)
-        ..bindStream(stream.map(convert));
-
-  /// Take observable only on certain condition
-  Rx<T> obsWhere(bool Function(T e) test, {bool? distinct}) =>
-      _clone(distinct: distinct)..bindStream(stream.where((e) => test(e)));
+  /// Generate an obserable based on stream transformation observable
+  Rx<S> pipe<S>(Stream<S> Function(Stream<T> e) transform, {bool? distinct}) {
+    return _clone(
+      distinct: distinct,
+      // TODO: call the stream function on the base value
+    )..bindStream(transform(stream));
+  }
 
   /// Create a standalone copy of the observale
   /// distinct parameter is used to enforce distinct or indistinct

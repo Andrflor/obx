@@ -10,7 +10,7 @@ class Test extends StatelessWidget {
 
   late final cond = false.nobs;
 
-  late final display = cond.pipe((e) => "Yes")..listen(print);
+  late final display = cond.pipe((e) => e.map((event) => "Yes"))..listen(print);
 
   @override
   Widget build(context) {
