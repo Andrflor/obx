@@ -33,9 +33,6 @@ mixin StatelessObserverComponent on StatelessElement {
   List<Disposer>? disposers = <Disposer>[];
 
   void getUpdate() {
-    // if (disposers != null && !dirty) {
-    //   markNeedsBuild();
-    // }
     if (disposers != null) {
       scheduleMicrotask(markNeedsBuild);
     }
@@ -165,18 +162,11 @@ mixin ListNotifierSingleMixin on Listenable {
   }
 
   void _notifyUpdate() {
-    // if (_microtaskVersion == _version) {
-    //   _microtaskVersion++;
-    //   scheduleMicrotask(() {
-    //     _version++;
-    //     _microtaskVersion = _version;
     final list = _updaters?.toList() ?? [];
 
     for (var element in list) {
       element();
     }
-    //   });
-    // }
   }
 
   bool get isDisposed => _updaters == null;
@@ -326,20 +316,7 @@ class ObxError {
 }
 
 class Rx<T> extends _RxImpl<T> {
-  Rx(T initial) : super(initial);
-
-  @override
-  dynamic toJson() {
-    try {
-      return (value as dynamic)?.toJson();
-    } on Exception catch (_) {
-      throw '$T has not method [toJson]';
-    }
-  }
-}
-
-class Rxn<T> extends Rx<T?> {
-  Rxn([T? initial]) : super(initial);
+  Rx(T initial, {bool distinct = true}) : super(initial, distinct: distinct);
 
   @override
   dynamic toJson() {
@@ -352,14 +329,20 @@ class Rxn<T> extends Rx<T?> {
 }
 
 extension RxT<T> on T {
-  /// Returns a `Rx` instance with [this] `T` as initial value.
+  // Observable of the specified type
   Rx<T> get obs => Rx<T>(this);
-  Rx<T> get nobs => Rx<T>(this);
+  // Observable of the nullbale type
+  Rx<T?> get nobs => Rx<T?>(this);
+  // Indistinct observable of the specified type
+  Rx<T> get iobs => Rx<T>(this, distinct: false);
+  // Indistinct observable of the nullable type
+  Rx<T?> get inobs => Rx<T?>(this, distinct: false);
 }
 
 /// Base Rx class that manages all the stream logic for any Type.
-abstract class _RxImpl<T> extends GetListenable<T> with RxObjectMixin<T> {
-  _RxImpl(T initial) : super(initial);
+abstract class _RxImpl<T> extends RxListenable<T> with RxObjectMixin<T> {
+  _RxImpl(T initial, {bool distinct = true})
+      : super(initial, distinct: distinct);
 
   void addError(Object error, [StackTrace? stackTrace]) {
     subject.addError(error, stackTrace);
@@ -370,61 +353,10 @@ abstract class _RxImpl<T> extends GetListenable<T> with RxObjectMixin<T> {
   /// Uses a callback to update [value] internally, similar to [refresh],
   /// but provides the current value as the argument.
   /// Makes sense for custom Rx types (like Models).
-  ///
-  /// Sample:
-  /// ```
-  ///  class Person {
-  ///     String name, last;
-  ///     int age;
-  ///     Person({this.name, this.last, this.age});
-  ///     @override
-  ///     String toString() => '$name $last, $age years old';
-  ///  }
-  ///
-  /// final person = Person(name: 'John', last: 'Doe', age: 18).obs;
-  /// person.update((person) {
-  ///   person.name = 'Roi';
-  /// });
-  /// print( person );
-  /// ```
+
   void update(T Function(T? val) fn) {
     value = fn(value);
     // subject.add(value);
-  }
-
-  /// Following certain practices on Rx data, we might want to react to certain
-  /// listeners when a value has been provided, even if the value is the same.
-  /// At the moment, we ignore part of the process if we `.call(value)` with
-  /// the same value since it holds the value and there's no real
-  /// need triggering the entire process for the same value inside, but
-  /// there are other situations where we might be interested in
-  /// triggering this.
-  ///
-  /// For example, supposed we have a `int seconds = 2` and we want to animate
-  /// from invisible to visible a widget in two seconds:
-  /// RxEvent<int>.call(seconds);
-  /// then after a click happens, you want to call a RxEvent<int>.call(seconds).
-  /// By doing `call(seconds)`, if the value being held is the same,
-  /// the listeners won't trigger, hence we need this new `trigger` function.
-  /// This will refresh the listener of an AnimatedWidget and will keep
-  /// the value if the Rx is kept in memory.
-  /// Sample:
-  /// ```
-  /// Rx<Int> secondsRx = RxInt();
-  /// secondsRx.listen((value) => print("$value seconds set"));
-  ///
-  /// secondsRx.call(2);      // This won't trigger any listener, since the value is the same
-  /// secondsRx.trigger(2);   // This will trigger the listener independently from the value.
-  /// ```
-  ///
-  void trigger(T v) {
-    var firstRebuild = this.firstRebuild;
-    value = v;
-    // If it's not the first rebuild, the listeners have been called already
-    // So we won't call them again.
-    if (!firstRebuild && !sentToStream) {
-      subject.add(v);
-    }
   }
 }
 
@@ -447,8 +379,12 @@ abstract class RxInterface<T> extends Listenable {
       {Function? onError, void Function()? onDone, bool? cancelOnError});
 }
 
-class GetListenable<T> extends ListNotifierSingle implements RxInterface<T> {
-  GetListenable(T val) : _value = val;
+class RxListenable<T> extends ListNotifierSingle implements RxInterface<T> {
+  RxListenable(T val, {bool distinct = true})
+      : _distinct = distinct,
+        _value = val;
+
+  final bool _distinct;
 
   StreamController<T>? _controller;
 
@@ -492,8 +428,8 @@ class GetListenable<T> extends ListNotifierSingle implements RxInterface<T> {
   }
 
   set value(T newValue) {
-    if (_value == newValue) return;
     _value = newValue;
+    if (_distinct && _value == newValue) return;
     _notify();
   }
 
@@ -522,7 +458,7 @@ class GetListenable<T> extends ListNotifierSingle implements RxInterface<T> {
   String toString() => value.toString();
 }
 
-mixin RxObjectMixin<T> on GetListenable<T> {
+mixin RxObjectMixin<T> on RxListenable<T> {
   @override
   T call([T? v]) {
     if (v != null) {
@@ -530,9 +466,6 @@ mixin RxObjectMixin<T> on GetListenable<T> {
     }
     return value;
   }
-
-  bool firstRebuild = true;
-  bool sentToStream = false;
 
   String get string => value.toString();
 
@@ -556,14 +489,12 @@ mixin RxObjectMixin<T> on GetListenable<T> {
   int get hashCode => value.hashCode;
 
   /// Updates the [value] and adds it to the stream, updating the observer
-  /// Widget, only if it's different from the previous value.
+  /// Widget. Indistinct will always update whereas distinct (default) will only
+  /// update when new value differs from the previous
   @override
   set value(T val) {
     if (isDisposed) return;
-    sentToStream = false;
-    if (value == val && !firstRebuild) return;
-    firstRebuild = false;
-    sentToStream = true;
+    if (_distinct && value == val) return;
     super.value = val;
   }
 
@@ -593,4 +524,19 @@ mixin RxObjectMixin<T> on GetListenable<T> {
     final sub = stream.listen((va) => value = va);
     reportAdd(sub.cancel);
   }
+}
+
+extension RxOperators<T> on Rx<T> {
+  Rx<S> pipe<S>(S Function(T e) convert) =>
+      convert(value).obs..bindStream(stream.map(convert));
+
+  Rx<T> obsWhere(bool Function(T e) test) =>
+      value.obs..bindStream(stream.where((e) => test(e)));
+
+  Rx<T> clone() => value.obs..bindStream(stream);
+  Rx<T> distinct() => value.obs..bindStream(stream.distinct());
+  Rx<T> indistinct() => value.iobs..bindStream(stream);
+
+  void bind(dynamic other) =>
+      bindStream(other is Stream ? other : other.stream);
 }
