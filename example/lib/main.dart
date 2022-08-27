@@ -5,23 +5,28 @@ void main() => runApp(MaterialApp(home: Test()));
 
 class Test extends StatelessWidget {
   Test() {
-    print(display.isDistinct);
-    print(display2.isDistinct);
+    // print(display.isDistinct);
+    // print(display2.isDistinct);
   }
 
-  late final cond = false.nobs;
+  late final cond = false.nobs.indistinct().dupe();
 
-  late final display = cond.pipe(
-    (e) => e.map((event) => "Yes").where((event) => event == "Yes").skip(2),
-    init: (e) => "Yes",
-    distinct: false,
-  )..listenNow((e) => print("Got called with $e"));
+  late final display = cond
+      .pipe(
+        (e) => e.map((event) => "Yes"),
+        init: (e) => "Yes",
+        distinct: true,
+      )
+      .distinct()
+    ..listenNow((e) => print("Got called with $e"));
 
-  late final display2 = cond.pipe(
-    (e) => e.map((event) => "No").where((event) => event == "No").skip(2),
-    init: (e) => "No",
-    distinct: true,
-  )..listenNow((e) => print("Got called with $e"));
+  final plep = false.obs;
+
+  // late final display2 = cond.pipe(
+  //   (e) => e.map((event) => "No").where((event) => event == "No").skip(2),
+  //   init: (e) => "No",
+  //   distinct: true,
+  // )..listenNow((e) => print("Got called with $e"));
 
   @override
   Widget build(context) {
@@ -29,17 +34,23 @@ class Test extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       mainAxisSize: MainAxisSize.min,
       children: [
-        // ObxValue((Rx<bool> data) {
+        // ObxValue((data) {
         //   print("Building ObxValue");
-        //   return Text(cond().toString());
+        //   return Text(data.toString());
         // }, false.obs),
-        Obx(
-          () {
-            print("Building Obx");
+        Obctx(
+          (context) {
+            print("Building 1");
             return Text("$display");
           },
         ),
-        ElevatedButton(onPressed: () => cond(!cond()!), child: Text("Toggle")),
+        Obctx(
+          (context) {
+            print("Building 2");
+            return Text("$cond");
+          },
+        ),
+        ElevatedButton(onPressed: () => cond(cond()!), child: Text("Toggle")),
       ],
     );
   }

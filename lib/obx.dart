@@ -10,11 +10,10 @@ typedef ValueBuilderBuilder<T> = Widget Function(
 
 class ObxElement = StatelessElement with StatelessObserverComponent;
 
-// It's a experimental feature
-class Observer extends ObxWidget {
+class Obctx extends ObxWidget {
   final WidgetBuilder builder;
 
-  const Observer({Key? key, required this.builder}) : super(key: key);
+  const Obctx(this.builder, {Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) => builder(context);
@@ -40,7 +39,7 @@ mixin StatelessObserverComponent on StatelessElement {
 
   @override
   Widget build() {
-    print("$runtimeType: $disposers");
+    print("Built with: $disposers");
     return Notifier.instance.append(
         NotifyData(disposers: disposers!, updater: getUpdate), super.build);
   }
@@ -95,14 +94,14 @@ class Obx extends ObxWidget {
 ///   ),
 // class ObxValue<T extends RxInteface> extends ObxWidget {
 
-class ObxValue<T> extends ObxWidget {
+class ObxValue<S extends Rx<T>, T> extends ObxWidget {
   final Widget Function(T) builder;
-  final T data;
+  final S data;
 
   const ObxValue(this.builder, this.data, {Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context) => builder(data);
+  Widget build(BuildContext context) => builder(data.value);
 }
 
 // This callback remove the listener on addListener function
@@ -283,7 +282,7 @@ class Notifier {
     if (data.disposers.isEmpty && data.throwException) {
       throw ObxError();
     }
-    _notifyData = data;
+    _notifyData = null;
     return result;
   }
 }
