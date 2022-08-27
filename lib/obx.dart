@@ -39,7 +39,6 @@ mixin StatelessObserverComponent on StatelessElement {
 
   @override
   Widget build() {
-    print("Built with: $disposers");
     return Notifier.instance.append(
         NotifyData(disposers: disposers!, updater: getUpdate), super.build);
   }
@@ -418,7 +417,6 @@ class RxListenable<T> extends ListNotifierSingle implements RxInterface<T> {
 
   @override
   T get value {
-    print("read distinct: $isDistinct");
     reportRead();
     return _value;
   }
@@ -450,14 +448,18 @@ class RxListenable<T> extends ListNotifierSingle implements RxInterface<T> {
     Function? onError,
     void Function()? onDone,
     bool? cancelOnError,
-  }) =>
-      (isDistinct ? stream.skipWhile((e) => e == _value).distinct() : stream)
-          .listen(
-        onData,
-        onError: onError,
-        onDone: onDone,
-        cancelOnError: cancelOnError ?? false,
-      );
+  }) {
+    final initVal = _value;
+    return (isDistinct
+            ? stream.distinct().skipWhile((e) => initVal == e)
+            : stream)
+        .listen(
+      onData,
+      onError: onError,
+      onDone: onDone,
+      cancelOnError: cancelOnError ?? false,
+    );
+  }
 
   StreamSubscription<T> listenNow(
     void Function(T)? onData, {

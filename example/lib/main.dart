@@ -9,12 +9,15 @@ class Test extends StatelessWidget {
     // print(display2.isDistinct);
   }
 
-  final cond = false.obs
+  final cond = false.iobs
     ..listen((e) {
-      print(e);
+      print("cond: $e");
     });
 
-  late final iCond = cond.distinct();
+  late final iCond = cond.distinct()
+    ..listen((e) {
+      print("iCond: $e");
+    });
 
   late final display = iCond
       .pipe(
@@ -50,7 +53,7 @@ class Test extends StatelessWidget {
             return Text("$iCond");
           },
         ),
-        ElevatedButton(onPressed: () => iCond(iCond()), child: Text("Toggle")),
+        ElevatedButton(onPressed: () => cond(cond()), child: Text("Toggle")),
       ],
     );
   }
