@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:obx/obx.dart';
-import 'package:rxdart/rxdart.dart';
 
 void main() => runApp(MaterialApp(home: Test()));
 
 class Test extends StatelessWidget {
-  final behav = BehaviorSubject<bool>.seeded(false);
-  late final cond = false.iobs..bind(false.obs);
-  late final display = cond.pipe((e) => e ? "Good" : "Bad");
+  late final cond = false.obs;
+
+  // late final display = cond
+  //     .obsWhere((e) => e != null)
+  //     .pipe((e) => e == null ? "None" : (e ? "Great" : "Bad"));
+  // late final display2 = cond
+  //     .pipe((e) => e == null ? "None2" : (e ? "Great2" : "Bad2"))
+  //     .pipe((e) => "Yoy");
 
   @override
   Widget build(context) {
@@ -15,12 +19,17 @@ class Test extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Obx(() {
-          print("Building");
-          return Text(display());
-        }),
-        ElevatedButton(
-            onPressed: () => behav.add(behav.value), child: Text("Toggle")),
+        ObxValue((Rx<bool> data) {
+          print("Building ObxValue");
+          return Text(cond().toString());
+        }, false.obs),
+        Obx(
+          () {
+            print("Building Obx");
+            return Text(cond().toString());
+          },
+        ),
+        ElevatedButton(onPressed: () => cond(!cond()), child: Text("Toggle")),
       ],
     );
   }

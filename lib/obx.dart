@@ -11,7 +11,7 @@ typedef ValueBuilderBuilder<T> = Widget Function(
 class ObxElement = StatelessElement with StatelessObserverComponent;
 
 // It's a experimental feature
-class Observer extends ObxStatelessWidget {
+class Observer extends ObxWidget {
   final WidgetBuilder builder;
 
   const Observer({Key? key, required this.builder}) : super(key: key);
@@ -21,9 +21,9 @@ class Observer extends ObxStatelessWidget {
 }
 
 /// A StatelessWidget than can listen reactive changes.
-abstract class ObxStatelessWidget extends StatelessWidget {
+abstract class ObxWidget extends StatelessWidget {
   /// Initializes [key] for subclasses.
-  const ObxStatelessWidget({Key? key}) : super(key: key);
+  const ObxWidget({Key? key}) : super(key: key);
   @override
   StatelessElement createElement() => ObxElement(this);
 }
@@ -40,6 +40,7 @@ mixin StatelessObserverComponent on StatelessElement {
 
   @override
   Widget build() {
+    print("$runtimeType: $disposers");
     return Notifier.instance.append(
         NotifyData(disposers: disposers!, updater: getUpdate), super.build);
   }
@@ -62,9 +63,6 @@ typedef WidgetCallback = Widget Function();
 /// See also:
 /// - [Obx]
 /// - [ObxValue]
-abstract class ObxWidget extends ObxStatelessWidget {
-  const ObxWidget({Key? key}) : super(key: key);
-}
 
 /// The simplest reactive widget in GetX.
 ///
@@ -348,15 +346,12 @@ abstract class _RxImpl<T> extends RxListenable<T> with RxObjectMixin<T> {
     subject.addError(error, stackTrace);
   }
 
-  Stream<R> map<R>(R Function(T? data) mapper) => stream.map(mapper);
-
   /// Uses a callback to update [value] internally, similar to [refresh],
   /// but provides the current value as the argument.
   /// Makes sense for custom Rx types (like Models).
 
   void update(T Function(T? val) fn) {
     value = fn(value);
-    // subject.add(value);
   }
 }
 
@@ -385,6 +380,8 @@ class RxListenable<T> extends ListNotifierSingle implements RxInterface<T> {
         _value = val;
 
   final bool _distinct;
+
+  bool get isDistinct => _distinct;
 
   StreamController<T>? _controller;
 
@@ -428,8 +425,11 @@ class RxListenable<T> extends ListNotifierSingle implements RxInterface<T> {
   }
 
   set value(T newValue) {
+    if (_distinct && _value == newValue) {
+      _value = newValue;
+      return;
+    }
     _value = newValue;
-    if (_distinct && _value == newValue) return;
     _notify();
   }
 
@@ -527,15 +527,19 @@ mixin RxObjectMixin<T> on RxListenable<T> {
 }
 
 extension RxOperators<T> on Rx<T> {
-  Rx<S> pipe<S>(S Function(T e) convert) =>
-      convert(value).obs..bindStream(stream.map(convert));
+  Rx<S> pipe<S>(S Function(T e) convert, {bool? distinct}) =>
+      derive(distinct: distinct, convert: convert)
+        ..bindStream(stream.map(convert));
 
-  Rx<T> obsWhere(bool Function(T e) test) =>
-      value.obs..bindStream(stream.where((e) => test(e)));
+  Rx<T> obsWhere(bool Function(T e) test, {bool? distinct}) =>
+      derive(distinct: distinct)..bindStream(stream.where((e) => test(e)));
 
-  Rx<T> clone() => value.obs..bindStream(stream);
-  Rx<T> distinct() => value.obs..bindStream(stream.distinct());
-  Rx<T> indistinct() => value.iobs..bindStream(stream);
+  Rx<S> derive<S>({bool? distinct, S Function(T e)? convert}) =>
+      Rx(convert?.call(value) ?? value as S, distinct: distinct ?? isDistinct);
+  Rx<T> clone({bool? distinct}) =>
+      derive(distinct: distinct)..bindStream(stream);
+  Rx<T> distinct() => clone(distinct: true);
+  Rx<T> indistinct() => clone(distinct: false);
 
   void bind(dynamic other) =>
       bindStream(other is Stream ? other : other.stream);
