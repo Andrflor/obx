@@ -269,6 +269,8 @@ class Notifier {
 
   void read(ListNotifierSingleMixin _updaters) {
     final listener = _notifyData?.updater;
+    print(_updaters._updaters);
+    print(listener);
     if (listener != null && !_updaters.containsListener(listener)) {
       _updaters.addListener(listener);
       add(() => _updaters.removeListener(listener));
@@ -531,7 +533,8 @@ mixin RxObjectMixin<T> on RxListenable<T> {
 
 extension RxOperators<T> on Rx<T> {
   Rx<S> _clone<S>({bool? distinct, S Function(T e)? convert}) =>
-      Rx(convert?.call(value) ?? value as S, distinct: distinct ?? isDistinct);
+      Rx(convert?.call(_value) ?? _value as S,
+          distinct: distinct ?? isDistinct);
   Rx<T> _dupe({bool? distinct}) =>
       _clone(distinct: distinct)..bindStream(stream);
 

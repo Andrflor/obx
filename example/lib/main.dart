@@ -9,15 +9,9 @@ class Test extends StatelessWidget {
     // print(display2.isDistinct);
   }
 
-  final cond = false.iobs
-    ..listen((e) {
-      print("cond: $e");
-    });
+  final cond = false.obs;
 
-  late final iCond = cond.distinct()
-    ..listen((e) {
-      print("iCond: $e");
-    });
+  late final iCond = cond.indistinct();
 
   late final display = iCond
       .pipe(
@@ -46,7 +40,12 @@ class Test extends StatelessWidget {
         //   print("Building ObxValue");
         //   return Text(data.toString());
         // }, false.obs),
-
+        Obx(
+          () {
+            print("Building 1");
+            return Text("$iCond");
+          },
+        ),
         Obx(
           () {
             print("Building 2");
