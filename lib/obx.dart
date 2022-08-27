@@ -269,8 +269,6 @@ class Notifier {
 
   void read(ListNotifierSingleMixin _updaters) {
     final listener = _notifyData?.updater;
-    print(_updaters._updaters);
-    print(listener);
     if (listener != null && !_updaters.containsListener(listener)) {
       _updaters.addListener(listener);
       add(() => _updaters.removeListener(listener));
@@ -470,7 +468,7 @@ class RxListenable<T> extends ListNotifierSingle implements RxInterface<T> {
     bool? cancelOnError,
   }) {
     onData?.call(_value);
-    return stream.listen(
+    return listen(
       onData,
       onError: onError,
       onDone: onDone,

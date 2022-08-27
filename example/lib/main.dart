@@ -9,18 +9,14 @@ class Test extends StatelessWidget {
     // print(display2.isDistinct);
   }
 
-  final cond = false.obs;
+  final cond = false.iobs;
 
-  late final iCond = cond.indistinct();
+  late final iCond = cond.distinct();
 
-  late final display = iCond
-      .pipe(
-        (e) => e.map((event) => "Yes"),
-        init: (e) => "Yes",
-        distinct: true,
-      )
-      .distinct()
-    ..listenNow((e) => print("Got called with $e"));
+  late final display = iCond.pipe(
+    (e) => e.map((event) => "Yes"),
+    init: (e) => "Yes",
+  )..listenNow((e) => print("Got called with $e"));
 
   final plep = false.obs;
 
@@ -49,10 +45,10 @@ class Test extends StatelessWidget {
         Obx(
           () {
             print("Building 2");
-            return Text("$iCond");
+            return Text("$display");
           },
         ),
-        ElevatedButton(onPressed: () => cond(cond()), child: Text("Toggle")),
+        ElevatedButton(onPressed: () => cond(!cond()), child: Text("Toggle")),
       ],
     );
   }
