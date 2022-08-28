@@ -15,14 +15,35 @@ extension RxT<T> on T {
   Rx<T?> get inobs => Rx<T?>(this, distinct: false);
 }
 
-extension ListenableTransform<T> on ValueListenable<T> {
-  toRx({bool distinct = true}) {
-    Rx.fromListenable(this, distinct: distinct);
-  }
+extension ListenableTransforme<T> on ValueNotifier<T> {
+  /// Observable of the specified type
+  Rx<T> get obs => value.obs..bind(this);
+
+  /// Observable of the nullbale type
+  Rx<T?> get nobs => value.nobs..bind(this);
+
+  /// Indistinct observable of the specified type
+  Rx<T> get iobs => value.iobs..bind(this);
+
+  /// Indistinct observable of the nullable type
+  Rx<T?> get inobs => value.inobs..bind(this);
+
+  // Make an rx from that value
+  Rx<T> toRx(T initial) => initial.obs..bind(this);
 }
 
 extension StreamTransform<T> on Stream<T> {
-  toRx({bool distinct = true}) {
-    Rx.fromStream(this, distinct: distinct);
-  }
+  /// Observable of the specified type
+  Rx<T?> get obs => nobs;
+
+  /// Observable of the nullbale type
+  Rx<T?> get nobs => null.nobs..bind(this);
+
+  /// Indistinct observable of the specified type
+  Rx<T?> get iobs => inobs;
+
+  /// Indistinct observable of the nullable type
+  Rx<T?> get inobs => null.inobs..bind(this);
+
+  Rx<T> toRx(T initial) => initial.obs..bind(this);
 }

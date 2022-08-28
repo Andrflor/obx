@@ -6,19 +6,6 @@ import 'notifier.dart';
 class Rx<T> extends _RxImpl<T> {
   Rx(T initial, {bool distinct = true}) : super(initial, distinct: distinct);
 
-  static Rx<T?> fromStream<S extends Stream<T>, T>(S stream,
-          {T? init, bool distinct = true}) =>
-      (init == null
-          ? (null is T
-              ? Rx<T>(null as T, distinct: distinct)
-              : Rx<T?>(null, distinct: distinct))
-          : Rx<T>(init, distinct: distinct)) as Rx<T>
-        ..bind(stream);
-
-  static Rx<T> fromListenable<S extends ValueListenable<T>, T>(S listenable,
-          {T? init, bool distinct = true}) =>
-      Rx(init ?? listenable.value, distinct: distinct)..bind(listenable);
-
   @override
   dynamic toJson() {
     try {
@@ -74,7 +61,14 @@ class Rx<T> extends _RxImpl<T> {
         if (stream is Stream<T>) {
           bindStream(stream);
         } else {
-          throw '${stream.runtimeType} from $S method [stream] is not a Stream<$T>';
+          try {
+            final sub = stream.listen((e) {
+              value = e;
+            });
+            reportAdd(sub.cancel);
+          } catch (_) {
+            throw '${stream.runtimeType} from $S method [stream] is not a Stream<$T>';
+          }
         }
       } catch (_) {
         throw '$S has not method [stream]';

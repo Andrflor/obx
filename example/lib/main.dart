@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:rxdart/rxdart.dart';
 import 'package:obx/obx.dart';
 
 void main() => runApp(MaterialApp(home: Test()));
@@ -9,7 +10,13 @@ class Test extends StatelessWidget {
     // print(display2.isDistinct);
 
     final test = false.obs;
-    Rx.fromStream(test.stream, init: false).value = null;
+    final noti = ValueNotifier<bool>(false).obs;
+    print(noti.runtimeType);
+    // TODO: check how to add methods depending on the user
+    // TODO: add only behaviorSubject and other rx object transfrom
+    // TODO: if the package is installed
+    final behav = BehaviorSubject<bool>.seeded(false).obs;
+    print(behav.runtimeType);
 
     cond(!cond());
     cond.listen((e) {
