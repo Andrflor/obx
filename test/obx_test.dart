@@ -58,10 +58,10 @@ void main() {
               obs.pipe((e) => e.where((e) => e == false)), false);
           boolListen('nobs', nobs, false,
               nobs.pipe((e) => e.where((e) => e == false)), false);
-          boolListen(
-              'iobs', iobs, true, iobs.pipe((e) => e.where((e) => e == false)));
+          boolListen('iobs', iobs, true,
+              iobs.pipe((e) => e.where((e) => e == false)), false);
           boolListen('inobs', inobs, true,
-              inobs.pipe((e) => e.where((e) => e == false)));
+              inobs.pipe((e) => e.where((e) => e == false)), false);
         });
 
         group('map', () {

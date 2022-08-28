@@ -13,7 +13,8 @@ class Test extends StatelessWidget {
   }
 
   final cond = (false.iobs..listen((e) => print("initital: $e")));
-  late final iCond = cond.dupe()..listen((e) => print("dupe: $e"));
+  late final iCond = cond.pipe((e) => e.where((e) => e == false))
+    ..listen((e) => print("pipe: $e"));
   final plep = false.obs;
 
   final display = "data".obs;
@@ -46,7 +47,7 @@ class Test extends StatelessWidget {
             return Text("$display");
           },
         ),
-        ElevatedButton(onPressed: () => cond(cond()!), child: Text("Toggle")),
+        ElevatedButton(onPressed: () => cond(!cond()!), child: Text("Toggle")),
       ],
     );
   }

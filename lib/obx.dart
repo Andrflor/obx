@@ -390,7 +390,7 @@ class RxListenable<T> extends ListNotifierSingle implements RxInterface<T> {
         StreamController<T>.broadcast(onCancel: addListener(_streamListener));
     _controller!.add(_value);
     _stream = isDistinct
-        ? _controller!.stream.skipWhile((e) => initVal == e).distinct()
+        ? _controller!.stream.distinct().skipWhile((e) => initVal == e)
         : _controller!.stream;
 
     ///TODO: report to controller dispose
