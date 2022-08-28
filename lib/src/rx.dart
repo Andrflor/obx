@@ -29,7 +29,7 @@ class Rx<T> extends _RxImpl<T> {
   }
 
   Rx<S> _clone<S>({bool? distinct, S Function(T e)? convert}) =>
-      Rx(convert?.call(_value) ?? _value as S,
+      Rx(convert?.call(static) ?? static as S,
           distinct: distinct ?? isDistinct);
   Rx<T> _dupe({bool? distinct}) =>
       _clone(distinct: distinct)..bindStream(subject.stream);
@@ -54,9 +54,6 @@ class Rx<T> extends _RxImpl<T> {
 
   /// Same as dupe but enforce indistinct
   Rx<T> indistinct() => _dupe(distinct: false);
-
-  /// This is used to get a non moving value
-  T get static => _value;
 
   /// Allow to bind to an object
   void bind<S extends Object>(S other) {
@@ -102,166 +99,6 @@ abstract class _RxImpl<T> extends RxListenable<T> with RxObjectMixin<T> {
   void update(T Function(T? val) fn) {
     value = fn(value);
   }
-}
-
-/// This class is the foundation for all reactive (Rx) classes that makes Get
-/// so powerful.
-/// This interface is the contract that [_RxImpl]<T> uses in all it's
-/// subclass.
-
-class RxListenable<T> extends ListNotifierSingle implements ValueListenable<T> {
-  RxListenable(T val, {bool distinct = true})
-      : _distinct = distinct,
-        _value = val;
-
-  final bool _distinct;
-
-  bool _triggered = false;
-
-  bool get isDistinct => _distinct;
-
-  StreamController<T>? _controller;
-
-  void _initController() {
-    final initVal = _value;
-    bool firstCall = true;
-    _controller =
-        StreamController<T>.broadcast(onCancel: addListener(_streamListener));
-    _stream = isDistinct
-        ? _controller!.stream.distinct((i, e) {
-            if (_triggered) {
-              _triggered = false;
-              return false;
-            }
-            return i == e;
-          }).skipWhile((e) {
-            if (firstCall) {
-              firstCall = false;
-              return e == initVal;
-            }
-            return false;
-          })
-        : _controller!.stream;
-  }
-
-  StreamController<T> get subject {
-    if (_controller == null) {
-      _initController();
-    }
-    return _controller!;
-  }
-
-  void _streamListener() {
-    _controller?.add(_value);
-  }
-
-  Stream<T>? _stream;
-
-  Stream<T> get stream {
-    if (_controller == null) {
-      _initController();
-    }
-    return _stream!;
-  }
-
-  /// Performs a trigger update
-  /// Update the value, force notify listeners and update Widgets
-  void trigger(T v) {
-    if (!isDistinct || v != _value) {
-      value = v;
-      return;
-    }
-    _triggered = true;
-    _controller?.add(v);
-    _value = v;
-    _notify();
-  }
-
-  /// Performs a silent update
-  /// Update value and listeners without updating widgets
-  /// Piped observable will be notified
-  void silent(T v) {
-    _controller?.add(v);
-    _value = v;
-  }
-
-  /// Same as silent but the listeners are not notified
-  /// This means that piped object won't recieve the update
-  void invisible(T v) {
-    _value = v;
-  }
-
-  T _value;
-
-  @override
-  T get value {
-    reportRead();
-    return _value;
-  }
-
-  /// Called without a value it will refesh the ui
-  /// Called with a value it will refresh the ui and update value
-  void refresh([T? value]) {
-    if (value != null) {
-      if (_distinct && _value == value) {
-        _controller?.add(value);
-      } else {
-        _value = value;
-      }
-    }
-    _notify();
-  }
-
-  set value(T newValue) {
-    if (_distinct && _value == newValue) {
-      _controller?.add(newValue);
-      return;
-    }
-    _value = newValue;
-    _notify();
-  }
-
-  T? call([T? v]) {
-    if (v != null) {
-      value = v;
-    }
-    return value;
-  }
-
-  /// Allow to listen to the observable according to distinct
-  @override
-  StreamSubscription<T> listen(
-    void Function(T e)? onData, {
-    Function? onError,
-    void Function()? onDone,
-    bool? cancelOnError,
-  }) {
-    return stream.listen(
-      onData,
-      onError: onError,
-      onDone: onDone,
-      cancelOnError: cancelOnError ?? false,
-    );
-  }
-
-  /// Same as listen but is also called now
-  StreamSubscription<T> listenNow(
-    void Function(T e)? onData, {
-    Function? onError,
-    void Function()? onDone,
-    bool? cancelOnError,
-  }) {
-    onData?.call(_value);
-    return listen(
-      onData,
-      onError: onError,
-      onDone: onDone,
-      cancelOnError: cancelOnError ?? false,
-    );
-  }
-
-  @override
-  String toString() => value.toString();
 }
 
 mixin RxObjectMixin<T> on RxListenable<T> {
