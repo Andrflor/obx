@@ -27,20 +27,63 @@ class Rx<T> extends _RxImpl<T> {
       throw '$T has not method [toJson]';
     }
   }
-}
 
-extension RxT<T> on T {
-  /// Observable of the specified type
-  Rx<T> get obs => Rx<T>(this);
+  Rx<S> _clone<S>({bool? distinct, S Function(T e)? convert}) =>
+      Rx(convert?.call(_value) ?? _value as S,
+          distinct: distinct ?? isDistinct);
+  Rx<T> _dupe({bool? distinct}) =>
+      _clone(distinct: distinct)..bindStream(subject.stream);
 
-  /// Observable of the nullbale type
-  Rx<T?> get nobs => Rx<T?>(this);
+  /// Generate an obserable based on stream transformation observable
+  Rx<S> pipe<S>(Stream<S> Function(Stream<T> e) transformer,
+          {S Function(T e)? init, bool? distinct}) =>
+      _clone(
+        convert: init,
+        distinct: distinct,
+      )..bindStream(transformer(subject.stream));
 
-  /// Indistinct observable of the specified type
-  Rx<T> get iobs => Rx<T>(this, distinct: false);
+  /// Create a standalone copy of the observale
+  /// distinct parameter is used to enforce distinct or indistinct
+  Rx<T> clone({bool? distinct}) => _clone(distinct: distinct);
 
-  /// Indistinct observable of the nullable type
-  Rx<T?> get inobs => Rx<T?>(this, distinct: false);
+  /// Create an exact copy with same stream of the observable
+  Rx<T> dupe() => _dupe();
+
+  /// Same as dupe but enforce distinct
+  Rx<T> distinct() => _dupe(distinct: true);
+
+  /// Same as dupe but enforce indistinct
+  Rx<T> indistinct() => _dupe(distinct: false);
+
+  /// This is used to get a non moving value
+  T get static => _value;
+
+  /// Allow to bind to an object
+  void bind<S extends Object>(S other) {
+    if (other is Stream<T>) {
+      return bindStream(other);
+    }
+
+    if (other is Rx<T>) {
+      return bindStream(other.subject.stream);
+    }
+    if (other is ValueListenable<T>) {
+      other.addListener(() {
+        value = other.value;
+      });
+    } else {
+      try {
+        final stream = (other as dynamic).stream;
+        if (stream is Stream<T>) {
+          bindStream(stream);
+        } else {
+          throw '${stream.runtimeType} from $S method [stream] is not a Stream<$T>';
+        }
+      } catch (_) {
+        throw '$S has not method [stream]';
+      }
+    }
+  }
 }
 
 /// Base Rx class that manages all the stream logic for any Type.
@@ -66,7 +109,7 @@ abstract class _RxImpl<T> extends RxListenable<T> with RxObjectMixin<T> {
 /// This interface is the contract that [_RxImpl]<T> uses in all it's
 /// subclass.
 
-class RxListenable<T> extends ListNotifierSingle {
+class RxListenable<T> extends ListNotifierSingle implements ValueListenable<T> {
   RxListenable(T val, {bool distinct = true})
       : _distinct = distinct,
         _value = val;
@@ -269,76 +312,5 @@ mixin RxObjectMixin<T> on RxListenable<T> {
       value = e;
     });
     reportAdd(sub.cancel);
-  }
-}
-
-extension RxOperators<T> on Rx<T> {
-  Rx<S> _clone<S>({bool? distinct, S Function(T e)? convert}) =>
-      Rx(convert?.call(_value) ?? _value as S,
-          distinct: distinct ?? isDistinct);
-  Rx<T> _dupe({bool? distinct}) =>
-      _clone(distinct: distinct)..bindStream(subject.stream);
-
-  /// Generate an obserable based on stream transformation observable
-  Rx<S> pipe<S>(Stream<S> Function(Stream<T> e) transformer,
-          {S Function(T e)? init, bool? distinct}) =>
-      _clone(
-        convert: init,
-        distinct: distinct,
-      )..bindStream(transformer(subject.stream));
-
-  /// Create a standalone copy of the observale
-  /// distinct parameter is used to enforce distinct or indistinct
-  Rx<T> clone({bool? distinct}) => _clone(distinct: distinct);
-
-  /// Create an exact copy with same stream of the observable
-  Rx<T> dupe() => _dupe();
-
-  /// Same as dupe but enforce distinct
-  Rx<T> distinct() => _dupe(distinct: true);
-
-  /// Same as dupe but enforce indistinct
-  Rx<T> indistinct() => _dupe(distinct: false);
-
-  /// This is used to get a non moving value
-  T get static => clone()();
-
-  /// Allow to bind to an object
-  void bind<S extends Object>(S other) {
-    if (other is Stream<T>) {
-      return bindStream(other);
-    }
-
-    if (other is Rx<T>) {
-      return bindStream(other.subject.stream);
-    }
-    if (other is ValueListenable<T>) {
-      other.addListener(() {
-        value = other.value;
-      });
-    } else {
-      try {
-        final stream = (other as dynamic).stream;
-        if (stream is Stream<T>) {
-          bindStream(stream);
-        } else {
-          throw '${stream.runtimeType} from $S method [stream] is not a Stream<$T>';
-        }
-      } catch (_) {
-        throw '$S has not method [stream]';
-      }
-    }
-  }
-}
-
-extension ListenableTransform<T> on ValueListenable<T> {
-  toRx({bool distinct = true}) {
-    Rx.fromListenable(this, distinct: distinct);
-  }
-}
-
-extension StreamTransform<T> on Stream<T> {
-  toRx({bool distinct = true}) {
-    Rx.fromStream(this, distinct: distinct);
   }
 }
