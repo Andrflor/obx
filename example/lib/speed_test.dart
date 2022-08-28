@@ -7,18 +7,18 @@ import 'package:obx/obx.dart';
 void main() async {
   Future<void> _notifierTest() async {
     await Future.delayed(Duration(seconds: 1));
-    final iNotifier = ValueNotifier<int?>(null);
+    final notifier = ValueNotifier<int?>(null);
     var notifierCounter = 0;
     final date = DateTime.now();
-    iNotifier.addListener(() {
+    notifier.addListener(() {
       notifierCounter++;
       if (notifierCounter == 100) {
-        print("iNotifier:${DateTime.now().difference(date).inMicroseconds} us");
+        print("notifier:${DateTime.now().difference(date).inMicroseconds} us");
       }
     });
     for (var i = 0; i < 100; i++) {
-      iNotifier.value = 10;
-      iNotifier.notifyListeners();
+      notifier.value = 10;
+      notifier.notifyListeners();
     }
   }
 
@@ -41,17 +41,17 @@ void main() async {
 
   Future<void> _rxTrest() async {
     await Future.delayed(Duration(seconds: 1));
-    final iRx = (null as int?).obs;
+    final rx = (null as int?).iobs;
     var notifierCounter = 0;
     final date = DateTime.now();
-    iRx.addListener(() {
+    rx.listen((_) {
       notifierCounter++;
       if (notifierCounter == 100) {
-        print("iRx:${DateTime.now().difference(date).inMicroseconds} us");
+        print("rx:${DateTime.now().difference(date).inMicroseconds} us");
       }
     });
     for (var i = 0; i < 100; i++) {
-      iRx.value = 10;
+      rx.value = 10;
     }
   }
 
