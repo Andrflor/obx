@@ -4,10 +4,6 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'dart:collection';
 
-typedef ValueBuilderUpdateCallback<T> = void Function(T snapshot);
-typedef ValueBuilderBuilder<T> = Widget Function(
-    T snapshot, ValueBuilderUpdateCallback<T> updater);
-
 class ObxElement = StatelessElement with StatelessObserverComponent;
 
 class Obc extends ObxWidget {
@@ -314,6 +310,11 @@ class ObxError {
 class Rx<T> extends _RxImpl<T> {
   Rx(T initial, {bool distinct = true}) : super(initial, distinct: distinct);
 
+  static Rx<T?> fromStream<T>(Stream<T> stream, {T? init}) => (init == null
+      ? (null is T ? Rx<T>(null as T) : Rx<T?>(null))
+      : Rx<T>(init)) as Rx<T>
+    ..bind(stream);
+
   @override
   dynamic toJson() {
     try {
@@ -355,6 +356,9 @@ abstract class _RxImpl<T> extends RxListenable<T> with RxObjectMixin<T> {
     value = fn(value);
   }
 }
+
+// TODO: implement with valueNotifier or something that as a light wait compared
+// to streams
 
 /// This class is the foundation for all reactive (Rx) classes that makes Get
 /// so powerful.
@@ -441,9 +445,8 @@ class RxListenable<T> extends ListNotifierSingle implements RxInterface<T> {
   }
 
   /// Performs a silent update
-  /// Update the value without updating widgets
-  /// Listener won't be affected
-  /// Piped observable wiil be notified
+  /// Update value and listeners without updating widgets
+  /// Piped observable will be notified
   void silent(T v) {
     _controller?.add(v);
     _value = v;
@@ -619,10 +622,17 @@ extension RxOperators<T> on Rx<T> {
       return bindStream(other.subject.stream);
     } else {
       try {
-        bindStream((other as dynamic).stream);
+        final stream = (other as dynamic).stream;
+        if (stream is Stream<T>) {
+          bindStream(stream);
+        } else {
+          throw '${stream.runtimeType} from $S method [stream] is not a Stream<$T>';
+        }
       } catch (_) {
-        throw '$T has not method [stream]';
+        throw '$S has not method [stream]';
       }
     }
   }
 }
+
+extension StreamOperators<T> on Stream<T> {}
