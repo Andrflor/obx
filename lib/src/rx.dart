@@ -1,12 +1,23 @@
+import 'dart:async';
+import 'package:flutter/foundation.dart';
+
 import 'notifier.dart';
 
 class Rx<T> extends _RxImpl<T> {
   Rx(T initial, {bool distinct = true}) : super(initial, distinct: distinct);
 
-  static Rx<T?> fromStream<T>(Stream<T> stream, {T? init}) => (init == null
-      ? (null is T ? Rx<T>(null as T) : Rx<T?>(null))
-      : Rx<T>(init)) as Rx<T>
-    ..bind(stream);
+  static Rx<T?> fromStream<S extends Stream<T>, T>(S stream,
+          {T? init, bool distinct = true}) =>
+      (init == null
+          ? (null is T
+              ? Rx<T>(null as T, distinct: distinct)
+              : Rx<T?>(null, distinct: distinct))
+          : Rx<T>(init, distinct: distinct)) as Rx<T>
+        ..bind(stream);
+
+  static Rx<T> fromListenable<S extends ValueListenable<T>, T>(S listenable,
+          {T? init, bool distinct = true}) =>
+      Rx(init ?? listenable.value, distinct: distinct)..bind(listenable);
 
   @override
   dynamic toJson() {
@@ -297,8 +308,14 @@ extension RxOperators<T> on Rx<T> {
     if (other is Stream<T>) {
       return bindStream(other);
     }
+
     if (other is Rx<T>) {
       return bindStream(other.subject.stream);
+    }
+    if (other is ValueListenable<T>) {
+      other.addListener(() {
+        value = other.value;
+      });
     } else {
       try {
         final stream = (other as dynamic).stream;
@@ -314,4 +331,14 @@ extension RxOperators<T> on Rx<T> {
   }
 }
 
-extension StreamOperators<T> on Stream<T> {}
+extension ListenableTransform<T> on ValueListenable<T> {
+  toRx({bool distinct = true}) {
+    Rx.fromListenable(this, distinct: distinct);
+  }
+}
+
+extension StreamTransform<T> on Stream<T> {
+  toRx({bool distinct = true}) {
+    Rx.fromStream(this, distinct: distinct);
+  }
+}
