@@ -8,13 +8,15 @@ class Test extends StatelessWidget {
     // print(display.isDistinct);
     // print(display2.isDistinct);
 
-    print(iCond.isDistinct);
+    cond(!cond());
+    cond.listen((e) {
+      print("trigered $e");
+    });
+
     // Fix dispose
   }
 
-  final cond = (false.iobs..listen((e) => print("initital: $e")));
-  late final iCond = cond.pipe((e) => e.where((e) => e == false))
-    ..listen((e) => print("pipe: $e"));
+  final cond = false.obs;
   final plep = false.obs;
 
   final display = "data".obs;
@@ -41,13 +43,19 @@ class Test extends StatelessWidget {
         //     return Text("$iCond");
         //   },
         // ),
-        Obx(
-          () {
-            print("Building 2");
-            return Text("$display");
-          },
-        ),
-        ElevatedButton(onPressed: () => cond(!cond()!), child: Text("Toggle")),
+        // Obx(
+        //   () {
+        //     print("Building 2");
+        //     return Column(
+        //       children: [
+        //         Text("${cond.static}"),
+        //         Text("${cond.value}"),
+        //       ],
+        //     );
+        //   },
+        // ),
+        ElevatedButton(
+            onPressed: () => cond.silent(cond()), child: Text("Toggle")),
       ],
     );
   }

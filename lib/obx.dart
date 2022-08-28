@@ -10,10 +10,10 @@ typedef ValueBuilderBuilder<T> = Widget Function(
 
 class ObxElement = StatelessElement with StatelessObserverComponent;
 
-class Obctx extends ObxWidget {
+class Obc extends ObxWidget {
   final WidgetBuilder builder;
 
-  const Obctx(this.builder, {Key? key}) : super(key: key);
+  const Obc(this.builder, {Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) => builder(context);
@@ -93,15 +93,14 @@ class Obx extends ObxWidget {
 ///   ),
 // class ObxValue<T extends RxInteface> extends ObxWidget {
 
-// TODO: Revert to standard to figure out how to implement controller with it
-class ObxValue<S extends Rx<T>, T> extends ObxWidget {
+class ObxValue<T extends Object> extends ObxWidget {
   final Widget Function(T) builder;
-  final S data;
+  final T data;
 
   const ObxValue(this.builder, this.data, {Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context) => builder(data.value);
+  Widget build(BuildContext context) => builder(data);
 }
 
 // This callback remove the listener on addListener function
@@ -143,7 +142,7 @@ mixin ListNotifierSingleMixin on Listenable {
   }
 
   @protected
-  void refresh() {
+  void _notify() {
     assert(_debugAssertNotDisposed());
     _notifyUpdate();
   }
@@ -380,20 +379,32 @@ class RxListenable<T> extends ListNotifierSingle implements RxInterface<T> {
 
   final bool _distinct;
 
+  bool _triggered = false;
+
   bool get isDistinct => _distinct;
 
   StreamController<T>? _controller;
 
   void _initController() {
     final initVal = _value;
+    bool firstCall = true;
     _controller =
         StreamController<T>.broadcast(onCancel: addListener(_streamListener));
-    _controller!.add(_value);
     _stream = isDistinct
-        ? _controller!.stream.distinct().skipWhile((e) => initVal == e)
+        ? _controller!.stream.distinct((i, e) {
+            if (_triggered) {
+              _triggered = false;
+              return false;
+            }
+            return i == e;
+          }).skipWhile((e) {
+            if (firstCall) {
+              firstCall = false;
+              return e == initVal;
+            }
+            return false;
+          })
         : _controller!.stream;
-
-    ///TODO: report to controller dispose
   }
 
   StreamController<T> get subject {
@@ -416,6 +427,34 @@ class RxListenable<T> extends ListNotifierSingle implements RxInterface<T> {
     return _stream!;
   }
 
+  /// Performs a trigger update
+  /// Update the value, force notify listeners and update Widgets
+  void trigger(T v) {
+    if (!isDistinct || v != _value) {
+      value = v;
+      return;
+    }
+    _triggered = true;
+    _controller?.add(v);
+    _value = v;
+    _notify();
+  }
+
+  /// Performs a silent update
+  /// Update the value without updating widgets
+  /// Listener won't be affected
+  /// Piped observable wiil be notified
+  void silent(T v) {
+    _controller?.add(v);
+    _value = v;
+  }
+
+  /// Same as silent but the listeners are not notified
+  /// This means that piped object won't recieve the update
+  void invisible(T v) {
+    _value = v;
+  }
+
   T _value;
 
   @override
@@ -424,8 +463,17 @@ class RxListenable<T> extends ListNotifierSingle implements RxInterface<T> {
     return _value;
   }
 
-  void _notify() {
-    refresh();
+  /// Called without a value it will refesh the ui
+  /// Called with a value it will refresh the ui and update value
+  void refresh([T? value]) {
+    if (value != null) {
+      if (_distinct && _value == value) {
+        _controller?.add(value);
+      } else {
+        _value = value;
+      }
+    }
+    _notify();
   }
 
   set value(T newValue) {
@@ -444,6 +492,7 @@ class RxListenable<T> extends ListNotifierSingle implements RxInterface<T> {
     return value;
   }
 
+  /// Allow to listen to the observable according to distinct
   @override
   StreamSubscription<T> listen(
     void Function(T e)? onData, {
@@ -459,6 +508,7 @@ class RxListenable<T> extends ListNotifierSingle implements RxInterface<T> {
     );
   }
 
+  /// Same as listen but is also called now
   StreamSubscription<T> listenNow(
     void Function(T e)? onData, {
     Function? onError,
@@ -557,10 +607,22 @@ extension RxOperators<T> on Rx<T> {
   /// Same as dupe but enforce indistinct
   Rx<T> indistinct() => _dupe(distinct: false);
 
+  /// This is used to get a non moving value
+  T get static => clone()();
+
   /// Allow to bind to an object
-  void bind(Object other) => bindStream(other is Stream
-      ? other
-      : other is Rx
-          ? other.subject.stream
-          : (other as dynamic).stream);
+  void bind<S extends Object>(S other) {
+    if (other is Stream<T>) {
+      return bindStream(other);
+    }
+    if (other is Rx<T>) {
+      return bindStream(other.subject.stream);
+    } else {
+      try {
+        bindStream((other as dynamic).stream);
+      } catch (_) {
+        throw '$T has not method [stream]';
+      }
+    }
+  }
 }
