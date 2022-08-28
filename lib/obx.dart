@@ -434,7 +434,7 @@ class RxListenable<T> extends ListNotifierSingle implements RxInterface<T> {
 
   @override
   StreamSubscription<T> listen(
-    void Function(T)? onData, {
+    void Function(T e)? onData, {
     Function? onError,
     void Function()? onDone,
     bool? cancelOnError,
@@ -452,7 +452,7 @@ class RxListenable<T> extends ListNotifierSingle implements RxInterface<T> {
   }
 
   StreamSubscription<T> listenNow(
-    void Function(T)? onData, {
+    void Function(T e)? onData, {
     Function? onError,
     void Function()? onDone,
     bool? cancelOnError,
