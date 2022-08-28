@@ -522,9 +522,8 @@ mixin RxObjectMixin<T> on RxListenable<T> {
   /// Closing the subscription will happen automatically when the observer
   /// Widget (`ObxValue` or `Obx`) gets unmounted from the Widget tree.
   void bindStream(Stream<T> stream) {
-    final sub = subject.stream.listen((va) {
-      print("Sub works");
-      value = va;
+    final sub = stream.listen((e) {
+      value = e;
     });
     reportAdd(sub.cancel);
   }
@@ -535,7 +534,7 @@ extension RxOperators<T> on Rx<T> {
       Rx(convert?.call(_value) ?? _value as S,
           distinct: distinct ?? isDistinct);
   Rx<T> _dupe({bool? distinct}) =>
-      (_clone<T>(distinct: distinct)..bindStream(stream));
+      _clone(distinct: distinct)..bindStream(subject.stream);
 
   /// Generate an obserable based on stream transformation observable
   Rx<S> pipe<S>(Stream<S> Function(Stream<T> e) transformer,
@@ -543,7 +542,7 @@ extension RxOperators<T> on Rx<T> {
       _clone(
         convert: init,
         distinct: distinct,
-      )..bindStream(transformer(stream));
+      )..bindStream(transformer(subject.stream));
 
   /// Create a standalone copy of the observale
   /// distinct parameter is used to enforce distinct or indistinct

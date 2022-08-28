@@ -13,7 +13,7 @@ class Test extends StatelessWidget {
   }
 
   final cond = (false.iobs..listen((e) => print("initital: $e")));
-  late final iCond = cond.indistinct()..listen((e) => print("dupe: $e"));
+  late final iCond = cond.dupe()..listen((e) => print("dupe: $e"));
   final plep = false.obs;
 
   final display = "data".obs;
