@@ -8,18 +8,15 @@ class Test extends StatelessWidget {
     // print(display.isDistinct);
     // print(display2.isDistinct);
 
+    print(iCond.isDistinct);
     // Fix dispose
-    final cond = false.iobs;
-    iCond = cond.distinct().indistinct();
-    display = iCond.pipe(
-      (e) => e.map((event) => "Yes"),
-      init: (e) => "Yes",
-    )..listenNow((e) => print("Got called with $e"));
   }
 
-  late final Rx<bool> iCond;
-  late final Rx<String> display;
+  final cond = (false.iobs..listen((e) => print("initital: $e")));
+  late final iCond = cond.indistinct()..listen((e) => print("dupe: $e"));
   final plep = false.obs;
+
+  final display = "data".obs;
 
   // late final display2 = cond.pipe(
   //   (e) => e.map((event) => "No").where((event) => event == "No").skip(2),
@@ -37,19 +34,19 @@ class Test extends StatelessWidget {
         //   print("Building ObxValue");
         //   return Text(data.toString());
         // }, false.obs),
-        Obx(
-          () {
-            print("Building 1");
-            return Text("$iCond");
-          },
-        ),
+        // Obx(
+        //   () {
+        //     print("Building 1");
+        //     return Text("$iCond");
+        //   },
+        // ),
         Obx(
           () {
             print("Building 2");
             return Text("$display");
           },
         ),
-        ElevatedButton(onPressed: () => iCond(!iCond()), child: Text("Toggle")),
+        ElevatedButton(onPressed: () => cond(cond()!), child: Text("Toggle")),
       ],
     );
   }

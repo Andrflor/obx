@@ -17,6 +17,13 @@ void main() {
         boolListen('inobs', inobs, true);
       });
 
+      group('stream', () {
+        boolStreamListen('obs', obs);
+        boolStreamListen('nobs', nobs);
+        boolStreamListen('iobs', iobs);
+        boolStreamListen('inobs', inobs);
+      });
+
       group('clone', () {
         boolListen('obs', obs, false, obs.clone(), false);
         boolListen('nobs', nobs, false, nobs.clone(), false);
@@ -77,16 +84,34 @@ void boolListen(String name, Rx<bool?> rxBool, bool shouldFire,
   final value = rxBool.value;
   return test(name, () async {
     bool fired = false;
-    (child ?? rxBool).listen((e) {
+    final sub = (child ?? rxBool).stream.listen((e) {
       fired = true;
     });
     rxBool(rxBool());
-    await Future.microtask(
-        () => expect(fired, shouldFire, reason: "same failed"));
+    await Future.delayed(Duration.zero);
+    expect(fired, shouldFire, reason: "same failed");
     fired = false;
     rxBool(!rxBool()!);
-    await Future.microtask(() =>
-            expect(fired, shouldSecondFire ?? true, reason: "diff failed"))
-        .then((_) => rxBool(value));
+    await Future.delayed(Duration.zero);
+    expect(fired, shouldSecondFire ?? true, reason: "diff failed");
+    rxBool(value);
+  });
+}
+
+void boolStreamListen(String name, Rx<bool?> rxBool) {
+  final value = rxBool.value;
+  return test(name, () async {
+    bool fired = false;
+    final sub = rxBool.subject.stream.listen((e) {
+      fired = true;
+    });
+    rxBool(rxBool());
+    await Future.delayed(Duration.zero);
+    expect(fired, true, reason: "same failed");
+    fired = false;
+    rxBool(!rxBool()!);
+    await Future.delayed(Duration.zero);
+    expect(fired, true, reason: "diff failed");
+    rxBool(value);
   });
 }

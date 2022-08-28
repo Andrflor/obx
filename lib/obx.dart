@@ -384,13 +384,21 @@ class RxListenable<T> extends ListNotifierSingle implements RxInterface<T> {
 
   StreamController<T>? _controller;
 
+  void _initController() {
+    final initVal = _value;
+    _controller =
+        StreamController<T>.broadcast(onCancel: addListener(_streamListener));
+    _controller!.add(_value);
+    _stream = isDistinct
+        ? _controller!.stream.skipWhile((e) => initVal == e).distinct()
+        : _controller!.stream;
+
+    ///TODO: report to controller dispose
+  }
+
   StreamController<T> get subject {
     if (_controller == null) {
-      _controller =
-          StreamController<T>.broadcast(onCancel: addListener(_streamListener));
-      _controller?.add(_value);
-
-      ///TODO: report to controller dispose
+      _initController();
     }
     return _controller!;
   }
@@ -399,8 +407,13 @@ class RxListenable<T> extends ListNotifierSingle implements RxInterface<T> {
     _controller?.add(_value);
   }
 
+  Stream<T>? _stream;
+
   Stream<T> get stream {
-    return subject.stream;
+    if (_controller == null) {
+      _initController();
+    }
+    return _stream!;
   }
 
   T _value;
@@ -417,8 +430,7 @@ class RxListenable<T> extends ListNotifierSingle implements RxInterface<T> {
 
   set value(T newValue) {
     if (_distinct && _value == newValue) {
-      _value = newValue;
-      subject.add(_value);
+      _controller?.add(newValue);
       return;
     }
     _value = newValue;
@@ -439,11 +451,7 @@ class RxListenable<T> extends ListNotifierSingle implements RxInterface<T> {
     void Function()? onDone,
     bool? cancelOnError,
   }) {
-    final initVal = _value;
-    return (isDistinct
-            ? stream.distinct().skipWhile((e) => initVal == e)
-            : stream)
-        .listen(
+    return stream.listen(
       onData,
       onError: onError,
       onDone: onDone,
@@ -514,7 +522,10 @@ mixin RxObjectMixin<T> on RxListenable<T> {
   /// Closing the subscription will happen automatically when the observer
   /// Widget (`ObxValue` or `Obx`) gets unmounted from the Widget tree.
   void bindStream(Stream<T> stream) {
-    final sub = stream.listen((va) => value = va);
+    final sub = subject.stream.listen((va) {
+      print("Sub works");
+      value = va;
+    });
     reportAdd(sub.cancel);
   }
 }
@@ -524,7 +535,7 @@ extension RxOperators<T> on Rx<T> {
       Rx(convert?.call(_value) ?? _value as S,
           distinct: distinct ?? isDistinct);
   Rx<T> _dupe({bool? distinct}) =>
-      _clone(distinct: distinct)..bindStream(stream);
+      (_clone<T>(distinct: distinct)..bindStream(stream));
 
   /// Generate an obserable based on stream transformation observable
   Rx<S> pipe<S>(Stream<S> Function(Stream<T> e) transformer,
@@ -547,6 +558,10 @@ extension RxOperators<T> on Rx<T> {
   /// Same as dupe but enforce indistinct
   Rx<T> indistinct() => _dupe(distinct: false);
 
-  void bind(dynamic other) =>
-      bindStream(other is Stream ? other : other.stream);
+  /// Allow to bind to an object
+  void bind(Object other) => bindStream(other is Stream
+      ? other
+      : other is Rx
+          ? other.subject.stream
+          : (other as dynamic).stream);
 }
