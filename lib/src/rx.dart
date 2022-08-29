@@ -3,6 +3,14 @@ import 'package:flutter/foundation.dart';
 
 import 'notifier.dart';
 
+bool _nullableOrDefaultable<T>(T? initial) {
+  if (initial != null || null is T || defaults(T) != null) {
+    return true;
+  }
+  throw FlutterError('''Type $T is not nullable nor defaultable.
+You must provide a type to init: Rx<$T>(typeDefault)''');
+}
+
 /// TODO: check how i can get that working with lists maps and sets
 dynamic defaults<T>(Type type) {
   switch (type) {
@@ -15,22 +23,24 @@ dynamic defaults<T>(Type type) {
   }
 }
 
+T _deferDefault<T>(T? initial) => initial ?? (null is T ? null : defaults(T));
+
 class Rx<T> extends _RxImpl<T> {
   Rx._([T? initial, bool distinct = true])
-      : assert(initial != null || null is T || defaults(T) != null),
-        super(initial ?? (null is T ? null : defaults(T)), distinct: distinct);
+      : assert(_nullableOrDefaultable<T>(initial)),
+        super(_deferDefault(initial), distinct: distinct);
 
   Rx([T? initial])
-      : assert(initial != null || null is T || defaults(T) != null),
-        super(initial ?? (null is T ? null : defaults(T)), distinct: true);
+      : assert(_nullableOrDefaultable<T>(initial)),
+        super(_deferDefault(initial), distinct: true);
 
   Rx.distinct([T? initial])
-      : assert(initial != null || null is T || defaults(T) != null),
-        super(initial ?? (null is T ? null : defaults(T)), distinct: true);
+      : assert(_nullableOrDefaultable<T>(initial)),
+        super(_deferDefault(initial), distinct: true);
 
   Rx.indistinct([T? initial])
-      : assert(initial != null || null is T || defaults(T) != null),
-        super(initial ?? (null is T ? null : defaults(T)), distinct: false);
+      : assert(_nullableOrDefaultable<T>(initial)),
+        super(_deferDefault(initial), distinct: false);
 
   @override
   dynamic toJson() {

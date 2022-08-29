@@ -274,17 +274,16 @@ class RxListenable<T> extends ListNotifierSingle implements ValueListenable<T> {
   /// This method allow to remove incoming subs
   /// With a stream parameter it will remove a stream
   /// With no parameter it will removes all subs
-  void detatch([StreamSubscription<T>? sub]) {
-    if (sub != null) {
-      _subbed.remove(sub.cancel);
-      sub.cancel();
-    } else {
-      final length = _subbed.length;
-      for (int i = 0; i <= length; i++) {
-        _subbed[0]();
-        _subbed.removeAt(0);
-      }
+  @override
+  @mustCallSuper
+  void dispose() {
+    assert(_debugAssertNotDisposed());
+    final length = _subbed.length;
+    for (int i = 0; i <= length; i++) {
+      _subbed[0]();
+      _subbed.removeAt(0);
     }
+    super.dispose();
   }
 
   T _value;
