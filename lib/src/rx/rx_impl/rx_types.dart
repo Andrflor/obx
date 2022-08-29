@@ -39,35 +39,35 @@ extension RxT<T> on T {
   Rx<T?> get inobs => Rx<T?>.indistinct(this);
 }
 
-extension ListenableTransforme<T> on ValueNotifier<T> {
+extension ListenableTransformer<T extends ValueListenable<E>, E> on T {
   /// Observable of the specified type
-  Rx<T> get obs => value.obs..bind(this);
+  Rx<E> get obs => value.obs..bind(this);
 
   /// Observable of the nullbale type
-  Rx<T?> get nobs => value.nobs..bind(this);
+  Rx<E?> get nobs => value.nobs..bind(this);
 
   /// Indistinct observable of the specified type
-  Rx<T> get iobs => value.iobs..bind(this);
+  Rx<E> get iobs => value.iobs..bind(this);
 
   /// Indistinct observable of the nullable type
-  Rx<T?> get inobs => value.inobs..bind(this);
+  Rx<E?> get inobs => value.inobs..bind(this);
 
   // Make an rx from that value
-  Rx<T> toRx(T initial) => initial.obs..bind(this);
+  Rx<E> toRx() => Rx<E>.indistinct(value)..bind(this);
 }
 
 extension StreamTransform<T> on Stream<T> {
   /// Observable of the specified type
-  Rx<T?> get obs => nobs;
+  Rx<T> get obs => Rx<T>.distinct();
 
   /// Observable of the nullbale type
   Rx<T?> get nobs => null.nobs..bind(this);
 
   /// Indistinct observable of the specified type
-  Rx<T?> get iobs => inobs;
+  Rx<T> get iobs => Rx<T>.indistinct();
 
   /// Indistinct observable of the nullable type
   Rx<T?> get inobs => null.inobs..bind(this);
 
-  Rx<T> toRx(T initial) => initial.obs..bind(this);
+  Rx<T> toRx([T? initial]) => Rx<T>.indistinct(initial)..bind(this);
 }

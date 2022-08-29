@@ -1,51 +1,48 @@
 import '../rx_impl/rx_core.dart';
 
 extension RxIterableExt<T extends Iterable<E>, E> on Rx<T> {
-  bool contains(Object? element) {
-    return value.contains(element);
-  }
-
   Iterator<E> get iterator => value.iterator;
   Rx<Iterable<S>> rxCast<S>() =>
       pipe((e) => e.map((event) => event.cast<S>()), init: (e) => e.cast<S>());
 
-  // T cast<S>() => value.cast<S>();
-
+  Iterable<S> cast<S>() => value.cast<S>();
   int get length => value.length;
   bool get isEmpty => value.isEmpty;
   bool get isNotEmpty => value.isNotEmpty;
 
-  test() {
-    // value.single;
-    // value.map((e) => null)
-    // value.where((element) => false)
-    // value.whereType()
-    // value.expand((element) => null)
-    // value.contains(element)
-    // value.forEach((element) { })
-    // value.reduce((value, element) => null)
-    // value.fold(initialValue, (previousValue, element) => null)
-    // value.every((element) => false)
-    // value.join()
-    // value.any((element) => false)
-    // value.take(count)
-    // value.takeWhile((value) => false)
-    // value.skip(count)
-    // value.skipWhile((value) => false)
-    // value.singleWhere((element) => false)
-    // value.firstWhere((element) => false)
-    // value.lastWhere((element) => false)
-    // value.elementAt(index)
-  }
+  E get first => value.first;
+  E get last => value.last;
+  E get single => value.single;
 
-  E? get first => value.first;
-  E? get last => value.first;
+  bool contains(Object? element) => value.contains(element);
+  void forEach(void Function(E element) action) => value.forEach(action);
 
-  Set<E> toSet() {
-    return value.toSet();
-  }
+  Iterable<E> where(bool Function(E e) test) => value.where(test);
 
-  List<E> toList({bool growable = true}) {
-    return value.toList(growable: growable);
-  }
+  E singleWhere(bool Function(E element) test, {E Function()? orElse}) =>
+      value.singleWhere(test, orElse: orElse);
+  E firstWhere(bool Function(E element) test, {E Function()? orElse}) =>
+      value.firstWhere(test, orElse: orElse);
+  E lastWhere(bool Function(E element) test, {E Function()? orElse}) =>
+      value.lastWhere(test, orElse: orElse);
+  E elementAt(int index) => value.elementAt(index);
+
+  Iterable<S> map<S>(S Function(E e) toElement) => value.map<S>(toElement);
+  Iterable<S> whereType<S>() => value.whereType<S>();
+  Iterable<S> expand<S>(Iterable<S> Function(E element) toElements) =>
+      value.expand<S>(toElements);
+
+  Iterable<E> reduce() => value.reduce((value, element) => null);
+  Iterable<E> fold() =>
+      value.fold(initialValue, (previousValue, element) => null);
+  Iterable<E> every() => value.every((element) => false);
+  Iterable<E> join() => value.join();
+  Iterable<E> any() => value.any((element) => false);
+  Iterable<E> take() => value.take(count);
+  Iterable<E> takeWhile() => value.takeWhile((value) => false);
+  Iterable<E> skip() => value.skip(count);
+  Iterable<E> skipWhile() => value.skipWhile((value) => false);
+
+  Set<E> toSet() => value.toSet();
+  List<E> toList({bool growable = true}) => value.toList(growable: growable);
 }

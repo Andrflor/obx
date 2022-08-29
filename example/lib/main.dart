@@ -1,8 +1,28 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:rxdart/rxdart.dart';
 import 'package:obx/obx.dart';
 
 void main() => runApp(MaterialApp(home: Test()));
+
+class Valuer<T> extends ValueListenable<T> {
+  Valuer(T value) : _value = value;
+
+  T _value;
+
+  @override
+  void addListener(VoidCallback listener) {
+    // TODO: implement addListener
+  }
+
+  @override
+  void removeListener(VoidCallback listener) {
+    // TODO: implement removeListener
+  }
+
+  @override
+  // TODO: implement value
+  T get value => _value;
+}
 
 class Test extends StatelessWidget {
   Test() {
@@ -18,8 +38,9 @@ class Test extends StatelessWidget {
     // final behav = BehaviorSubject<bool>.seeded(false).obs;
     // print(behav.runtimeType);
     final test = RxList<int>();
-    test.refresh();
     test.trigger([]);
+    print(test.iterator.runtimeType);
+    test.refresh();
 
     final emit = Emitter()
       ..listen((e) {
