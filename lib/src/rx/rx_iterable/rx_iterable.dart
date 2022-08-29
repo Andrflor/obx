@@ -1,5 +1,7 @@
 import '../rx_impl/rx_core.dart';
 
+// TODO: maybe use something else than value to prevent read report??
+// TODO: add dart documentation to those iterators
 extension RxIterableExt<T extends Iterable<E>, E> on Rx<T> {
   Iterator<E> get iterator => value.iterator;
 

@@ -22,23 +22,27 @@ class Valuer<T> extends ValueListenable<T> {
   @override
   // TODO: implement value
   T get value => _value;
+
+  set value(T val) => _value = val;
 }
 
 class Test extends StatelessWidget {
   Test() {
+    final lel = Valuer(3);
+    print(Valuer(4).hashCode);
+    print(lel.hashCode);
+    lel.value = 5;
+    print(lel.hashCode);
     // print(display.isDistinct);
     // print(display2.isDistinct);
 
     // final test = false.obs;
     // final noti = ValueNotifier<bool>(false).obs;
     // print(noti.runtimeType);
-    // TODO: check how to add methods depending on the user
-    // TODO: add only behaviorSubject and other rx object transfrom
-    // TODO: if the package is installed
+
     // final behav = BehaviorSubject<bool>.seeded(false).obs;
     // print(behav.runtimeType);
     final test = RxSet(<int>{});
-    print(test.toRxSet<int>().runtimeType);
 
     test.trigger({});
     print(test.runtimeType);

@@ -2,6 +2,8 @@ import '../rx_impl/rx_core.dart';
 
 typedef Condition = bool Function();
 
+// TODO: check if not using value is better
+// TODO: check if the implementation is correct (spoiler: it will not :P)
 extension RxSetExt<E> on Rx<Set<E>> {
   /// Special override to push() element(s) in a reactive way
   /// inside the Set
@@ -14,6 +16,9 @@ extension RxSetExt<E> on Rx<Set<E>> {
   Set<S> cast<S>() => value.cast<S>();
   Rx<Set<S>> rxCast<S>() =>
       pipe((e) => e.map((event) => event.cast<S>()), init: (e) => e.cast<S>());
+
+  Set<E> toSet() => value;
+  Rx<Set<E>> toRxSet() => dupe();
 
   bool add(E value) {
     final hasAdded = this.value.add(value);
@@ -105,6 +110,9 @@ extension RxnSetExt<E> on Rx<Set<E>?> {
     }
     return hasAdded;
   }
+
+  Set<E>? toSet() => value;
+  Rx<Set<E>?> toRxSet() => dupe();
 
   E? lookup(Object? element) {
     return value?.lookup(element);

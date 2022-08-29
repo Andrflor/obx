@@ -39,6 +39,7 @@ extension RxT<T> on T {
   Rx<T?> get inobs => Rx<T?>.indistinct(this);
 }
 
+// TODO: find a way to make this not holding dynamic values
 extension ListenableTransformer<T extends ValueListenable<E>, E> on T {
   /// Observable of the specified type
   Rx<E> get obs => value.obs..bind(this);
@@ -56,6 +57,7 @@ extension ListenableTransformer<T extends ValueListenable<E>, E> on T {
   Rx<E> toRx() => Rx<E>.indistinct(value)..bind(this);
 }
 
+// TODO: find a way to proper make this work on class that extends Stream
 extension StreamTransform<T> on Stream<T> {
   /// Observable of the specified type
   Rx<T> get obs => Rx<T>.distinct();
@@ -71,3 +73,10 @@ extension StreamTransform<T> on Stream<T> {
 
   Rx<T> toRx([T? initial]) => Rx<T>.indistinct(initial)..bind(this);
 }
+
+
+// TODO: find a way to have Embed with rxdart only if the user use it
+// TODO: maybe add operators from collection in RxIterable?
+// TODO: check how Obx would detect internal object change
+// TODO: check all docuementation to be good
+// TODO: write the README.md
