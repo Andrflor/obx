@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+
 import 'dart:collection';
 
 // This callback remove the listener on addListener function
@@ -218,8 +219,10 @@ class ObxError {
 
 class RxListenable<T> extends ListNotifierSingle implements ValueListenable<T> {
   RxListenable(T val, {bool distinct = true})
-      : _distinct = distinct,
+      : _distinct = T == Null ? false : distinct,
         _value = val;
+
+  final _subbed = <VoidCallback>[];
 
   final bool _distinct;
   bool get isDistinct => _distinct;
@@ -247,12 +250,18 @@ class RxListenable<T> extends ListNotifierSingle implements ValueListenable<T> {
     return _stream!;
   }
 
-  /// Performs a trigger update
+  /// Trigger update with a new value
   /// Update the value, force notify listeners and update Widgets
   void trigger(T v) {
-    _controller?.add(_value);
+    _controller?.add(v);
     _value = v;
     _notify();
+  }
+
+  /// Trigger update with current value
+  /// Force notify listeners and update Widgets
+  void emit() {
+    trigger(_value);
   }
 
   /// Same as silent but the listeners are not notified
@@ -260,6 +269,22 @@ class RxListenable<T> extends ListNotifierSingle implements ValueListenable<T> {
   /// This means that piped object won't recieve the update
   void silent(T v) {
     _value = v;
+  }
+
+  /// This method allow to remove incoming subs
+  /// With a stream parameter it will remove a stream
+  /// With no parameter it will removes all subs
+  void detatch([StreamSubscription<T>? sub]) {
+    if (sub != null) {
+      _subbed.remove(sub.cancel);
+      sub.cancel();
+    } else {
+      final length = _subbed.length;
+      for (int i = 0; i <= length; i++) {
+        _subbed[0]();
+        _subbed.removeAt(0);
+      }
+    }
   }
 
   T _value;
@@ -334,6 +359,46 @@ class RxListenable<T> extends ListNotifierSingle implements ValueListenable<T> {
       onDone: onDone,
       cancelOnError: cancelOnError ?? false,
     );
+  }
+
+  /// Binds an existing `Stream<T>` to this Rx<T> to keep the values in sync.
+  /// You can bind multiple sources to update the value.
+  /// Once a stream closes the subscription will cancel itself
+  /// You can also cancel the sub with the provided callback
+  VoidCallback bindStream(Stream<T> stream) {
+    final sub = stream.listen((e) {
+      value = e;
+    });
+    _subbed.add(sub.cancel);
+    // ignore: prefer_function_declarations_over_variables
+    final clean = () {
+      _subbed.remove(sub.cancel);
+      sub.cancel();
+    };
+    sub.onDone(clean);
+    return clean;
+  }
+
+  /// Binds an existing `ValueListenable<T>` this might be a `ValueNotifier<T>`
+  /// Keeping this Rx<T> values in sync.
+  /// You can bind multiple sources to update the value.
+  /// It's impossible to know when a ValueListenable is Done
+  /// You will have to clean it up yourself
+  /// For that you can call the provided callback
+  VoidCallback bindListenable(ValueListenable<T> listenable) {
+    // ignore: prefer_function_declarations_over_variables
+    final closure = () {
+      value = listenable.value;
+    };
+    listenable.addListener(closure);
+    // ignore: prefer_function_declarations_over_variables
+    final cancel = () => listenable.removeListener(closure);
+    _subbed.add(cancel);
+
+    return () {
+      _subbed.remove(cancel);
+      cancel();
+    };
   }
 
   @override

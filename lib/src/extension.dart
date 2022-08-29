@@ -1,6 +1,31 @@
 import 'package:flutter/foundation.dart';
 import 'rx.dart';
 
+/// This is the emitter allowing for simple emition
+/// This is null.obs with a more explicative name
+/// Emitter will emit each time it's value change
+typedef Emitter = RxNull;
+
+//ignore: prefer_void_to_null
+typedef RxNull = Rx<Null>;
+typedef RxBool = Rx<bool>;
+typedef RxInt = Rx<int>;
+typedef RxNum = Rx<num>;
+typedef RxDouble = Rx<double>;
+typedef RxString = Rx<String>;
+typedef RxList<T> = Rx<List<T>>;
+typedef RxSet<T> = Rx<Set<T>>;
+typedef RxMap<K, V> = Rx<Map<K, V>>;
+
+typedef RxnBool = Rx<bool?>;
+typedef RxnInt = Rx<int?>;
+typedef RxnNum = Rx<num?>;
+typedef RxnDouble = Rx<double?>;
+typedef RxnString = Rx<String?>;
+typedef RxnList<T> = Rx<List?>;
+typedef RxnSet<T> = Rx<Set?>;
+typedef RxnMap<K, V> = Rx<Map<K, V>?>;
+
 extension RxT<T> on T {
   /// Observable of the specified type
   Rx<T> get obs => Rx<T>(this);
@@ -9,10 +34,10 @@ extension RxT<T> on T {
   Rx<T?> get nobs => Rx<T?>(this);
 
   /// Indistinct observable of the specified type
-  Rx<T> get iobs => Rx<T>(this, distinct: false);
+  Rx<T> get iobs => Rx<T>.indistinct(this);
 
   /// Indistinct observable of the nullable type
-  Rx<T?> get inobs => Rx<T?>(this, distinct: false);
+  Rx<T?> get inobs => Rx<T?>.indistinct(this);
 }
 
 extension ListenableTransforme<T> on ValueNotifier<T> {

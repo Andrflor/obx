@@ -3,8 +3,34 @@ import 'package:flutter/foundation.dart';
 
 import 'notifier.dart';
 
+/// TODO: check how i can get that working with lists maps and sets
+dynamic defaults<T>(Type type) {
+  switch (type) {
+    case bool:
+      return false;
+    case String:
+      return "";
+    case num:
+      return 0;
+  }
+}
+
 class Rx<T> extends _RxImpl<T> {
-  Rx(T initial, {bool distinct = true}) : super(initial, distinct: distinct);
+  Rx._([T? initial, bool distinct = true])
+      : assert(initial != null || null is T || defaults(T) != null),
+        super(initial ?? (null is T ? null : defaults(T)), distinct: distinct);
+
+  Rx([T? initial])
+      : assert(initial != null || null is T || defaults(T) != null),
+        super(initial ?? (null is T ? null : defaults(T)), distinct: true);
+
+  Rx.distinct([T? initial])
+      : assert(initial != null || null is T || defaults(T) != null),
+        super(initial ?? (null is T ? null : defaults(T)), distinct: true);
+
+  Rx.indistinct([T? initial])
+      : assert(initial != null || null is T || defaults(T) != null),
+        super(initial ?? (null is T ? null : defaults(T)), distinct: false);
 
   @override
   dynamic toJson() {
@@ -16,12 +42,15 @@ class Rx<T> extends _RxImpl<T> {
   }
 
   Rx<S> _clone<S>({bool? distinct, S Function(T e)? convert}) =>
-      Rx(convert?.call(static) ?? static as S,
-          distinct: distinct ?? isDistinct);
+      Rx._(convert?.call(static) ?? static as S, distinct ?? isDistinct);
   Rx<T> _dupe({bool? distinct}) =>
       _clone(distinct: distinct)..bindStream(subject.stream);
 
   /// Generate an obserable based on stream transformation observable
+  /// You need to provide a stream transformation
+  /// You can also provide an initial transformation (default to initial value)
+  /// Be aware that if your stream transform change the internal type
+  /// Then you must provide an initital transformation
   Rx<S> pipe<S>(Stream<S> Function(Stream<T> e) transformer,
           {S Function(T e)? init, bool? distinct}) =>
       _clone(
@@ -30,7 +59,7 @@ class Rx<T> extends _RxImpl<T> {
       )..bindStream(transformer(subject.stream));
 
   /// Create a standalone copy of the observale
-  /// distinct parameter is used to enforce distinct or indistinct
+  /// Distinct parameter is used to enforce distinct or indistinct
   Rx<T> clone({bool? distinct}) => _clone(distinct: distinct);
 
   /// Create an exact copy with same stream of the observable
@@ -43,7 +72,11 @@ class Rx<T> extends _RxImpl<T> {
   Rx<T> indistinct() => _dupe(distinct: false);
 
   /// Allow to bind to an object
-  StreamSubscription<T>? bind<S extends Object>(S other) {
+  /// The object must be a stream<T> or a valueListenable<T>
+  /// Or the object must implement a stream parameter that contains a Stream<T>
+  /// Will provide a VoidCallback to close the sub and clean
+  /// Stream subscriptions are automatically closed when the stream is done
+  VoidCallback bind<S extends Object>(S other) {
     if (other is Stream<T>) {
       return bindStream(other);
     }
@@ -52,10 +85,7 @@ class Rx<T> extends _RxImpl<T> {
       return bindStream(other.subject.stream);
     }
     if (other is ValueListenable<T>) {
-      other.addListener(() {
-        value = other.value;
-      });
-      return null;
+      return bindListenable(other);
     } else {
       try {
         final stream = (other as dynamic).stream;
@@ -63,10 +93,7 @@ class Rx<T> extends _RxImpl<T> {
           return bindStream(stream);
         } else {
           try {
-            final sub = stream.listen((e) {
-              value = e;
-            });
-            return sub;
+            return bindStream(stream);
           } catch (_) {
             throw '${stream.runtimeType} from $S method [stream] is not a Stream<$T>';
           }
@@ -90,7 +117,6 @@ abstract class _RxImpl<T> extends RxListenable<T> with RxObjectMixin<T> {
   /// Uses a callback to update [value] internally, similar to [refresh],
   /// but provides the current value as the argument.
   /// Makes sense for custom Rx types (like Models).
-
   void update(T Function(T? val) fn) {
     value = fn(value);
   }
@@ -133,15 +159,5 @@ mixin RxObjectMixin<T> on RxListenable<T> {
   set value(T val) {
     if (isDisposed) return;
     super.value = val;
-  }
-
-  /// Binds an existing `Stream<T>` to this Rx<T> to keep the values in sync.
-  /// You can bind multiple sources to update the value.
-  StreamSubscription<T> bindStream(Stream<T> stream) {
-    final sub = stream.listen((e) {
-      value = e;
-    });
-    // TODO: implement detatch?
-    return sub;
   }
 }

@@ -33,6 +33,16 @@ void main() {
         boolListen('inobs', inobs, false, inobs.clone(), false);
       });
 
+      group('emiter', () {
+        init();
+        nullListen('obs', null.obs);
+        nullListen('nobs', null.nobs);
+        nullListen('iobs', null.iobs);
+        nullListen('inobs', null.inobs);
+        nullListen('RxNull', RxNull());
+        nullListen('Emitter', Emitter());
+      });
+
       group('dupe', () {
         init();
         boolListen('obs', obs, false, obs.dupe());
@@ -124,6 +134,22 @@ void boolListen(String name, Rx<bool?> rxBool, bool shouldFire,
     rxBool(!rxBool()!);
     await Future.delayed(Duration.zero);
     expect(fired, shouldSecondFire ?? true, reason: "diff failed");
+  });
+}
+
+void nullListen(String name, Emitter emitter) {
+  return test(name, () async {
+    bool fired = false;
+    emitter.stream.listen((e) {
+      fired = true;
+    });
+    emitter.emit();
+    await Future.delayed(Duration.zero);
+    expect(fired, true, reason: "same failed");
+    fired = false;
+    emitter.emit();
+    await Future.delayed(Duration.zero);
+    expect(fired, true, reason: "diff failed");
   });
 }
 
