@@ -43,7 +43,7 @@ class Rx<T> extends _RxImpl<T> {
   Rx<T> indistinct() => _dupe(distinct: false);
 
   /// Allow to bind to an object
-  void bind<S extends Object>(S other) {
+  StreamSubscription<T>? bind<S extends Object>(S other) {
     if (other is Stream<T>) {
       return bindStream(other);
     }
@@ -55,17 +55,18 @@ class Rx<T> extends _RxImpl<T> {
       other.addListener(() {
         value = other.value;
       });
+      return null;
     } else {
       try {
         final stream = (other as dynamic).stream;
         if (stream is Stream<T>) {
-          bindStream(stream);
+          return bindStream(stream);
         } else {
           try {
             final sub = stream.listen((e) {
               value = e;
             });
-            reportAdd(sub.cancel);
+            return sub;
           } catch (_) {
             throw '${stream.runtimeType} from $S method [stream] is not a Stream<$T>';
           }
@@ -136,12 +137,11 @@ mixin RxObjectMixin<T> on RxListenable<T> {
 
   /// Binds an existing `Stream<T>` to this Rx<T> to keep the values in sync.
   /// You can bind multiple sources to update the value.
-  /// Closing the subscription will happen automatically when the observer
-  /// Widget (`ObxValue` or `Obx`) gets unmounted from the Widget tree.
-  void bindStream(Stream<T> stream) {
+  StreamSubscription<T> bindStream(Stream<T> stream) {
     final sub = stream.listen((e) {
       value = e;
     });
-    reportAdd(sub.cancel);
+    // TODO: implement detatch?
+    return sub;
   }
 }

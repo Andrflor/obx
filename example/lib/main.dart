@@ -9,27 +9,25 @@ class Test extends StatelessWidget {
     // print(display.isDistinct);
     // print(display2.isDistinct);
 
-    final test = false.obs;
-    final noti = ValueNotifier<bool>(false).obs;
-    print(noti.runtimeType);
+    // final test = false.obs;
+    // final noti = ValueNotifier<bool>(false).obs;
+    // print(noti.runtimeType);
     // TODO: check how to add methods depending on the user
     // TODO: add only behaviorSubject and other rx object transfrom
     // TODO: if the package is installed
-    final behav = BehaviorSubject<bool>.seeded(false).obs;
-    print(behav.runtimeType);
-
-    cond(!cond());
-    cond.listen((e) {
-      print("trigered $e");
-    });
+    // final behav = BehaviorSubject<bool>.seeded(false).obs;
+    // print(behav.runtimeType);
 
     // Fix dispose
   }
 
-  final cond = false.iobs;
+  final cond = false.obs;
   final plep = false.obs;
 
-  final display = "data".obs;
+  late final iCond = cond.dupe();
+  late final display = cond.pipe(
+      (e) => (e.map((event) => event ? "Yes" : "No")),
+      init: (e) => e ? "Yes" : "No");
 
   // late final display2 = cond.pipe(
   //   (e) => e.map((event) => "No").where((event) => event == "No").skip(2),
@@ -54,18 +52,20 @@ class Test extends StatelessWidget {
         //   },
         // ),
         Obx(
-          () {
-            print("Building 2");
-            return Column(
-              children: [
-                Text("${cond.static}"),
-                Text("${cond.value}"),
-              ],
-            );
-          },
+          () => iCond()
+              ? Obx(
+                  () {
+                    print("Building 2");
+                    return Column(
+                      children: [
+                        Text("$display"),
+                      ],
+                    );
+                  },
+                )
+              : Container(),
         ),
-        ElevatedButton(
-            onPressed: () => cond.refresh(cond()), child: Text("Toggle")),
+        ElevatedButton(onPressed: () => cond(!cond()), child: Text("Toggle")),
       ],
     );
   }

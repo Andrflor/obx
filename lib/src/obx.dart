@@ -4,15 +4,6 @@ import 'notifier.dart';
 
 class ObxElement = StatelessElement with StatelessObserverComponent;
 
-class Obc extends ObxWidget {
-  final WidgetBuilder builder;
-
-  const Obc(this.builder, {Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) => builder(context);
-}
-
 /// A StatelessWidget than can listen reactive changes.
 abstract class ObxWidget extends StatelessWidget {
   /// Initializes [key] for subclasses.
@@ -48,8 +39,6 @@ mixin StatelessObserverComponent on StatelessElement {
   }
 }
 
-typedef WidgetCallback = Widget Function();
-
 /// The [ObxWidget] is the base for all GetX reactive widgets
 ///
 /// See also:
@@ -64,7 +53,7 @@ typedef WidgetCallback = Widget Function();
 /// final _name = "GetX".obs;
 /// Obx(() => Text( _name.value )),... ;
 class Obx extends ObxWidget {
-  final WidgetCallback builder;
+  final Widget Function() builder;
 
   const Obx(this.builder);
 
@@ -95,4 +84,23 @@ class ObxValue<T extends Object> extends ObxWidget {
 
   @override
   Widget build(BuildContext context) => builder(data);
+}
+
+class Obc extends ObxWidget {
+  final WidgetBuilder builder;
+
+  const Obc(this.builder, {Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) => builder(context);
+}
+
+class ObcValue<T extends Object> extends ObxWidget {
+  final Widget Function(BuildContext, T) builder;
+  final T data;
+
+  const ObcValue(this.builder, this.data, {Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) => builder(context, data);
 }
