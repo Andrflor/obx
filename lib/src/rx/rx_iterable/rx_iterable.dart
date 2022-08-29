@@ -2,10 +2,10 @@ import '../rx_impl/rx_core.dart';
 
 extension RxIterableExt<T extends Iterable<E>, E> on Rx<T> {
   Iterator<E> get iterator => value.iterator;
-  Rx<Iterable<S>> rxCast<S>() =>
-      pipe((e) => e.map((event) => event.cast<S>()), init: (e) => e.cast<S>());
 
   Iterable<S> cast<S>() => value.cast<S>();
+  Rx<Iterable<S>> rxCast<S>() =>
+      pipe((e) => e.map((event) => event.cast<S>()), init: (e) => e.cast<S>());
 
   int get length => value.length;
   bool get isEmpty => value.isEmpty;
@@ -48,16 +48,22 @@ extension RxIterableExt<T extends Iterable<E>, E> on Rx<T> {
   Iterable<E> skipWhile(bool Function(E element) test) => value.skipWhile(test);
 
   Set<E> toSet() => value.toSet();
+  Rx<Set<E>> toRxSet() =>
+      pipe((e) => e.map((e) => e.toSet()), init: (e) => e.toSet());
+
   List<E> toList({bool growable = true}) => value.toList(growable: growable);
+  Rx<List<E>> toRxList({bool growable = true}) =>
+      pipe((e) => e.map((e) => e.toList(growable: growable)),
+          init: (e) => e.toList(growable: growable));
 }
 
 extension RxnIterableExt<T extends Iterable<E>?, E> on Rx<T> {
   Iterator<E>? get iterator => value?.iterator;
+
+  Iterable<S>? cast<S>() => value?.cast<S>();
   Rx<Iterable<S>?> rxCast<S>() =>
       pipe((e) => e.map((event) => event?.cast<S>()),
           init: (e) => e?.cast<S>());
-
-  Iterable<S>? cast<S>() => value?.cast<S>();
 
   int? get length => value?.length;
   bool? get isEmpty => value?.isEmpty;
@@ -102,5 +108,11 @@ extension RxnIterableExt<T extends Iterable<E>?, E> on Rx<T> {
       value?.skipWhile(test);
 
   Set<E>? toSet() => value?.toSet();
+  Rx<Set<E>?> toRxSet() =>
+      pipe((e) => e.map((e) => e?.toSet()), init: (e) => e?.toSet());
+
   List<E>? toList({bool growable = true}) => value?.toList(growable: growable);
+  Rx<List<E>?> toRxList({bool growable = true}) =>
+      pipe((e) => e.map((e) => e?.toList(growable: growable)),
+          init: (e) => e?.toList(growable: growable));
 }

@@ -4,12 +4,16 @@ typedef Condition = bool Function();
 
 extension RxSetExt<E> on Rx<Set<E>> {
   /// Special override to push() element(s) in a reactive way
-  /// inside the List,
-  Rx<Set<E>> operator +(Set<E> val) {
+  /// inside the Set
+  Rx<Set<E>> operator +(Iterable<E> val) {
     addAll(val);
     refresh();
     return this;
   }
+
+  Set<S> cast<S>() => value.cast<S>();
+  Rx<Set<S>> rxCast<S>() =>
+      pipe((e) => e.map((event) => event.cast<S>()), init: (e) => e.cast<S>());
 
   bool add(E value) {
     final hasAdded = this.value.add(value);
@@ -18,14 +22,6 @@ extension RxSetExt<E> on Rx<Set<E>> {
     }
     return hasAdded;
   }
-
-  bool contains(Object? element) {
-    return value.contains(element);
-  }
-
-  Iterator<E> get iterator => value.iterator;
-
-  int get length => value.length;
 
   E? lookup(Object? element) {
     return value.lookup(element);
@@ -37,14 +33,6 @@ extension RxSetExt<E> on Rx<Set<E>> {
       refresh();
     }
     return hasRemoved;
-  }
-
-  Set<E> toSet() {
-    return value.toSet();
-  }
-
-  List<E> toList() {
-    return value.toList();
   }
 
   void addAll(Iterable<E> elements) {
@@ -100,11 +88,15 @@ extension RxSetExt<E> on Rx<Set<E>> {
 extension RxnSetExt<E> on Rx<Set<E>?> {
   /// Special override to push() element(s) in a reactive way
   /// inside the List,
-  Rx<Set<E>?> operator +(Set<E> val) {
+  Rx<Set<E>?> operator +(Iterable<E> val) {
     addAll(val);
     refresh();
     return this;
   }
+
+  Set<S>? cast<S>() => value?.cast<S>();
+  Rx<Set<S>?> rxCast<S>() => pipe((e) => e.map((event) => event?.cast<S>()),
+      init: (e) => e?.cast<S>());
 
   bool add(E value) {
     final hasAdded = this.value?.add(value) ?? false;
@@ -113,19 +105,6 @@ extension RxnSetExt<E> on Rx<Set<E>?> {
     }
     return hasAdded;
   }
-
-  bool? contains(Object? element) {
-    return value?.contains(element);
-  }
-
-  Iterator<E>? get iterator => value?.iterator;
-
-  int? get length => value?.length;
-  bool? get isEmpty => value?.isEmpty;
-  bool? get isNotEmpty => value?.isNotEmpty;
-
-  E? get first => value?.first;
-  E? get last => value?.first;
 
   E? lookup(Object? element) {
     return value?.lookup(element);
@@ -137,14 +116,6 @@ extension RxnSetExt<E> on Rx<Set<E>?> {
       refresh();
     }
     return hasRemoved;
-  }
-
-  Set<E>? toSet() {
-    return value?.toSet();
-  }
-
-  List<E>? toList() {
-    return value?.toList();
   }
 
   void addAll(Iterable<E> elements) {

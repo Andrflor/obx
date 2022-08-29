@@ -37,9 +37,12 @@ class Test extends StatelessWidget {
     // TODO: if the package is installed
     // final behav = BehaviorSubject<bool>.seeded(false).obs;
     // print(behav.runtimeType);
-    final test = RxList<int>();
-    test.trigger([]);
-    print(test.iterator.runtimeType);
+    final test = RxSet(<int>{});
+    print(test.toRxSet<int>().runtimeType);
+
+    test.trigger({});
+    print(test.runtimeType);
+    print(test.length);
     test.refresh();
 
     final emit = Emitter()
