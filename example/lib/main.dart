@@ -21,7 +21,10 @@ class Test extends StatelessWidget {
     // Fix dispose
   }
 
-  final cond = false.obs;
+  final cond = false.obs
+    ..listen((e) {
+      print("updated $e");
+    });
   final plep = false.obs;
 
   late final iCond = cond.dupe();
@@ -52,18 +55,14 @@ class Test extends StatelessWidget {
         //   },
         // ),
         Obx(
-          () => iCond()
-              ? Obx(
-                  () {
-                    print("Building 2");
-                    return Column(
-                      children: [
-                        Text("$display"),
-                      ],
-                    );
-                  },
-                )
-              : Container(),
+          () {
+            print("Building 2");
+            return Column(
+              children: [
+                Text("$iCond"),
+              ],
+            );
+          },
         ),
         ElevatedButton(onPressed: () => cond(!cond()), child: Text("Toggle")),
       ],

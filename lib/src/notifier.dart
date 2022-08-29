@@ -222,33 +222,13 @@ class RxListenable<T> extends ListNotifierSingle implements ValueListenable<T> {
         _value = val;
 
   final bool _distinct;
-
-  bool _triggered = false;
-
   bool get isDistinct => _distinct;
 
   StreamController<T>? _controller;
 
   void _initController() {
-    final initVal = _value;
-    bool firstCall = true;
-    _controller =
-        StreamController<T>.broadcast(onCancel: addListener(_streamListener));
-    _stream = isDistinct
-        ? _controller!.stream.distinct((i, e) {
-            if (_triggered) {
-              _triggered = false;
-              return false;
-            }
-            return i == e;
-          }).skipWhile((e) {
-            if (firstCall) {
-              firstCall = false;
-              return e == initVal;
-            }
-            return false;
-          })
-        : _controller!.stream;
+    _controller = StreamController<T>.broadcast();
+    _stream = _controller!.stream;
   }
 
   StreamController<T> get subject {
@@ -256,10 +236,6 @@ class RxListenable<T> extends ListNotifierSingle implements ValueListenable<T> {
       _initController();
     }
     return _controller!;
-  }
-
-  void _streamListener() {
-    _controller?.add(_value);
   }
 
   Stream<T>? _stream;
@@ -274,27 +250,15 @@ class RxListenable<T> extends ListNotifierSingle implements ValueListenable<T> {
   /// Performs a trigger update
   /// Update the value, force notify listeners and update Widgets
   void trigger(T v) {
-    if (!isDistinct || v != _value) {
-      value = v;
-      return;
-    }
-    _triggered = true;
-    _controller?.add(v);
+    _controller?.add(_value);
     _value = v;
     _notify();
   }
 
-  /// Performs a silent update
-  /// Update value and listeners without updating widgets
-  /// Piped observable will be notified
-  void silent(T v) {
-    _controller?.add(v);
-    _value = v;
-  }
-
   /// Same as silent but the listeners are not notified
+  /// Update value without updating widgets and listeners
   /// This means that piped object won't recieve the update
-  void invisible(T v) {
+  void silent(T v) {
     _value = v;
   }
 
@@ -311,22 +275,25 @@ class RxListenable<T> extends ListNotifierSingle implements ValueListenable<T> {
 
   /// Called without a value it will refesh the ui
   /// Called with a value it will refresh the ui and update value
-  void refresh([T? value]) {
-    if (value != null) {
-      if (_distinct && _value == value) {
-        _controller?.add(value);
-      } else {
-        _value = value;
+  void refresh([T? v]) {
+    if (v != null) {
+      if (!isDistinct || v != _value) {
+        _controller?.add(v);
       }
+      _value = v;
     }
     _notify();
   }
 
   set value(T newValue) {
-    if (_distinct && _value == newValue) {
-      _controller?.add(newValue);
+    if (_value == newValue) {
+      if (!isDistinct) {
+        _controller?.add(_value);
+        _notify();
+      }
       return;
     }
+    _controller?.add(newValue);
     _value = newValue;
     _notify();
   }
@@ -338,8 +305,7 @@ class RxListenable<T> extends ListNotifierSingle implements ValueListenable<T> {
     return value;
   }
 
-  /// Allow to listen to the observable according to distinct
-  @override
+  /// Allow to listen to the observable
   StreamSubscription<T> listen(
     void Function(T e)? onData, {
     Function? onError,

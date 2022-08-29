@@ -25,14 +25,6 @@ void main() {
         boolListen('inobs', inobs, true);
       });
 
-      group('stream', () {
-        init();
-        boolStreamListen('obs', obs);
-        boolStreamListen('nobs', nobs);
-        boolStreamListen('iobs', iobs);
-        boolStreamListen('inobs', inobs);
-      });
-
       group('clone', () {
         init();
         boolListen('obs', obs, false, obs.clone(), false);
@@ -59,8 +51,8 @@ void main() {
 
       group('indistinct', () {
         init();
-        boolListen('obs', obs, true, obs.indistinct());
-        boolListen('nobs', nobs, true, nobs.indistinct());
+        boolListen('obs', obs, false, obs.indistinct());
+        boolListen('nobs', nobs, false, nobs.indistinct());
         boolListen('iobs', iobs, true, iobs.indistinct());
         boolListen('inobs', inobs, true, inobs.indistinct());
       });
@@ -90,72 +82,29 @@ void main() {
               inobs.pipe((e) => e.map((e) => ""), init: (e) => ""));
         });
       });
-      group('invisible', () {
-        group('base', () {
-          init();
-          boolInvListen('obs', obs);
-          boolInvListen('nobs', nobs);
-          boolInvListen('iobs', iobs);
-          boolInvListen('inobs', inobs);
-        });
-        group('stream', () {
-          init();
-          boolInvListen('obs', obs, true);
-          boolInvListen('nobs', nobs, true);
-          boolInvListen('iobs', iobs, true);
-          boolInvListen('inobs', inobs, true);
-        });
-      });
 
       group('trigger', () {
-        group('base', () {
-          init();
-          boolTriggerListen('obs', obs);
-          boolTriggerListen('nobs', nobs);
-          boolTriggerListen('iobs', iobs);
-          boolTriggerListen('inobs', inobs);
-        });
-        group('stream', () {
-          init();
-          boolTriggerListen('obs', obs, true);
-          boolTriggerListen('nobs', nobs, true);
-          boolTriggerListen('iobs', iobs, true);
-          boolTriggerListen('inobs', inobs, true);
-        });
+        init();
+        boolTriggerListen('obs', obs);
+        boolTriggerListen('nobs', nobs);
+        boolTriggerListen('iobs', iobs);
+        boolTriggerListen('inobs', inobs);
       });
 
       group('refresh', () {
-        group('base', () {
-          init();
-          boolRefreshListen('obs', obs);
-          boolRefreshListen('nobs', nobs);
-          boolRefreshListen('iobs', iobs);
-          boolRefreshListen('inobs', inobs);
-        });
-        group('stream', () {
-          init();
-          boolRefreshListen('obs', obs, true);
-          boolRefreshListen('nobs', nobs, true);
-          boolRefreshListen('iobs', iobs, true);
-          boolRefreshListen('inobs', inobs, true);
-        });
+        init();
+        boolRefreshListen('obs', obs);
+        boolRefreshListen('nobs', nobs);
+        boolRefreshListen('iobs', iobs);
+        boolRefreshListen('inobs', inobs);
       });
 
       group('silent', () {
-        group('base', () {
-          init();
-          boolSilentListen('obs', obs);
-          boolSilentListen('nobs', nobs);
-          boolSilentListen('iobs', iobs);
-          boolSilentListen('inobs', inobs);
-        });
-        group('stream', () {
-          init();
-          boolSilentListen('obs', obs, true);
-          boolSilentListen('nobs', nobs, true);
-          boolSilentListen('iobs', iobs, true);
-          boolSilentListen('inobs', inobs, true);
-        });
+        init();
+        boolSilentListen('obs', obs);
+        boolSilentListen('nobs', nobs);
+        boolSilentListen('iobs', iobs);
+        boolSilentListen('inobs', inobs);
       });
     });
   });
@@ -175,38 +124,6 @@ void boolListen(String name, Rx<bool?> rxBool, bool shouldFire,
     rxBool(!rxBool()!);
     await Future.delayed(Duration.zero);
     expect(fired, shouldSecondFire ?? true, reason: "diff failed");
-  });
-}
-
-void boolStreamListen(String name, Rx<bool?> rxBool) {
-  return test(name, () async {
-    bool fired = false;
-    rxBool.subject.stream.listen((e) {
-      fired = true;
-    });
-    rxBool(rxBool());
-    await Future.delayed(Duration.zero);
-    expect(fired, true, reason: "same failed");
-    fired = false;
-    rxBool(!rxBool()!);
-    await Future.delayed(Duration.zero);
-    expect(fired, true, reason: "diff failed");
-  });
-}
-
-void boolInvListen(String name, Rx<bool?> rxBool, [bool stream = false]) {
-  return test(name, () async {
-    bool fired = false;
-    (stream ? rxBool.subject.stream : rxBool.stream).listen((e) {
-      fired = true;
-    });
-    rxBool.invisible(rxBool());
-    await Future.delayed(Duration.zero);
-    expect(fired, false, reason: "same failed");
-    fired = false;
-    rxBool.invisible(!rxBool()!);
-    await Future.delayed(Duration.zero);
-    expect(fired, false, reason: "diff failed");
   });
 }
 
@@ -250,10 +167,10 @@ void boolSilentListen(String name, Rx<bool?> rxBool, [bool stream = false]) {
     });
     rxBool.silent(rxBool());
     await Future.delayed(Duration.zero);
-    expect(fired, stream ? stream : !rxBool.isDistinct, reason: "same failed");
+    expect(fired, false, reason: "same failed");
     fired = false;
     rxBool.silent(!rxBool()!);
     await Future.delayed(Duration.zero);
-    expect(fired, true, reason: "diff failed");
+    expect(fired, false, reason: "diff failed");
   });
 }
