@@ -2,44 +2,13 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../../notifier.dart';
 
-bool _nullableOrDefaultable<T>(T? initial) {
-  if (initial != null || null is T || defaults(T) != null) {
-    return true;
-  }
-  throw FlutterError('''Type $T is not nullable nor defaultable.
-You must provide a type to init: Rx<$T>(typeDefault)''');
-}
-
-/// TODO: check how i can get that working with lists maps and sets
-dynamic defaults<T>(Type type) {
-  switch (type) {
-    case bool:
-      return false;
-    case String:
-      return "";
-    case num:
-      return 0;
-  }
-}
-
-T _deferDefault<T>(T? initial) => initial ?? (null is T ? null : defaults(T));
-
 class Rx<T> extends _RxImpl<T> {
-  Rx._([T? initial, bool distinct = true])
-      : assert(_nullableOrDefaultable<T>(initial)),
-        super(_deferDefault(initial), distinct: distinct);
+  Rx._({T? initial, bool distinct = true}) : super(initial, distinct: distinct);
 
-  Rx([T? initial])
-      : assert(_nullableOrDefaultable<T>(initial)),
-        super(_deferDefault(initial), distinct: true);
+  Rx([T? initial]) : super(initial, distinct: true);
 
-  Rx.distinct([T? initial])
-      : assert(_nullableOrDefaultable<T>(initial)),
-        super(_deferDefault(initial), distinct: true);
-
-  Rx.indistinct([T? initial])
-      : assert(_nullableOrDefaultable<T>(initial)),
-        super(_deferDefault(initial), distinct: false);
+  Rx.distinct([T? initial]) : super(initial, distinct: true);
+  Rx.indistinct([T? initial]) : super(initial, distinct: false);
 
   @override
   dynamic toJson() {
@@ -50,8 +19,9 @@ class Rx<T> extends _RxImpl<T> {
     }
   }
 
-  Rx<S> _clone<S>({bool? distinct, S Function(T e)? convert}) =>
-      Rx._(convert?.call(static) ?? static as S, distinct ?? isDistinct);
+  Rx<S> _clone<S>({bool? distinct, S Function(T e)? convert}) => Rx._(
+      initial: convert?.call(static) ?? static as S,
+      distinct: distinct ?? isDistinct);
   Rx<T> _dupe({bool? distinct}) =>
       _clone(distinct: distinct)..bindStream(subject.stream);
 
@@ -116,7 +86,7 @@ class Rx<T> extends _RxImpl<T> {
 
 /// Base Rx class that manages all the stream logic for any Type.
 abstract class _RxImpl<T> extends RxListenable<T> with RxObjectMixin<T> {
-  _RxImpl(T initial, {bool distinct = true})
+  _RxImpl(T? initial, {bool distinct = true})
       : super(initial, distinct: distinct);
 
   void addError(Object error, [StackTrace? stackTrace]) {

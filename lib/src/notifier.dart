@@ -216,7 +216,7 @@ class ObxError {
 /// subclass.
 
 class RxListenable<T> extends ListNotifierSingle implements ValueListenable<T> {
-  RxListenable(T val, {bool distinct = true})
+  RxListenable(T? val, {bool distinct = true})
       : _distinct = T == Null ? false : distinct,
         _value = val;
 
@@ -224,6 +224,9 @@ class RxListenable<T> extends ListNotifierSingle implements ValueListenable<T> {
 
   final bool _distinct;
   bool get isDistinct => _distinct;
+
+  bool get hasValue => null is T || _value != null;
+  T? get valueOrNull => hasValue ? value : null;
 
   StreamController<T>? _controller;
 
@@ -259,7 +262,9 @@ class RxListenable<T> extends ListNotifierSingle implements ValueListenable<T> {
   /// Trigger update with current value
   /// Force notify listeners and update Widgets
   void emit() {
-    trigger(_value);
+    if (hasValue) {
+      trigger(_value as T);
+    }
   }
 
   /// Silent update
@@ -287,15 +292,31 @@ class RxListenable<T> extends ListNotifierSingle implements ValueListenable<T> {
     _subbed.clear();
   }
 
-  T _value;
+  T? _value;
 
   /// This is used to get a non moving value
-  T get static => _value;
+  T get static {
+    if (!hasValue) {
+      if (!hasValue) {
+        throw FlutterError(
+            '''Trying to access `static` for Rx<$T> but it's not initialized.
+Make sure to initialize it first or use `StaticOrNull` instead.''');
+      }
+    }
+    return _value as T;
+  }
+
+  T? get staticOrNull => hasValue ? _value : null;
 
   @override
   T get value {
+    if (!hasValue) {
+      throw FlutterError(
+          '''Trying to access `value` for Rx<$T> but it's not initialized.
+Make sure to initialize it first or use `ValueOrNull` instead.''');
+    }
     reportRead();
-    return _value;
+    return _value as T;
   }
 
   /// Called without a value it will refesh the ui
@@ -313,7 +334,7 @@ class RxListenable<T> extends ListNotifierSingle implements ValueListenable<T> {
   set value(T newValue) {
     if (_value == newValue) {
       if (!isDistinct) {
-        _controller?.add(_value);
+        _controller?.add(_value as T);
         _notify();
       }
       return;
@@ -327,7 +348,7 @@ class RxListenable<T> extends ListNotifierSingle implements ValueListenable<T> {
     if (v != null) {
       value = v;
     }
-    return value;
+    return valueOrNull;
   }
 
   /// Allow to listen to the observable
@@ -352,7 +373,9 @@ class RxListenable<T> extends ListNotifierSingle implements ValueListenable<T> {
     void Function()? onDone,
     bool? cancelOnError,
   }) {
-    onData?.call(_value);
+    if (hasValue) {
+      onData?.call(_value as T);
+    }
     return listen(
       onData,
       onError: onError,

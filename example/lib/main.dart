@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:rxdart/rxdart.dart';
 import 'package:obx/obx.dart';
 
 void main() => runApp(MaterialApp(home: Test()));
@@ -16,7 +17,10 @@ class Test extends StatelessWidget {
     // TODO: if the package is installed
     // final behav = BehaviorSubject<bool>.seeded(false).obs;
     // print(behav.runtimeType);
-    print(RxList<int>([33]).first.runtimeType);
+    final test = RxList<int>();
+    test.refresh();
+    test.trigger([]);
+
     final emit = Emitter()
       ..listen((e) {
         print("This is emiting");
