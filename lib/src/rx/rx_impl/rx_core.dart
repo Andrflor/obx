@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-
-import 'notifier.dart';
+import '../../notifier.dart';
 
 bool _nullableOrDefaultable<T>(T? initial) {
   if (initial != null || null is T || defaults(T) != null) {

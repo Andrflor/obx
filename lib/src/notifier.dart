@@ -1,7 +1,5 @@
 import 'dart:async';
-
 import 'package:flutter/foundation.dart';
-
 import 'dart:collection';
 
 // This callback remove the listener on addListener function
@@ -264,26 +262,29 @@ class RxListenable<T> extends ListNotifierSingle implements ValueListenable<T> {
     trigger(_value);
   }
 
-  /// Same as silent but the listeners are not notified
+  /// Silent update
   /// Update value without updating widgets and listeners
   /// This means that piped object won't recieve the update
   void silent(T v) {
     _value = v;
   }
 
-  /// This method allow to remove incoming subs
-  /// With a stream parameter it will remove a stream
-  /// With no parameter it will removes all subs
   @override
   @mustCallSuper
   void dispose() {
     assert(_debugAssertNotDisposed());
-    final length = _subbed.length;
-    for (int i = 0; i <= length; i++) {
-      _subbed[0]();
-      _subbed.removeAt(0);
-    }
+    detatch();
+    _controller?.close();
     super.dispose();
+  }
+
+  /// This method allow to remove all incoming subs
+  /// This will detatched this obs from stream listenable other piped obs
+  void detatch() {
+    for (VoidCallback callbak in _subbed) {
+      callbak();
+    }
+    _subbed.clear();
   }
 
   T _value;

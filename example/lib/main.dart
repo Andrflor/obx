@@ -16,8 +16,12 @@ class Test extends StatelessWidget {
     // TODO: if the package is installed
     // final behav = BehaviorSubject<bool>.seeded(false).obs;
     // print(behav.runtimeType);
-    print(RxList<int>([]).runtimeType);
-    // final emit = Emitter().emit();
+    print(RxList<int>([33]).first.runtimeType);
+    final emit = Emitter()
+      ..listen((e) {
+        print("This is emiting");
+      })
+      ..emit();
   }
 
   final cond = false.obs

@@ -1,9 +1,6 @@
 import 'package:flutter/foundation.dart';
-import 'rx.dart';
+import 'rx_core.dart';
 
-/// This is the emitter allowing for simple emition
-/// This is null.obs with a more explicative name
-/// Emitter will emit each time it's value change
 typedef Emitter = RxNull;
 
 //ignore: prefer_void_to_null
@@ -13,6 +10,7 @@ typedef RxInt = Rx<int>;
 typedef RxNum = Rx<num>;
 typedef RxDouble = Rx<double>;
 typedef RxString = Rx<String>;
+typedef RxIter<T> = Rx<Iterable<T>>;
 typedef RxList<T> = Rx<List<T>>;
 typedef RxSet<T> = Rx<Set<T>>;
 typedef RxMap<K, V> = Rx<Map<K, V>>;
@@ -22,6 +20,7 @@ typedef RxnInt = Rx<int?>;
 typedef RxnNum = Rx<num?>;
 typedef RxnDouble = Rx<double?>;
 typedef RxnString = Rx<String?>;
+typedef RxnIter<T> = Rx<Iterable<T>?>;
 typedef RxnList<T> = Rx<List?>;
 typedef RxnSet<T> = Rx<Set?>;
 typedef RxnMap<K, V> = Rx<Map<K, V>?>;

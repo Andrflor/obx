@@ -33,6 +33,14 @@ void main() {
         boolListen('inobs', inobs, false, inobs.clone(), false);
       });
 
+      group('detatch', () {
+        init();
+        boolListen('obs', obs, false, obs.dupe()..detatch(), false);
+        boolListen('nobs', nobs, false, nobs.dupe()..detatch(), false);
+        boolListen('iobs', iobs, false, iobs.dupe()..detatch(), false);
+        boolListen('inobs', inobs, false, inobs.dupe()..detatch(), false);
+      });
+
       group('emiter', () {
         init();
         nullListen('obs', null.obs);
