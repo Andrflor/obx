@@ -159,6 +159,7 @@ class Notifier {
 
   static Notifier? _instance;
   static Notifier get instance => _instance ??= Notifier._();
+  static bool get inBuild => instance._notifyData != null;
 
   NotifyData? _notifyData;
 

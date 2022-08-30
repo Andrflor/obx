@@ -36,6 +36,10 @@ class Test extends StatelessWidget {
     // print(display.isDistinct);
     // print(display2.isDistinct);
 
+    print(Rx(3).runtimeType);
+
+    print(Rx.oneShot<int?>(32));
+    print(Rx.oneShot<num?>(32).runtimeType);
     // final test = false.obs;
     // final noti = ValueNotifier<bool>(false).obs;
     // print(noti.runtimeType);

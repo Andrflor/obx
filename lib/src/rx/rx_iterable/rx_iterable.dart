@@ -1,3 +1,4 @@
+import '../../../obx.dart';
 import '../rx_impl/rx_core.dart';
 
 // TODO: maybe use something else than value to prevent read report??
@@ -9,9 +10,9 @@ extension RxIterableExt<T extends Iterable<E>, E> on Rx<T> {
   Rx<Iterable<S>> rxCast<S>() =>
       pipe((e) => e.map((event) => event.cast<S>()), init: (e) => e.cast<S>());
 
-  int get length => value.length;
-  bool get isEmpty => value.isEmpty;
-  bool get isNotEmpty => value.isNotEmpty;
+  Rx<int> get length => pipe((e)=> e.map((event) => event.length), init:(e) => e.length, distinct: true);
+  bool get isEmpty => Notifier.inBuild ? length.pipe((e) => null) : static.isEmpty;
+  bool get isNotEmpty => Notifier.inBuild ? : static.isNotEmpty;
 
   E get first => value.first;
   E get last => value.last;

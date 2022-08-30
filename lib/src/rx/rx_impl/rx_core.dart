@@ -10,6 +10,8 @@ class Rx<T> extends _RxImpl<T> {
   Rx.distinct([T? initial]) : super(initial, distinct: true);
   Rx.indistinct([T? initial]) : super(initial, distinct: false);
 
+  static S oneShot<S>(S value) => Notifier.inBuild ? Rx<S>(value).value : value;
+
   @override
   dynamic toJson() {
     try {
@@ -36,6 +38,38 @@ class Rx<T> extends _RxImpl<T> {
         convert: init,
         distinct: distinct,
       )..bindStream(transformer(subject.stream));
+
+  /// This is a convenient function to make a common pipe operation
+  /// This will map the value of this observable in another
+  /// Do not chain that kind of operators
+  /// If you have more complex operation to do, use pipe instead
+  Rx<S> pipeMap<S>(S Function(T e) transform, {bool? distinct}) =>
+      pipe((e) => e.map(transform), init: transform, distinct: distinct);
+
+  /// This is a convenient function to make a common pipe operation
+  /// This will create an observalbe based on the condition assertion
+  /// Do not chain that kind of operators
+  /// If you have more complex operation to do, use pipe instead
+  Rx<T> pipeWhere(bool Function(T e) test, {bool? distinct}) =>
+      pipe((e) => e.where(test), distinct: distinct);
+
+  /// This is a convenient function to make a common pipe operation
+  /// This will first map it and then assert the condition
+  /// Do not chain operators, prefer this
+  /// If you have more complex operation to do, use pipe instead
+  Rx<S> pipeMapWhere<S>(S Function(T e) transform, bool Function(S e) test,
+          {bool? distinct}) =>
+      pipe((e) => e.map(transform).where(test),
+          init: transform, distinct: distinct);
+
+  /// This is a convenient function to make a common pipe operation
+  /// This will first assert the condition then map it
+  /// Do not chain operators, prefer this
+  /// If you have more complex operation to do, use pipe instead
+  Rx<S> pipeWhereMap<S>(bool Function(T e) test, S Function(T e) transform,
+          {bool? distinct}) =>
+      pipe((e) => e.where(test).map(transform),
+          init: transform, distinct: distinct);
 
   /// Create a standalone copy of the observale
   /// Distinct parameter is used to enforce distinct or indistinct
