@@ -41,6 +41,13 @@ class Test extends StatelessWidget {
 
     final liste = [0.obs, 0.obs];
     liste.observe((data) => data.first * 2);
+    final rx = RxBool(true);
+    print(rx.runtimeType);
+    final rnx = RxnBool(true);
+    print(rnx.runtimeType);
+
+    print("here");
+    print((rnx & true).runtimeType);
     print(liste.runtimeType);
     print(liste[0].runtimeType);
     print(liste[1].runtimeType);
