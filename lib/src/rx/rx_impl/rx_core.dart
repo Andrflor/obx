@@ -92,13 +92,6 @@ abstract class _RxImpl<T> extends RxListenable<T> with RxObjectMixin<T> {
   void addError(Object error, [StackTrace? stackTrace]) {
     subject.addError(error, stackTrace);
   }
-
-  /// Uses a callback to update [value] internally, similar to [refresh],
-  /// but provides the current value as the argument.
-  /// Makes sense for custom Rx types (like Models).
-  void update(T Function(T? val) fn) {
-    value = fn(value);
-  }
 }
 
 mixin RxObjectMixin<T> on RxListenable<T> {
