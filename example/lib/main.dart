@@ -47,6 +47,7 @@ class Test extends StatelessWidget {
     // print(display.isDistinct);
     // print(display2.isDistinct);
 
+	DartSdk().isPackageGloballyActivated(String package);
     final liste = [0.obs, 0.obs];
     liste.observe((data) => data.first * 2);
     final rx = RxBool(true);

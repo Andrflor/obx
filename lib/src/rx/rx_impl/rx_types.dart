@@ -47,6 +47,11 @@ extension StreamTransform<E> on Stream<E> {
   Rx<E> toRx([E? initial]) => Rx<E>.indistinct(initial)..bind(this);
 }
 
+/// This is used to provide consistent api
+extension RxDupe<E> on Rx<E> {
+  /// Observable of the specified type
+  Rx<E> get obs => dupe();
+}
 
 // TODO: find a way to have Embed with rxdart only if the user use it
 // TODO: maybe add operators from collection in RxIterable?
