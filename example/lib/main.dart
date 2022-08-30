@@ -34,6 +34,14 @@ extension Plopi<T> on List<Rx<T>> {
   }
 }
 
+extension Bend<T> on Rx<T> {
+  void bend(Valuer v) {}
+}
+
+extension Bind<T> on Rx<T> {
+  void bend(RxBool v) {}
+}
+
 class Test extends StatelessWidget {
   Test() {
     // print(display.isDistinct);
@@ -42,6 +50,8 @@ class Test extends StatelessWidget {
     final liste = [0.obs, 0.obs];
     liste.observe((data) => data.first * 2);
     final rx = RxBool(true);
+    final rxStr = RxString("");
+    print(rxStr < 3);
     print(rx.runtimeType);
     final rnx = RxnBool(true);
     print(rnx.runtimeType);

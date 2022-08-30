@@ -12,6 +12,12 @@ extension RxStringExt on Rx<String> {
 
   int get length => observe((e) => e.length);
 
+  bool operator <(num other) => observe((e) => e.length < other);
+  bool operator <=(num other) => observe((e) => e.length <= other);
+
+  bool operator >(num other) => observe((e) => e.length > other);
+  bool operator >=(num other) => observe((e) => e.length >= other);
+
   /// Returns true if this string starts with a match of [pattern].
   bool startsWith(Pattern pattern, [int index = 0]) =>
       observe((e) => e.startsWith(pattern, index));
@@ -196,6 +202,16 @@ extension RxStringExt on Rx<String> {
 
 extension RxnStringExt on Rx<String?> {
   String operator +(String val) => (observe((e) => e == null ? val : e + val));
+
+  bool operator <(num other) =>
+      observe((e) => e == null ? true : e.length < other);
+  bool operator <=(num other) =>
+      observe((e) => e == null ? true : e.length <= other);
+
+  bool operator >(num other) =>
+      observe((e) => e == null ? false : e.length > other);
+  bool operator >=(num other) =>
+      observe((e) => e == null ? false : e.length >= other);
 
   int? compareTo(String other) => observe((e) => e?.compareTo(other));
 

@@ -7,6 +7,12 @@ extension RxIterableExt<T extends Iterable<E>, E> on Rx<T> {
   Iterator<E> get iterator => value.iterator;
   E operator [](int index) => elementAt(index);
 
+  bool operator <(num other) => observe((e) => e.length < other);
+  bool operator <=(num other) => observe((e) => e.length <= other);
+
+  bool operator >(num other) => observe((e) => e.length > other);
+  bool operator >=(num other) => observe((e) => e.length >= other);
+
   Iterable<S> cast<S>() => value.cast<S>();
   Rx<Iterable<S>?> pipeCast<S>() => pipeMap((e) => e.cast<S>());
 
@@ -71,6 +77,16 @@ extension RxIterableExt<T extends Iterable<E>, E> on Rx<T> {
 extension RxnIterableExt<T extends Iterable<E>?, E> on Rx<T> {
   Iterator<E>? get iterator => value?.iterator;
   E? operator [](int index) => elementAt(index);
+
+  bool operator <(num other) =>
+      observe((e) => e == null ? true : e.length < other);
+  bool operator <=(num other) =>
+      observe((e) => e == null ? true : e.length <= other);
+
+  bool operator >(num other) =>
+      observe((e) => e == null ? false : e.length > other);
+  bool operator >=(num other) =>
+      observe((e) => e == null ? false : e.length >= other);
 
   Iterable<S>? cast<S>() => value?.cast<S>();
   Rx<Iterable<S>?> pipeCast<S>() => pipeMap((e) => e?.cast<S>());
