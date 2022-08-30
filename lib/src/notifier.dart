@@ -451,3 +451,5 @@ Make sure to initialize it first or use `ValueOrNull` instead.''');
   @override
   String toString() => value.toString();
 }
+
+bool isSubtype<S, T>() => <S>[] is List<T>;
