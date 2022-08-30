@@ -2,16 +2,16 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:obx/obx.dart';
 
-Rx<bool> obs = false.obs;
-Rx<bool?> nobs = false.nobs;
-Rx<bool> iobs = false.iobs;
-Rx<bool?> inobs = false.inobs;
+RxBool obs = false.obs;
+RxnBool nobs = RxnBool(false);
+RxBool iobs = RxBool.indistinct(false);
+RxnBool inobs = RxnBool.indistinct(false);
 
 void init() {
   obs = false.obs;
-  nobs = false.nobs;
-  iobs = false.iobs;
-  inobs = false.inobs;
+  nobs = RxnBool(false);
+  iobs = RxBool.indistinct(false);
+  inobs = RxnBool.indistinct(false);
 }
 
 void main() {
@@ -44,9 +44,7 @@ void main() {
       group('emiter', () {
         init();
         nullListen('obs', null.obs);
-        nullListen('nobs', null.nobs);
-        nullListen('iobs', null.iobs);
-        nullListen('inobs', null.inobs);
+        nullListen('iobs', RxNull.indistinct());
         nullListen('RxNull', RxNull());
         nullListen('Emitter', Emitter());
       });

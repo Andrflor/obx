@@ -28,15 +28,6 @@ typedef RxnMap<K, V> = Rx<Map<K, V>?>;
 extension RxT<T> on T {
   /// Observable of the specified type
   Rx<T> get obs => Rx<T>(this);
-
-  /// Observable of the nullbale type
-  Rx<T?> get nobs => Rx<T?>(this);
-
-  /// Indistinct observable of the specified type
-  Rx<T> get iobs => Rx<T>.indistinct(this);
-
-  /// Indistinct observable of the nullable type
-  Rx<T?> get inobs => Rx<T?>.indistinct(this);
 }
 
 // TODO: find a way to make this not holding dynamic values
@@ -44,34 +35,16 @@ extension ListenableTransformer<T extends ValueListenable<E>, E> on T {
   /// Observable of the specified type
   Rx<E> get obs => value.obs..bind(this);
 
-  /// Observable of the nullbale type
-  Rx<E?> get nobs => value.nobs..bind(this);
-
-  /// Indistinct observable of the specified type
-  Rx<E> get iobs => value.iobs..bind(this);
-
-  /// Indistinct observable of the nullable type
-  Rx<E?> get inobs => value.inobs..bind(this);
-
   // Make an rx from that value
   Rx<E> toRx() => Rx<E>.indistinct(value)..bind(this);
 }
 
 // TODO: find a way to proper make this work on class that extends Stream
-extension StreamTransform<T> on Stream<T> {
+extension StreamTransform<E> on Stream<E> {
   /// Observable of the specified type
-  Rx<T> get obs => Rx<T>.distinct();
+  Rx<E> get obs => Rx<E>()..bind(this);
 
-  /// Observable of the nullbale type
-  Rx<T?> get nobs => null.nobs..bind(this);
-
-  /// Indistinct observable of the specified type
-  Rx<T> get iobs => Rx<T>.indistinct();
-
-  /// Indistinct observable of the nullable type
-  Rx<T?> get inobs => null.inobs..bind(this);
-
-  Rx<T> toRx([T? initial]) => Rx<T>.indistinct(initial)..bind(this);
+  Rx<E> toRx([E? initial]) => Rx<E>.indistinct(initial)..bind(this);
 }
 
 

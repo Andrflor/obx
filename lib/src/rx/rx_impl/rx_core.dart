@@ -7,11 +7,11 @@ class Rx<T> extends _RxImpl<T> {
       : super(initial, distinct: distinct);
 
   Rx([T? initial]) : super(initial, distinct: true);
-
-  Rx.distinct([T? initial]) : super(initial, distinct: true);
   Rx.indistinct([T? initial]) : super(initial, distinct: false);
 
   /// This allow to observe the changes
+  /// So you can only do when to observable are differents
+  /// Maybe remove that ?? Is there a point to observe this??
   @override
   bool operator ==(Object o) {
     // TODO: find a common implementation for the hashCode of different Types.
