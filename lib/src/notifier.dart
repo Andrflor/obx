@@ -219,13 +219,23 @@ class ObxError {
 class OneShot<T> extends RxListenable<T> {
   OneShot(super.val, {super.distinct = true});
 
-  static OneShot<T> fromMap<S, T>(
-    Rx<S> parent,
-    T Function(S e) transform,
+  static OneShot<T> fromMap<E, T>(
+    Rx<E> parent,
+    T Function(E e) transform,
   ) =>
-      OneShot(parent.hasValue ? transform(parent.static) : null,
-          distinct: parent.isDistinct)
+      OneShot(parent.hasValue ? transform(parent.static) : null)
         ..bindStream(parent.stream.map(transform));
+
+  // static OneShot<T> fromMap2<E, V, T>(
+  //   Rx<E> parent1,
+  //   Rx<V> parent2,
+  //   T Function(E e1, V e2) transform,
+  // ) =>
+  //     OneShot(parent1.hasValue || parent2.hasValue
+  //         ? transform(parent1.static, parent2.static)
+  //         : null)
+  //       // TODO: find a way to map this properli
+  //       ..bindStream(parent1.stream.map(transform));
 
   @override
   void _notify() {
@@ -385,6 +395,8 @@ Make sure to initialize it first or use `ValueOrNull` instead.''');
     return stream.listen(
       onData,
       onError: onError,
+
+      /// Implement cleanUp of the controller if there is no more streams
       onDone: onDone,
       cancelOnError: cancelOnError ?? false,
     );
@@ -415,7 +427,30 @@ Make sure to initialize it first or use `ValueOrNull` instead.''');
   VoidCallback bindStream(Stream<T> stream) {
     final sub = stream.listen((e) {
       value = e;
-    });
+    }, cancelOnError: false);
+    _subbed.add(sub.cancel);
+    // ignore: prefer_function_declarations_over_variables
+    final clean = () {
+      _subbed.remove(sub.cancel);
+      sub.cancel();
+    };
+    sub.onDone(clean);
+    return clean;
+  }
+
+  VoidCallback bindRx(Rx<T> rx, [Stream<T>? stream]) {
+    final sub = stream == null
+        ? rx.listen((e) {
+            value = e;
+          })
+        : stream.listen(
+            (e) {
+              value = e;
+            },
+            cancelOnError: false,
+            // TODO: implement some cleanup
+            // onDone: rx._checkClean,
+          );
     _subbed.add(sub.cancel);
     // ignore: prefer_function_declarations_over_variables
     final clean = () {
