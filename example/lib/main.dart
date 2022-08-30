@@ -38,8 +38,12 @@ class Test extends StatelessWidget {
 
     print(Rx(3).runtimeType);
 
-    print(Rx.oneShot<int?>(32));
-    print(Rx.oneShot<num?>(32).runtimeType);
+    final list = RxList([3]);
+    print(list.runtimeType);
+
+    bool isSubtype<S, T>() => <S>[] is List<T>;
+    print("check subtype: ${isSubtype<Rx, Rx>()}");
+    list.length;
     // final test = false.obs;
     // final noti = ValueNotifier<bool>(false).obs;
     // print(noti.runtimeType);
@@ -59,6 +63,8 @@ class Test extends StatelessWidget {
       })
       ..emit();
   }
+
+  final list = [3].obs;
 
   final cond = false.obs
     ..listen((e) {
@@ -98,12 +104,12 @@ class Test extends StatelessWidget {
             print("Building 2");
             return Column(
               children: [
-                Text("$iCond"),
+                Text("${list.first}"),
               ],
             );
           },
         ),
-        ElevatedButton(onPressed: () => cond(!cond()), child: Text("Toggle")),
+        ElevatedButton(onPressed: () => list([5, 4]), child: Text("Toggle")),
       ],
     );
   }

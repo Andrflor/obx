@@ -1,81 +1,88 @@
 import '../rx_impl/rx_core.dart';
 import '../../notifier.dart';
 
-// TODO: maybe use something else than value to prevent read report??
+bool isSubtype<S, T>() => <S>[] is List<T>;
+
 // TODO: add dart documentation to those iterators
 extension RxIterableExt<T extends Iterable<E>, E> on Rx<T> {
   Iterator<E> get iterator => value.iterator;
 
+  _observe<S>(S Function(T val) toElement) => Notifier.inBuild
+      ? OneShot.fromMap<T, S>(this, toElement).value
+      : toElement(static);
+
   Iterable<S> cast<S>() => value.cast<S>();
-  Rx<Iterable<S>> pipeCast<S>() =>
-      pipe((e) => e.map((event) => event.cast<S>()), init: (e) => e.cast<S>());
+  Rx<Iterable<S>?> pipeCast<S>() => pipeMap((e) => e.cast<S>());
 
-  Rx<int> get length => pipe((e) => e.map((event) => event.length),
-      init: (e) => e.length, distinct: true);
+  Rx<int> get length => pipeMap((e) => e.length);
 
-  bool get isEmpty => Notifier.inBuild
-      ? pipeMap((e) => e.length == 0, distinct: true).value
-      : static.isEmpty;
-  bool get isNotEmpty => Notifier.inBuild
-      ? pipeMap((e) => e.length != 0, distinct: true).value
-      : static.isNotEmpty;
-  E get first => value.first;
-  E get last => value.last;
-  E get single => value.single;
+  bool get isEmpty => _observe((e) => e.isEmpty);
+  bool get isNotEmpty => _observe((e) => e.isEmpty);
 
-  bool contains(Object? element) => value.contains(element);
+  E get first => _observe((e) => e.first);
+  E get last => _observe((e) => e.last);
+  E get single => _observe((e) => e.single);
+
+  bool contains(Object? element) => _observe((e) => e.contains(
+      element is Rx && !isSubtype<E, Rx>() ? element.value : element));
+
   void forEach(void Function(E element) action) => value.forEach(action);
 
-  Iterable<E> where(bool Function(E e) test) => value.where(test);
+  Iterable<E> where(bool Function(E e) test) => _observe((e) => e.where(test));
 
   E singleWhere(bool Function(E element) test, {E Function()? orElse}) =>
-      value.singleWhere(test, orElse: orElse);
+      _observe((e) => e.singleWhere(test, orElse: orElse));
   E firstWhere(bool Function(E element) test, {E Function()? orElse}) =>
-      value.firstWhere(test, orElse: orElse);
+      _observe((e) => e.firstWhere(test, orElse: orElse));
   E lastWhere(bool Function(E element) test, {E Function()? orElse}) =>
-      value.lastWhere(test, orElse: orElse);
-  E elementAt(int index) => value.elementAt(index);
+      _observe((e) => e.lastWhere(test, orElse: orElse));
+  E elementAt(int index) => _observe((e) => e.elementAt(index));
 
-  Iterable<S> map<S>(S Function(E e) toElement) => value.map<S>(toElement);
-  Iterable<S> whereType<S>() => value.whereType<S>();
+  Iterable<S> map<S>(S Function(E e) toElement) =>
+      _observe((e) => e.map<S>(toElement));
+  Iterable<S> whereType<S>() => _observe((e) => e.whereType<S>());
   Iterable<S> expand<S>(Iterable<S> Function(E element) toElements) =>
-      value.expand<S>(toElements);
+      _observe((e) => e.expand<S>(toElements));
 
-  E reduce(E Function(E value, E element) combine) => value.reduce(combine);
+  E reduce(E Function(E value, E element) combine) =>
+      _observe((e) => e.reduce(combine));
   S fold<S>(S initialValue, S Function(S previousValue, E element) combine) =>
-      value.fold<S>(initialValue, combine);
+      _observe((e) => e.fold<S>(initialValue, combine));
 
-  String join([String separator = ""]) => value.join(separator);
-  bool every(bool Function(E element) test) => value.every(test);
-  bool any(bool Function(E element) test) => value.any(test);
+  String join([String separator = ""]) => _observe((e) => e.join(separator));
+  bool every(bool Function(E element) test) => _observe((e) => e.every(test));
+  bool any(bool Function(E element) test) => _observe((e) => e.any(test));
 
-  Iterable<E> take(int count) => value.take(count);
-  Iterable<E> takeWhile(bool Function(E element) test) => value.takeWhile(test);
+  Iterable<E> take(int count) => _observe((e) => e.take(count));
+  Iterable<E> takeWhile(bool Function(E element) test) =>
+      _observe((e) => e.takeWhile(test));
 
-  Iterable<E> skip(int count) => value.skip(count);
-  Iterable<E> skipWhile(bool Function(E element) test) => value.skipWhile(test);
+  Iterable<E> skip(int count) => _observe((e) => e.skip(count));
+  Iterable<E> skipWhile(bool Function(E element) test) =>
+      _observe((e) => e.skipWhile(test));
 
   Set<E> toSet() => value.toSet();
-  Rx<Set<E>> toRxSet() =>
-      pipe((e) => e.map((e) => e.toSet()), init: (e) => e.toSet());
+  Rx<Set<E>?> toPipeSet() => pipeMap((e) => e.toSet());
 
   List<E> toList({bool growable = true}) => value.toList(growable: growable);
-  Rx<List<E>> toRxList({bool growable = true}) =>
-      pipe((e) => e.map((e) => e.toList(growable: growable)),
-          init: (e) => e.toList(growable: growable));
+  Rx<List<E>> toPipeList({bool growable = true}) =>
+      pipeMap((e) => e.toList(growable: growable));
 }
 
 extension RxnIterableExt<T extends Iterable<E>?, E> on Rx<T> {
   Iterator<E>? get iterator => value?.iterator;
 
   Iterable<S>? cast<S>() => value?.cast<S>();
-  Rx<Iterable<S>?> pipeCast<S>() =>
-      pipe((e) => e.map((event) => event?.cast<S>()),
-          init: (e) => e?.cast<S>());
+  Rx<Iterable<S>?> pipeCast<S>() => pipeMap((e) => e?.cast<S>());
 
-  int? get length => value?.length;
-  bool? get isEmpty => value?.isEmpty;
-  bool? get isNotEmpty => value?.isNotEmpty;
+  Rx<int?> get length => pipeMap((e) => e?.length);
+
+  bool? get isEmpty => Notifier.inBuild
+      ? pipeMap((e) => e == null ? null : e.length == 0).value
+      : (static == null ? null : static?.length == 0);
+  bool? get isNotEmpty => Notifier.inBuild
+      ? pipeMap((e) => e == null ? null : e.length != 0).value
+      : (static == null ? null : static?.length != 0);
 
   E? get first => value?.first;
   E? get last => value?.last;
@@ -116,11 +123,9 @@ extension RxnIterableExt<T extends Iterable<E>?, E> on Rx<T> {
       value?.skipWhile(test);
 
   Set<E>? toSet() => value?.toSet();
-  Rx<Set<E>?> toRxSet() =>
-      pipe((e) => e.map((e) => e?.toSet()), init: (e) => e?.toSet());
+  Rx<Set<E>?> toPipeSet() => pipeMap((e) => e?.toSet());
 
   List<E>? toList({bool growable = true}) => value?.toList(growable: growable);
-  Rx<List<E>?> toRxList({bool growable = true}) =>
-      pipe((e) => e.map((e) => e?.toList(growable: growable)),
-          init: (e) => e?.toList(growable: growable));
+  Rx<List<E>?> toPipeList({bool growable = true}) =>
+      pipeMap((e) => e?.toList(growable: growable));
 }

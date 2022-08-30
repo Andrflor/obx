@@ -3,14 +3,13 @@ import 'package:flutter/foundation.dart';
 import '../../notifier.dart';
 
 class Rx<T> extends _RxImpl<T> {
-  Rx._({T? initial, bool distinct = true}) : super(initial, distinct: distinct);
+  Rx._({T? initial, bool distinct = true, bool oneShot = false})
+      : super(initial, distinct: distinct);
 
   Rx([T? initial]) : super(initial, distinct: true);
 
   Rx.distinct([T? initial]) : super(initial, distinct: true);
   Rx.indistinct([T? initial]) : super(initial, distinct: false);
-
-  static S oneShot<S>(S value) => Notifier.inBuild ? Rx<S>(value).value : value;
 
   @override
   dynamic toJson() {

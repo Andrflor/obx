@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'dart:collection';
 
+import 'rx/rx_impl/rx_core.dart';
+
 // This callback remove the listener on addListener function
 typedef Disposer = void Function();
 
@@ -208,6 +210,27 @@ class ObxError {
       (example: GetX => HeavyWidget => variableObservable).
       If you need to update a parent widget and a child widget, wrap each one in an Obx/GetX.
       """;
+  }
+}
+
+/// This class is internal to the package
+/// It's used to get value that refresh themselves
+/// For usage examples check in rx_iterable
+class OneShot<T> extends RxListenable<T> {
+  OneShot(super.val, {super.distinct = true});
+
+  static OneShot<T> fromMap<S, T>(
+    Rx<S> parent,
+    T Function(S e) transform,
+  ) =>
+      OneShot(parent.hasValue ? transform(parent.static) : null,
+          distinct: parent.isDistinct)
+        ..bindStream(parent.stream.map(transform));
+
+  @override
+  void _notify() {
+    super._notify();
+    dispose();
   }
 }
 
