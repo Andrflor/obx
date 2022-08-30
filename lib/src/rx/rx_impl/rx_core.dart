@@ -21,19 +21,22 @@ class Rx<T> extends _RxImpl<T> {
     }
   }
 
-  Rx<S> _clone<S>({bool? distinct, S Function(T e)? convert}) => Rx._(
-      initial: convert?.call(static) ?? static as S,
+  Rx<S> _clone<S>({bool? distinct, S? Function(T e)? convert}) => Rx._(
+      // TODO assert if null is S or not in that
+      initial: hasValue ? (convert?.call(static) ?? static as S) : null,
       distinct: distinct ?? isDistinct);
   Rx<T> _dupe({bool? distinct}) =>
       _clone(distinct: distinct)..bindStream(subject.stream);
 
-  /// Generate an obserable based on stream transformation observable
-  /// You need to provide a stream transformation
+  /// Generates an obserable based on stream transformation of the observable
+  /// You need to provide the stream transformation
   /// You can also provide an initial transformation (default to initial value)
   /// Be aware that if your stream transform change the internal type
-  /// Then you must provide an initital transformation
+  /// And you don't provide an initial transformation
+  /// The value of the observable will default to null or empty
+  /// If you wan an initial value in such cases you must provide the initital transformation
   Rx<S> pipe<S>(Stream<S> Function(Stream<T> e) transformer,
-          {S Function(T e)? init, bool? distinct}) =>
+          {S? Function(T e)? init, bool? distinct}) =>
       _clone(
         convert: init,
         distinct: distinct,
@@ -75,13 +78,19 @@ class Rx<T> extends _RxImpl<T> {
   /// Distinct parameter is used to enforce distinct or indistinct
   Rx<T> clone({bool? distinct}) => _clone(distinct: distinct);
 
-  /// Create an exact copy with same stream of the observable
+  /// Create an exact copy of the observable
+  /// The dupe will receive all event comming from the original
   Rx<T> dupe() => _dupe();
 
-  /// Same as dupe but enforce distinct
+  /// Create an exact copy of the observable but distinct enforced
+  /// The dupe will receive all event comming from the original
+  /// Events that are indistinct will be skipped
   Rx<T> distinct() => _dupe(distinct: true);
 
-  /// Same as dupe but enforce indistinct
+  /// Create an exact copy of the observable but indistinct enforced
+  /// The dupe will receive all event comming from the original
+  /// Be aware that even if this observable is indistinct
+  /// The value it recieves from the parent will match parent policy
   Rx<T> indistinct() => _dupe(distinct: false);
 
   /// Allow to bind to an object

@@ -1,5 +1,5 @@
-import '../../../obx.dart';
 import '../rx_impl/rx_core.dart';
+import '../../notifier.dart';
 
 // TODO: maybe use something else than value to prevent read report??
 // TODO: add dart documentation to those iterators
@@ -7,13 +7,18 @@ extension RxIterableExt<T extends Iterable<E>, E> on Rx<T> {
   Iterator<E> get iterator => value.iterator;
 
   Iterable<S> cast<S>() => value.cast<S>();
-  Rx<Iterable<S>> rxCast<S>() =>
+  Rx<Iterable<S>> pipeCast<S>() =>
       pipe((e) => e.map((event) => event.cast<S>()), init: (e) => e.cast<S>());
 
-  Rx<int> get length => pipe((e)=> e.map((event) => event.length), init:(e) => e.length, distinct: true);
-  bool get isEmpty => Notifier.inBuild ? length.pipe((e) => null) : static.isEmpty;
-  bool get isNotEmpty => Notifier.inBuild ? : static.isNotEmpty;
+  Rx<int> get length => pipe((e) => e.map((event) => event.length),
+      init: (e) => e.length, distinct: true);
 
+  bool get isEmpty => Notifier.inBuild
+      ? pipeMap((e) => e.length == 0, distinct: true).value
+      : static.isEmpty;
+  bool get isNotEmpty => Notifier.inBuild
+      ? pipeMap((e) => e.length != 0, distinct: true).value
+      : static.isNotEmpty;
   E get first => value.first;
   E get last => value.last;
   E get single => value.single;
@@ -64,7 +69,7 @@ extension RxnIterableExt<T extends Iterable<E>?, E> on Rx<T> {
   Iterator<E>? get iterator => value?.iterator;
 
   Iterable<S>? cast<S>() => value?.cast<S>();
-  Rx<Iterable<S>?> rxCast<S>() =>
+  Rx<Iterable<S>?> pipeCast<S>() =>
       pipe((e) => e.map((event) => event?.cast<S>()),
           init: (e) => e?.cast<S>());
 
