@@ -26,24 +26,27 @@ class Valuer<T> extends ValueListenable<T> {
   set value(T val) => _value = val;
 }
 
+callback<T>(Rx<T> data) {}
+
+extension Plopi<T> on List<Rx<T>> {
+  S observe<S>(S Function(List<Rx<T>> e) toElement) {
+    return toElement(this);
+  }
+}
+
 class Test extends StatelessWidget {
   Test() {
-    final lel = Valuer(3);
-    print(Valuer(4).hashCode);
-    print(lel.hashCode);
-    lel.value = 5;
-    print(lel.hashCode);
     // print(display.isDistinct);
     // print(display2.isDistinct);
 
-    print(Rx(3).runtimeType);
-
-    final list = RxList([3]);
+    final liste = [0.obs, 0.obs];
+    liste.observe((data) => data.first * 2);
+    print(liste.runtimeType);
+    print(liste[0].runtimeType);
+    print(liste[1].runtimeType);
     print(list.runtimeType);
+    print(list.length.runtimeType);
 
-    bool isSubtype<S, T>() => <S>[] is List<T>;
-    print("check subtype: ${isSubtype<Rx, Rx>()}");
-    list.length;
     // final test = false.obs;
     // final noti = ValueNotifier<bool>(false).obs;
     // print(noti.runtimeType);
@@ -64,13 +67,20 @@ class Test extends StatelessWidget {
       ..emit();
   }
 
-  final list = [3].obs;
+  final lel = Valuer(3);
+  late final list = RxList([lel])
+    ..listen((e) {
+      print(runtimeType);
+    });
 
   final cond = false.obs
     ..listen((e) {
       print("updated $e");
     });
   final plep = false.obs;
+
+  final rxNum = 2.obs;
+  final rxNum2 = 3.obs;
 
   late final iCond = cond.dupe();
   late final display = cond.pipe(
@@ -104,12 +114,12 @@ class Test extends StatelessWidget {
             print("Building 2");
             return Column(
               children: [
-                Text("${list.first}"),
+                Text("${rxNum * rxNum2.value}"),
               ],
             );
           },
         ),
-        ElevatedButton(onPressed: () => list([5, 4]), child: Text("Toggle")),
+        ElevatedButton(onPressed: () => rxNum(4), child: Text("Toggle")),
       ],
     );
   }
