@@ -171,6 +171,7 @@ abstract class StreamBindable<T> {
 
 /// This class is internal to the package
 /// It's used to get value that refresh themselves
+/// It's name comes from the fact that it only works in "one shot"
 /// For usage examples check in rx_iterable
 class OneShot<T> extends Reactive<T> implements StreamBindable<T> {
   OneShot(super.val);
@@ -205,8 +206,9 @@ class OneShot<T> extends Reactive<T> implements StreamBindable<T> {
 
 /// This is an internal class
 /// It's the basic class for the observe function
-/// It's name comes from the fact that it's setup
+/// It's name comes from the fact that it is set up
 /// Then it fire once, and then it dies
+/// So it really has a "single shot"
 class SingleShot<T> extends Reactive<T> {
   SingleShot() : super(null);
 
