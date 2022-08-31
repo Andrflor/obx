@@ -2,6 +2,14 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../../notifier.dart';
 
+// TODO: define better doc for this
+/// Allow to observe any Rx variable
+/// This is entended way to do if you want refined controll
+/// Provide a closure With Rx components and it will
+/// Use it inside an obx with a complex object
+/// This will allow only this particular value to update
+T observe<T>(T Function() builder) => Notifier.instance.observe(builder);
+
 class Rx<T> extends _RxImpl<T> {
   Rx._({T? initial, bool distinct = true, bool oneShot = false})
       : super(initial, distinct: distinct);
@@ -9,14 +17,19 @@ class Rx<T> extends _RxImpl<T> {
   Rx([T? initial]) : super(initial, distinct: true);
   Rx.indistinct([T? initial]) : super(initial, distinct: false);
 
+  Rx.fromStream(Stream<T> stream, {T? init, super.distinct}) : super(init) {
+    bindStream(stream);
+  }
+
   /// This allow to observe the changes
   /// So you can only do when to observable are differents
   /// Maybe remove that ?? Is there a point to observe this??
   @override
   bool operator ==(Object o) {
     // TODO: find a common implementation for the hashCode of different Types.
-    return observe((e) =>
-        o is T ? e == o : (o is RxObjectMixin<T> ? e == o.value : false));
+    return observe(() => o is T
+        ? value == o
+        : (o is RxObjectMixin<T> ? value == o.value : false));
   }
 
   @override
@@ -37,14 +50,6 @@ class Rx<T> extends _RxImpl<T> {
       distinct: distinct ?? isDistinct);
   Rx<T> _dupe({bool? distinct}) =>
       _clone(distinct: distinct)..bindStream(subject.stream);
-
-  /// Allow to observe any variable
-  /// This is entended way to do if you want refined controll
-  /// Use it inside an obx with a complex object
-  /// This will allow only this particular value to update
-  S observe<S>(S Function(T val) toElement) => Notifier.inBuild
-      ? OneShot.fromMap<T, S>(this, toElement).value
-      : toElement(static);
 
   /// Generates an obserable based on stream transformation of the observable
   /// You need to provide the stream transformation

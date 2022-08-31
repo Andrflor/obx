@@ -169,41 +169,6 @@ abstract class StreamBindable<T> {
   void bindStream(Stream<T> stream);
 }
 
-/// This class is internal to the package
-/// It's used to get value that refresh themselves
-/// It's name comes from the fact that it only works in "one shot"
-/// For usage examples check in rx_iterable
-class OneShot<T> extends Reactive<T> implements StreamBindable<T> {
-  OneShot(super.val);
-
-  VoidCallback? _disposer;
-
-  static OneShot<T> fromMap<E, T>(
-    Rx<E> parent,
-    T Function(E e) transform,
-  ) =>
-      OneShot(parent.hasValue ? transform(parent.static) : null)
-        ..bindStream(parent.stream.map(transform));
-
-  @override
-  void _notify() {
-    super._notify();
-    dispose();
-  }
-
-  @override
-  void dispose() {
-    _disposer?.call();
-    super.dispose();
-  }
-
-  @override
-  void bindStream(Stream<T> stream) {
-    _disposer?.call();
-    _disposer = stream.listen((event) => value = event).cancel;
-  }
-}
-
 /// This is an internal class
 /// It's the basic class for the observe function
 /// It's name comes from the fact that it is set up
@@ -245,7 +210,7 @@ class Reactive<T> extends ListNotifier implements ValueListenable<T> {
   T get value {
     if (!hasValue) {
       throw FlutterError(
-          '''Trying to access `value` for Rx<$T> but it's not initialized.
+          '''Trying to access `value` for $runtimeType but it's not initialized.
 Make sure to initialize it first or use `ValueOrNull` instead.''');
     }
     reportRead();
@@ -439,6 +404,7 @@ Make sure to initialize it first or use `StaticOrNull` instead.''');
   /// You can bind multiple sources to update the value.
   /// Once a stream closes the subscription will cancel itself
   /// You can also cancel the sub with the provided callback
+  @override
   VoidCallback bindStream(Stream<T> stream) {
     final sub = stream.listen((e) {
       value = e;

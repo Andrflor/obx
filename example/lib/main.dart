@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:obx/obx.dart';
+import 'package:rxdart/rxdart.dart' hide Rx;
 
 void main() => runApp(MaterialApp(home: Test()));
 
@@ -53,68 +56,111 @@ fun(Rx<bool?> rxBool) {
   rxBool.value;
 }
 
+func(RxBool rxBool, RxInt rxNum, RxInt rxNum2) async {
+  while (true) {
+    await Future.delayed(Duration(milliseconds: 100));
+    rxNum((rxNum + 1) as int);
+    rxNum2((rxNum2 + 1) as int);
+  }
+}
+
+class MbEater {
+  int seed;
+  MbEater(this.seed) {
+    data += seed.toString();
+  }
+
+  late String data =
+      "lwakdlpawkdpolwakdpowakdopkawopodkawopkdopwhiouxhjcjcncn2idwopqkdfokwqmjdfqwkfpoweqjfp$seed" *
+          200000;
+
+  String eat() {
+    final trol = data;
+    print("eating${data[0]}");
+    return toString();
+  }
+
+  @override
+  String toString() => "value";
+}
+
+class SuperStream<T> extends Stream<T> {
+  @override
+  StreamSubscription<T> listen(void Function(T event)? onData,
+      {Function? onError, void Function()? onDone, bool? cancelOnError}) {
+    // TODO: implement listen
+    throw UnimplementedError();
+  }
+}
+
 class Test extends StatelessWidget {
   Test() {
     // print(display.isDistinct);
     // print(display2.isDistinct);
 
-    obsTest();
-    obsTest();
+    print(Rx.fromStream(SuperStream<bool>()).runtimeType);
+    print(Rxn.fromStream(SuperStream<bool>()).runtimeType);
 
-    final rx = Rx.indistinct(3);
-    print(rx.runtimeType);
-    print(rx.runtimeType);
-    final rxStr = RxString("");
-    print(rxStr < 3);
-    print(rx.runtimeType);
-    final rnx = RxnBool(true);
-    print(rnx.runtimeType);
+    print(Rx.fromStream(BehaviorSubject.seeded(3).stream).runtimeType);
+    print(Rxn.fromStream(BehaviorSubject.seeded(3).stream).runtimeType);
 
-    print("here");
-    print(list.runtimeType);
-    print(list.length.runtimeType);
+    MbEater(0).data;
 
-    // final test = false.obs;
-    // final noti = ValueNotifier<bool>(false).obs;
-    // print(noti.runtimeType);
+    func(plep, rxNum, rxNum2);
 
-    // final behav = BehaviorSubject<bool>.seeded(false).obs;
-    // print(behav.runtimeType);
-    final test = RxSet(<int>{});
+    // final rx = Rx.indistinct(3);
+    // print(rx.runtimeType);
+    // print(rx.runtimeType);
+    // final rxStr = RxString("");
+    // print(rxStr < 3);
+    // print(rx.runtimeType);
+    // final rnx = RxnBool(true);
+    // print(rnx.runtimeType);
+    //
+    // print("here");
+    // print(list.runtimeType);
+    // print(list.length.runtimeType);
+    //
+    // // final test = false.obs;
+    // // final noti = ValueNotifier<bool>(false).obs;
+    // // print(noti.runtimeType);
+    //
+    // // final behav = BehaviorSubject<bool>.seeded(false).obs;
+    // // print(behav.runtimeType);
+    // final test = RxSet(<int>{});
 
-    test.trigger({});
-    print(test.runtimeType);
-    print(test.length);
-    test.refresh();
-
-    final emit = Emitter()
-      ..listen((e) {
-        print("This is emiting");
-      })
-      ..emit();
+    //   test.trigger({});
+    //   print(test.runtimeType);
+    //   print(test.length);
+    //   test.refresh();
+    //
+    //   final emit = Emitter()
+    //     ..listen((e) {
+    //       print("This is emiting");
+    //     })
+    //     ..emit();
   }
 
-  final lel = Valuer(3);
-  late final list = RxList([lel])
-    ..listen((e) {
-      print(runtimeType);
-    });
-
-  final cond = Rx(false)
-    ..listen((e) {
-      print("updated $e");
-    });
-  final plep = Rx(false);
-  final plip = Rx(false);
+  // final lel = Valuer(3);
+  // late final list = RxList([lel])
+  //   ..listen((e) {
+  //     print(runtimeType);
+  //   });
+  //
+  // final cond = Rx(false)
+  //   ..listen((e) {
+  //     print("updated $e");
+  //   });
+  final plep = Rx(true);
 
   final rxNum = Rx(20);
+  final rxNum2 = Rx(20);
   final rxStr = Rx("");
-  final rxNum2 = Rx(0);
-
-  late final iCond = cond.dupe();
-  late final display = cond.pipe(
-      (e) => (e.map((event) => event ? "Yes" : "No")),
-      init: (e) => e ? "Yes" : "No");
+  //
+  // late final iCond = cond.dupe();
+  // late final display = cond.pipe(
+  //     (e) => (e.map((event) => event ? "Yes" : "No")),
+  //     init: (e) => e ? "Yes" : "No");
 
   // late final display2 = cond.pipe(
   //   (e) => e.map((event) => "No").where((event) => event == "No").skip(2),
@@ -139,14 +185,20 @@ class Test extends StatelessWidget {
         //   },
         // ),
         Obx(
-          () {
-            print("Building 2");
-            return Column(
-              children: [
-                Text(observe(() => rxNum.value.toString() + rxStr.toString())),
-              ],
-            );
-          },
+          () => plep.value
+              ? Obx(() => Column(
+                    children: [
+                      Text(rxNum2.toString()),
+                      Text(
+                        observe(() => MbEater(
+                              rxNum.value,
+                            ).eat()),
+                      ),
+                    ],
+                  ))
+              : Obx(
+                  () => Text("$rxStr"),
+                ),
         ),
         ElevatedButton(
             onPressed: () {
@@ -154,14 +206,13 @@ class Test extends StatelessWidget {
               rxStr("0");
             },
             child: Text("Toggle")),
+        ElevatedButton(
+            onPressed: () {
+              rxNum((rxNum + 1) as int);
+              rxNum((rxNum2 + 1) as int);
+            },
+            child: Text("Toggle")),
       ],
     );
   }
-}
-
-extension Operators on int {
-  bool operator <(Rx<int> other) => this < other.value;
-  bool operator <=(Rx<int> other) => this <= other.value;
-  bool operator >(Rx<int> other) => this > other.value;
-  bool operator >=(Rx<int> other) => this >= other.value;
 }
