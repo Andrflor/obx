@@ -46,15 +46,6 @@ class Rx<T> extends _RxImpl<T> {
       ? OneShot.fromMap<T, S>(this, toElement).value
       : toElement(static);
 
-  /// Allow to observe thos with another variable
-  /// This is entended way to do if you want refined controll
-  /// Use it inside an obx with a complex object and mixing another
-  /// This will allow only this particular value to update
-  S observeAnother<S, V>(Rx<V> other, S Function(T value, V other) toElement) =>
-      Notifier.inBuild
-          ? OneShotDual<S, T, V>(this, other, toElement).value
-          : toElement(static, other.static);
-
   /// Generates an obserable based on stream transformation of the observable
   /// You need to provide the stream transformation
   /// You can also provide an initial transformation (default to initial value)
@@ -181,19 +172,6 @@ mixin RxObjectMixin<T> on RxImpl<T> {
 
   /// Returns the json representation of `value`.
   dynamic toJson() => value;
-
-  /// This equality override works for _RxImpl instances and the internal
-  /// values.
-  @override
-  bool operator ==(Object o) {
-    // Todo, find a common implementation for the hashCode of different Types.
-    if (o is T) return value == o;
-    if (o is RxObjectMixin<T>) return value == o.value;
-    return false;
-  }
-
-  @override
-  int get hashCode => value.hashCode;
 
   /// Updates the [value] and adds it to the stream, updating the observer
   /// Widget. Indistinct will always update whereas distinct (default) will only

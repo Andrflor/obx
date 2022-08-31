@@ -119,7 +119,7 @@ class Notifier {
   T observe<T>(T Function() builder) {
     if (_notifyData == null) return builder();
     final previousData = _notifyData;
-    final base = OneShot<T>();
+    final base = SingleShot<T>();
     final debouncer = Debouncer(delay: const Duration(milliseconds: 15));
     _notifyData = NotifyData(
         updater: () => debouncer(() => base.value = builder()),
@@ -164,18 +164,7 @@ class ObxError {
   }
 }
 
-class OneShotDual<T, S, V> extends OneShot<T> {
-  OneShotDual(Rx<S> e1, Rx<V> e2, T Function(S e1, V e2) callback)
-      : super(callback(e1.static, e2.static)) {
-    e1.listen((e1) {
-      callback(e1, e2.static);
-    });
-    e2.listen((e2) {
-      callback(e1.static, e2);
-    });
-  }
-}
-
+/// Abstract class for more reusability
 abstract class StreamBindable<T> {
   void bindStream(Stream<T> stream);
 }
@@ -183,8 +172,10 @@ abstract class StreamBindable<T> {
 /// This class is internal to the package
 /// It's used to get value that refresh themselves
 /// For usage examples check in rx_iterable
-class OneShot<T> extends Reactive<T> implements StreamBindable {
+class OneShot<T> extends Reactive<T> implements StreamBindable<T> {
   OneShot(super.val);
+
+  VoidCallback? _disposer;
 
   static OneShot<T> fromMap<E, T>(
     Rx<E> parent,
@@ -193,18 +184,6 @@ class OneShot<T> extends Reactive<T> implements StreamBindable {
       OneShot(parent.hasValue ? transform(parent.static) : null)
         ..bindStream(parent.stream.map(transform));
 
-  // static OneShot<T> fromMap2<E, V, T>(
-  //   Rx<E> parent1,
-  //   Rx<V> parent2,
-  //   T Function(E e1, V e2) transform,
-  // ) =>
-  //     OneShot(parent1.hasValue || parent2.hasValue
-  //         ? transform(parent1.static, parent2.static)
-  //         : null)
-  //       // TODO: find a way to map this properli
-  //       ..bindStream(parent1.stream.map(transform));
-
-  // TODO: implement proper cleaning
   @override
   void _notify() {
     super._notify();
@@ -212,18 +191,34 @@ class OneShot<T> extends Reactive<T> implements StreamBindable {
   }
 
   @override
-  void bindStream(Stream stream) {
-    // TODO: implement bindStream
+  void dispose() {
+    _disposer?.call();
+    super.dispose();
+  }
+
+  @override
+  void bindStream(Stream<T> stream) {
+    _disposer?.call();
+    _disposer = stream.listen((event) => value = event).cancel;
   }
 }
 
-class DualShot<T> extends Reactive<T> {
-  DualShot([super.val]);
+/// This is an internal class
+/// It's the basic class for the observe function
+/// It's name comes from the fact that it's setup
+/// Then it fire once, and then it dies
+class SingleShot<T> extends Reactive<T> {
+  SingleShot() : super(null);
+
+  @override
+  bool get hasValue => _hasValue;
+  bool _hasValue = false;
 
   @override
   set value(T value) {
     if (!hasValue) {
       _value = value;
+      _hasValue = true;
       return;
     }
     super.value = value;
@@ -262,14 +257,26 @@ Make sure to initialize it first or use `ValueOrNull` instead.''');
     _value = newValue;
     _notify();
   }
+
+  /// This equality override works for instances and the internal
+  /// values.
+  @override
+  bool operator ==(Object o) {
+    // Todo, find a common implementation for the hashCode of different Types.
+    if (o is T) return value == o;
+    if (o is ValueListenable<T>) return value == o.value;
+    return false;
+  }
+
+  @override
+  int get hashCode => value.hashCode;
 }
 
 /// This class is the foundation for all reactive (Rx) classes that makes Get
 /// so powerful.
 /// This interface is the contract that [_RxImpl]<T> uses in all it's
 /// subclass.
-
-class RxImpl<T> extends Reactive<T> {
+class RxImpl<T> extends Reactive<T> implements StreamBindable<T> {
   RxImpl(super.val, {bool distinct = true})
       : _distinct = T == Null ? false : distinct;
 
@@ -424,6 +431,24 @@ Make sure to initialize it first or use `StaticOrNull` instead.''');
       onDone: onDone,
       cancelOnError: cancelOnError ?? false,
     );
+  }
+
+  /// Binds an existing `Stream<T>` to this Rx<T> to keep the values in sync.
+  /// You can bind multiple sources to update the value.
+  /// Once a stream closes the subscription will cancel itself
+  /// You can also cancel the sub with the provided callback
+  VoidCallback bindStream(Stream<T> stream) {
+    final sub = stream.listen((e) {
+      value = e;
+    }, cancelOnError: false);
+    _subbed.add(sub.cancel);
+    // ignore: prefer_function_declarations_over_variables
+    final clean = () {
+      _subbed.remove(sub.cancel);
+      sub.cancel();
+    };
+    sub.onDone(clean);
+    return clean;
   }
 
   VoidCallback bindRx(Rx<T> rx, [Stream<T>? stream]) {
