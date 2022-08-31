@@ -1,38 +1,38 @@
 import '../rx_impl/rx_core.dart';
 
 extension RxStringExt on Rx<String> {
-  String operator +(String val) => (observe((e) => e + val));
+  String operator +(String val) => (observe(() => value + val));
 
   int compareTo(String other) => value.compareTo(other);
 
   /// Returns true if this string ends with [other]. For example:
   ///
   ///     'Dart'.endsWith('t'); // true
-  bool endsWith(String other) => observe((e) => e.endsWith(other));
+  bool endsWith(String other) => observe(() => value.endsWith(other));
 
-  int get length => observe((e) => e.length);
+  int get length => observe(() => value.length);
 
-  bool operator <(num other) => observe((e) => e.length < other);
-  bool operator <=(num other) => observe((e) => e.length <= other);
+  bool operator <(num other) => observe(() => value.length < other);
+  bool operator <=(num other) => observe(() => value.length <= other);
 
-  bool operator >(num other) => observe((e) => e.length > other);
-  bool operator >=(num other) => observe((e) => e.length >= other);
+  bool operator >(num other) => observe(() => value.length > other);
+  bool operator >=(num other) => observe(() => value.length >= other);
 
   /// Returns true if this string starts with a match of [pattern].
   bool startsWith(Pattern pattern, [int index = 0]) =>
-      observe((e) => e.startsWith(pattern, index));
+      observe(() => value.startsWith(pattern, index));
 
   /// Returns the position of the first match of [pattern] in this string
   int indexOf(Pattern pattern, [int start = 0]) =>
-      observe((e) => e.indexOf(pattern, start));
+      observe(() => value.indexOf(pattern, start));
 
   /// Returns the starting position of the last match [pattern] in this string,
   /// searching backward starting at [start], inclusive:
   int lastIndexOf(Pattern pattern, [int? start]) =>
-      observe((e) => e.lastIndexOf(pattern, start));
+      observe(() => value.lastIndexOf(pattern, start));
 
   /// Returns true if this string is empty.
-  bool get isEmpty => observe((e) => e.isEmpty);
+  bool get isEmpty => observe(() => value.isEmpty);
 
   /// Returns true if this string is not empty.
   bool get isNotEmpty => !isEmpty;
@@ -40,42 +40,42 @@ extension RxStringExt on Rx<String> {
   /// Returns the substring of this string that extends from [startIndex],
   /// inclusive, to [endIndex], exclusive
   String substring(int startIndex, [int? endIndex]) =>
-      observe((e) => e.substring(startIndex, endIndex));
+      observe(() => value.substring(startIndex, endIndex));
 
   /// Returns the string without any leading and trailing whitespace.
-  String trim() => observe((e) => e.trim());
+  String trim() => observe(() => value.trim());
 
   /// Returns the string without any leading whitespace.
   ///
   /// As [trim], but only removes leading whitespace.
-  String trimLeft() => observe((e) => e.trimLeft());
+  String trimLeft() => observe(() => value.trimLeft());
 
   /// Returns the string without any trailing whitespace.
   ///
   /// As [trim], but only removes trailing whitespace.
-  String trimRight() => observe((e) => e.trimRight());
+  String trimRight() => observe(() => value.trimRight());
 
   /// Pads this string on the left if it is shorter than [width].
   ///
   /// Return a new string that prepends [padding] onto this string
   /// one time for each position the length is less than [width].
   String padLeft(int width, [String padding = ' ']) =>
-      observe((e) => e.padLeft(width, padding));
+      observe(() => value.padLeft(width, padding));
 
   /// Pads this string on the right if it is shorter than [width].
 
   /// Return a new string that appends [padding] after this string
   /// one time for each position the length is less than [width].
   String padRight(int width, [String padding = ' ']) =>
-      observe((e) => e.padRight(width, padding));
+      observe(() => value.padRight(width, padding));
 
   /// Returns true if this string contains a match of [other]:
   bool contains(Pattern other, [int startIndex = 0]) =>
-      observe((e) => e.contains(other, startIndex));
+      observe(() => value.contains(other, startIndex));
 
   /// Replaces all substrings that match [from] with [replace].
   String replaceAll(Pattern from, String replace) =>
-      observe((e) => e.replaceAll(from, replace));
+      observe(() => value.replaceAll(from, replace));
 
   /// Replace the first occurrence of [from] in this string.
   ///
@@ -95,11 +95,11 @@ extension RxStringExt on Rx<String> {
   /// The [startIndex] must be non-negative and no greater than [length].
   String replaceFirstMapped(Pattern from, String Function(Match match) replace,
           [int startIndex = 0]) =>
-      observe((e) => e.replaceFirstMapped(from, replace, startIndex));
+      observe(() => value.replaceFirstMapped(from, replace, startIndex));
 
   /// Splits the string at matches of [pattern] and returns a list
   /// of substrings.
-  List<String> split(Pattern pattern) => observe((e) => e.split(pattern));
+  List<String> split(Pattern pattern) => observe(() => value.split(pattern));
 
   /// Replace all substrings that match [from] by a computed string.
   ///
@@ -124,7 +124,7 @@ extension RxStringExt on Rx<String> {
   /// print(result); // 'Iway avehay away ecretsay ownay!'
   /// ```
   String replaceAllMapped(Pattern from, String Function(Match match) replace) =>
-      observe((e) => e.replaceAllMapped(from, replace));
+      observe(() => value.replaceAllMapped(from, replace));
 
   /// Replaces the substring from [start] to [end] with [replacement].
   ///
@@ -142,7 +142,7 @@ extension RxStringExt on Rx<String> {
   /// That is `0 <= start <= end <= this.length`.
   /// If [end] is `null`, it defaults to [length].
   String replaceRange(int start, int? end, String replacement) =>
-      observe((e) => e.replaceRange(start, end, replacement));
+      observe(() => value.replaceRange(start, end, replacement));
 
   /// Splits the string, converts its parts, and combines them into a new
   /// string.
@@ -172,8 +172,8 @@ extension RxStringExt on Rx<String> {
   String splitMapJoin(Pattern pattern,
           {String Function(Match)? onMatch,
           String Function(String)? onNonMatch}) =>
-      observe((e) =>
-          e.splitMapJoin(pattern, onMatch: onMatch, onNonMatch: onNonMatch));
+      observe(() => value.splitMapJoin(pattern,
+          onMatch: onMatch, onNonMatch: onNonMatch));
 
   /// Returns an unmodifiable list of the UTF-16 code units of this string.
   List<int> get codeUnits => value.codeUnits;
@@ -187,11 +187,11 @@ extension RxStringExt on Rx<String> {
 
   /// Converts all characters in this string to lower case.
   /// If the string is already in all lower case, this method returns `this`.
-  String toLowerCase() => observe((e) => e.toLowerCase());
+  String toLowerCase() => observe(() => value.toLowerCase());
 
   /// Converts all characters in this string to upper case.
   /// If the string is already in all upper case, this method returns `this`.
-  String toUpperCase() => observe((e) => e.toUpperCase());
+  String toUpperCase() => observe(() => value.toUpperCase());
 
   Iterable<Match> allMatches(String string, [int start = 0]) =>
       value.allMatches(string, start);
@@ -201,85 +201,86 @@ extension RxStringExt on Rx<String> {
 }
 
 extension RxnStringExt on Rx<String?> {
-  String operator +(String val) => (observe((e) => e == null ? val : e + val));
+  String operator +(String val) =>
+      (observe(() => value == null ? val : value! + val));
 
   bool operator <(num other) =>
-      observe((e) => e == null ? true : e.length < other);
+      observe(() => value == null ? true : value!.length < other);
   bool operator <=(num other) =>
-      observe((e) => e == null ? true : e.length <= other);
+      observe(() => value == null ? true : value!.length <= other);
 
   bool operator >(num other) =>
-      observe((e) => e == null ? false : e.length > other);
+      observe(() => value == null ? false : value!.length > other);
   bool operator >=(num other) =>
-      observe((e) => e == null ? false : e.length >= other);
+      observe(() => value == null ? false : value!.length >= other);
 
-  int? compareTo(String other) => observe((e) => e?.compareTo(other));
+  int? compareTo(String other) => observe(() => value?.compareTo(other));
 
-  int? get length => observe((e) => e?.length);
+  int? get length => observe(() => value?.length);
 
   /// Returns true if this string ends with [other]. For example:
   ///
   ///     'Dart'.endsWith('t'); // true
-  bool? endsWith(String other) => observe((e) => e?.endsWith(other));
+  bool? endsWith(String other) => observe(() => value?.endsWith(other));
 
   /// Returns true if this string starts with a match of [pattern].
   bool? startsWith(Pattern pattern, [int index = 0]) =>
-      observe((e) => e?.startsWith(pattern, index));
+      observe(() => value?.startsWith(pattern, index));
 
   /// Returns the position of the first match of [pattern] in this string
   int? indexOf(Pattern pattern, [int start = 0]) =>
-      observe((e) => e?.indexOf(pattern, start));
+      observe(() => value?.indexOf(pattern, start));
 
   /// Returns the starting position of the last match [pattern] in this string,
   /// searching backward starting at [start], inclusive:
   int? lastIndexOf(Pattern pattern, [int? start]) =>
-      observe((e) => e?.lastIndexOf(pattern, start));
+      observe(() => value?.lastIndexOf(pattern, start));
 
   /// Returns true if this string is empty.
-  bool? get isEmpty => observe((e) => e?.isEmpty);
+  bool? get isEmpty => observe(() => value?.isEmpty);
 
   /// Returns true if this string is not empty.
-  bool? get isNotEmpty => observe((e) => e?.isNotEmpty);
+  bool? get isNotEmpty => observe(() => value?.isNotEmpty);
 
   /// Returns the substring of this string that extends from [startIndex],
   /// inclusive, to [endIndex], exclusive
   String? substring(int startIndex, [int? endIndex]) =>
-      observe((e) => e?.substring(startIndex, endIndex));
+      observe(() => value?.substring(startIndex, endIndex));
 
   /// Returns the string without any leading and trailing whitespace.
-  String? trim() => observe((e) => e?.trim());
+  String? trim() => observe(() => value?.trim());
 
   /// Returns the string without any leading whitespace.
   ///
   /// As [trim], but only removes leading whitespace.
-  String? trimLeft() => observe((e) => e?.trimLeft());
+  String? trimLeft() => observe(() => value?.trimLeft());
 
   /// Returns the string without any trailing whitespace.
   ///
   /// As [trim], but only removes trailing whitespace.
-  String? trimRight() => observe((e) => e?.trimRight());
+  String? trimRight() => observe(() => value?.trimRight());
 
   /// Pads this string on the left if it is shorter than [width].
   ///
   /// Return a new string that prepends [padding] onto this string
   /// one time for each position the length is less than [width].
   String? padLeft(int width, [String padding = ' ']) =>
-      observe((e) => e?.padLeft(width, padding));
+      observe(() => value?.padLeft(width, padding));
 
   /// Pads this string on the right if it is shorter than [width].
 
   /// Return a new string that appends [padding] after this string
   /// one time for each position the length is less than [width].
   String? padRight(int width, [String padding = ' ']) =>
-      observe((e) => e?.padRight(width, padding));
+      observe(() => value?.padRight(width, padding));
 
   /// Returns true if this string contains a match of [other]:
   bool? contains(Pattern other, [int startIndex = 0]) =>
-      observe((e) => e?.contains(other, startIndex));
+      observe(() => value?.contains(other, startIndex));
 
   /// Replaces all substrings that match [from] with [replace].
   String? replaceAll(Pattern from, String replace) =>
-      observe((e) => e?.replaceAll(from, replace));
+      observe(() => value?.replaceAll(from, replace));
 
   /// Replace the first occurrence of [from] in this string.
   ///
@@ -299,11 +300,11 @@ extension RxnStringExt on Rx<String?> {
   /// The [startIndex] must be non-negative and no greater than [length].
   String? replaceFirstMapped(Pattern from, String Function(Match match) replace,
           [int startIndex = 0]) =>
-      observe((e) => e?.replaceFirstMapped(from, replace, startIndex));
+      observe(() => value?.replaceFirstMapped(from, replace, startIndex));
 
   /// Splits the string at matches of [pattern] and returns a list
   /// of substrings.
-  List<String>? split(Pattern pattern) => observe((e) => e?.split(pattern));
+  List<String>? split(Pattern pattern) => observe(() => value?.split(pattern));
 
   /// Replace all substrings that match [from] by a computed string.
   ///
@@ -329,7 +330,7 @@ extension RxnStringExt on Rx<String?> {
   /// ```
   String? replaceAllMapped(
           Pattern from, String Function(Match match) replace) =>
-      observe((e) => e?.replaceAllMapped(from, replace));
+      observe(() => value?.replaceAllMapped(from, replace));
 
   /// Replaces the substring from [start] to [end] with [replacement].
   ///
@@ -347,7 +348,7 @@ extension RxnStringExt on Rx<String?> {
   /// That is `0 <= start <= end <= this.length`.
   /// If [end] is `null`, it defaults to [length].
   String? replaceRange(int start, int? end, String replacement) =>
-      observe((e) => e?.replaceRange(start, end, replacement));
+      observe(() => value?.replaceRange(start, end, replacement));
 
   /// Splits the string, converts its parts, and combines them into a new
   /// string.
@@ -377,8 +378,8 @@ extension RxnStringExt on Rx<String?> {
   String? splitMapJoin(Pattern pattern,
           {String Function(Match)? onMatch,
           String Function(String)? onNonMatch}) =>
-      observe((e) =>
-          e?.splitMapJoin(pattern, onMatch: onMatch, onNonMatch: onNonMatch));
+      observe(() => value?.splitMapJoin(pattern,
+          onMatch: onMatch, onNonMatch: onNonMatch));
 
   /// Returns an unmodifiable list of the UTF-16 code units of this string.
   List<int>? get codeUnits => value?.codeUnits;
@@ -392,11 +393,11 @@ extension RxnStringExt on Rx<String?> {
 
   /// Converts all characters in this string to lower case.
   /// If the string is already in all lower case, this method returns `this`.
-  String? toLowerCase() => observe((e) => e?.toLowerCase());
+  String? toLowerCase() => observe(() => value?.toLowerCase());
 
   /// Converts all characters in this string to upper case.
   /// If the string is already in all upper case, this method returns `this`.
-  String? toUpperCase() => observe((e) => e?.toUpperCase());
+  String? toUpperCase() => observe(() => value?.toUpperCase());
 
   Iterable<Match>? allMatches(String string, [int start = 0]) =>
       value?.allMatches(string, start);

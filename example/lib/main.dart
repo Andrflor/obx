@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:obx/obx.dart';
-import 'package:rxdart/rxdart.dart' hide Rx;
 
 void main() => runApp(MaterialApp(home: Test()));
 
@@ -23,7 +22,6 @@ class Valuer<T> extends ValueListenable<T> {
   }
 
   @override
-  // TODO: implement value
   T get value => _value;
 
   set value(T val) => _value = val;
@@ -84,29 +82,14 @@ class MbEater {
   String toString() => "value";
 }
 
-class SuperStream<T> extends Stream<T> {
-  @override
-  StreamSubscription<T> listen(void Function(T event)? onData,
-      {Function? onError, void Function()? onDone, bool? cancelOnError}) {
-    // TODO: implement listen
-    throw UnimplementedError();
-  }
-}
-
 class Test extends StatelessWidget {
   Test() {
     // print(display.isDistinct);
     // print(display2.isDistinct);
 
-    print(Rx.fromStream(SuperStream<bool>()).runtimeType);
-    print(Rxn.fromStream(SuperStream<bool>()).runtimeType);
-
-    print(Rx.fromStream(BehaviorSubject.seeded(3).stream).runtimeType);
-    print(Rxn.fromStream(BehaviorSubject.seeded(3).stream).runtimeType);
-
     MbEater(0).data;
 
-    func(plep, rxNum, rxNum2);
+    // func(plep, rxNum, rxNum2);
 
     // final rx = Rx.indistinct(3);
     // print(rx.runtimeType);

@@ -5,11 +5,11 @@ extension RxBoolExt on Rx<bool> {
 
   bool get isFalse => !isTrue;
 
-  bool operator &(bool other) => observe((e) => other && e);
+  bool operator &(bool other) => observe(() => other && value);
 
-  bool operator |(bool other) => observe((e) => other || e);
+  bool operator |(bool other) => observe(() => other || value);
 
-  bool operator ^(bool other) => observe((e) => !other == e);
+  bool operator ^(bool other) => observe(() => !other == value);
 
   /// Toggles the bool [value] between false and true.
   /// A shortcut for `flag.value = !flag.value;`
@@ -21,12 +21,14 @@ extension RxnBoolExt on Rx<bool?> {
 
   bool? get isFalse => static == null ? value : !value!;
 
-  bool? operator &(bool other) => observe((e) => e == null ? null : other && e);
+  bool? operator &(bool other) =>
+      observe(() => value == null ? null : other && value!);
 
-  bool? operator |(bool other) => observe((e) => e == null ? null : other || e);
+  bool? operator |(bool other) =>
+      observe(() => value == null ? null : other || value!);
 
   bool? operator ^(bool other) =>
-      observe((e) => e == null ? null : !other == e);
+      observe(() => value == null ? null : !other == value);
 
   /// Toggles the bool [value] between false and true.
   /// A shortcut for `flag.value = !flag.value;`

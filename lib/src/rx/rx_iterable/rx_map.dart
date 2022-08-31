@@ -7,7 +7,7 @@ import '../rx_impl/rx_core.dart';
 // TODO: make sure it properly works with implem
 // TODO: write the extension for Rx<Map<K,V>?>
 extension RxMapExt<K, V> on Rx<Map<K, V>> {
-  V? operator [](Object? key) => observe((e) => e[key as K]);
+  V? operator [](Object? key) => observe(() => value[key as K]);
 
   void operator []=(K key, V value) {
     this.value[key] = value;

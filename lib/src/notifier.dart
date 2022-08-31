@@ -442,20 +442,30 @@ Make sure to initialize it first or use `StaticOrNull` instead.''');
     return clean;
   }
 
+  /// Binding to any listener with callback
   /// Binds an existing `ValueListenable<T>` this might be a `ValueNotifier<T>`
   /// Keeping this Rx<T> values in sync.
   /// You can bind multiple sources to update the value.
   /// It's impossible to know when a ValueListenable is Done
   /// You will have to clean it up yourself
   /// For that you can call the provided callback
-  VoidCallback bindListenable(ValueListenable<T> listenable) {
-    // ignore: prefer_function_declarations_over_variables
-    final closure = () {
-      value = listenable.value;
-    };
+  VoidCallback bindListenable(Listenable listenable, [T Function()? callback]) {
+    VoidCallback? closure = callback == null
+        ? null
+        : () {
+            value = callback();
+          };
+
+    if (listenable is ValueListenable<T> && closure == null) {
+      // ignore: prefer_function_declarations_over_variables
+      closure = () {
+        value = listenable.value;
+      };
+    }
+    if (closure == null) return () {};
     listenable.addListener(closure);
     // ignore: prefer_function_declarations_over_variables
-    final cancel = () => listenable.removeListener(closure);
+    final cancel = () => listenable.removeListener(closure!);
     _subbed.add(cancel);
 
     return () {

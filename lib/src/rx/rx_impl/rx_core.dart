@@ -1,6 +1,38 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../../notifier.dart';
+import 'rx_types.dart' show Rxn;
+
+// TODO: make this another way
+// abstract class RxStream {
+//   static call<T>(Stream<T> stream, [T? initial]) =>
+//       Rx._fromStream(stream, init: initial);
+//   static indistinct<T>(Stream<T> stream, [T? initial]) =>
+//       Rx._fromStream(stream, init: initial, distinct: false);
+// }
+//
+// class RxnStream {
+//   static call<T>(Stream<T> stream, [T? initial]) =>
+//       Rxn._fromStream(stream, init: initial);
+//   static indistinct<T>(Stream<T> stream, [T? initial]) =>
+//       Rxn._fromStream(stream, init: initial, distinct: false);
+// }
+//
+// // TODO: need a way to pass the closure without breaking contract
+// class RxListen {
+//   static call<T>(Listenable listenable, [T? initial]) =>
+//       Rx._fromListenable(listenable, init: initial);
+//   static indistinct<T>(Listenable listenable, [T? initial]) =>
+//       Rx._fromListenable(listenable, init: initial, distinct: false);
+// }
+//
+// // TODO: need a way to pass the closure without breaking contract
+// class RxnListen {
+//   static call<T>(Listenable listenable, [T? initial]) =>
+//       Rxn._fromListenable(listenable, init: initial);
+//   static indistinct<T>(Listenable listenable, [T? initial]) =>
+//       Rxn._fromListenable(listenable, init: initial, distinct: false);
+// }
 
 // TODO: define better doc for this
 /// Allow to observe any Rx variable
@@ -11,14 +43,25 @@ import '../../notifier.dart';
 T observe<T>(T Function() builder) => Notifier.instance.observe(builder);
 
 class Rx<T> extends _RxImpl<T> {
-  Rx._({T? initial, bool distinct = true, bool oneShot = false})
-      : super(initial, distinct: distinct);
+  Rx._({T? initial, bool distinct = true}) : super(initial, distinct: distinct);
 
   Rx([T? initial]) : super(initial, distinct: true);
   Rx.indistinct([T? initial]) : super(initial, distinct: false);
 
+  // TODO: make this a private constructor
   Rx.fromStream(Stream<T> stream, {T? init, super.distinct}) : super(init) {
     bindStream(stream);
+  }
+
+  // TODO: bind this callback to create a rx from this
+  // TODO: make a proper implem for it
+  Rx.fuse(T Function() callback) : super(callback());
+
+  // TODO: make this a private constructor
+  Rx.fromListenable(Listenable listenable, {T? init, super.distinct})
+      : super(init ??
+            (listenable is ValueListenable<T> ? listenable.value : null)) {
+    bindListenable(listenable);
   }
 
   /// This allow to observe the changes
