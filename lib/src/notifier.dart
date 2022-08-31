@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import 'dart:collection';
 
 import 'rx/rx_impl/rx_core.dart';
+import 'debouncer.dart';
 
 // This callback remove the listener on addListener function
 typedef Disposer = void Function();
@@ -11,14 +11,8 @@ typedef Disposer = void Function();
 // if it brings overhead the extra call,
 typedef StateUpdate = void Function();
 
-class ListNotifier extends Listenable
-    with ListNotifierSingleMixin, ListNotifierGroupMixin {}
-
 /// A Notifier with single listeners
-class ListNotifierSingle = ListNotifier with ListNotifierSingleMixin;
-
-/// A notifier with group of listeners identified by id
-class ListNotifierGroup = ListNotifier with ListNotifierGroupMixin;
+class ListNotifierSingle = Listenable with ListNotifierSingleMixin;
 
 /// This mixin add to Listenable the addListener, removerListener and
 /// containsListener implementation
@@ -91,71 +85,6 @@ mixin ListNotifierSingleMixin on Listenable {
   }
 }
 
-mixin ListNotifierGroupMixin on Listenable {
-  HashMap<Object?, ListNotifierSingleMixin>? _updatersGroupIds =
-      HashMap<Object?, ListNotifierSingleMixin>();
-
-  void _notifyGroupUpdate(Object id) {
-    if (_updatersGroupIds!.containsKey(id)) {
-      _updatersGroupIds![id]!._notifyUpdate();
-    }
-  }
-
-  @protected
-  void notifyGroupChildrens(Object id) {
-    assert(_debugAssertNotDisposed());
-    Notifier.instance.read(_updatersGroupIds![id]!);
-  }
-
-  bool containsId(Object id) {
-    return _updatersGroupIds?.containsKey(id) ?? false;
-  }
-
-  @protected
-  void refreshGroup(Object id) {
-    assert(_debugAssertNotDisposed());
-    _notifyGroupUpdate(id);
-  }
-
-  bool _debugAssertNotDisposed() {
-    assert(() {
-      if (_updatersGroupIds == null) {
-        throw FlutterError('''A $runtimeType was used after being disposed.\n
-'Once you have called dispose() on a $runtimeType, it can no longer be used.''');
-      }
-      return true;
-    }());
-    return true;
-  }
-
-  void removeListenerId(Object id, VoidCallback listener) {
-    assert(_debugAssertNotDisposed());
-    if (_updatersGroupIds!.containsKey(id)) {
-      _updatersGroupIds![id]!.removeListener(listener);
-    }
-  }
-
-  @mustCallSuper
-  void dispose() {
-    assert(_debugAssertNotDisposed());
-    _updatersGroupIds?.forEach((key, value) => value.dispose());
-    _updatersGroupIds = null;
-  }
-
-  Disposer addListenerId(Object? key, StateUpdate listener) {
-    _updatersGroupIds![key] ??= ListNotifierSingle();
-    return _updatersGroupIds![key]!.addListener(listener);
-  }
-
-  /// To dispose an [id] from future updates(), this ids are registered
-  /// by `GetBuilder()` or similar, so is a way to unlink the state change with
-  /// the Widget from the Controller.
-  void disposeId(Object id) {
-    _updatersGroupIds?[id]?.dispose();
-    _updatersGroupIds!.remove(id);
-  }
-}
-
 class Notifier {
   Notifier._();
 
@@ -186,6 +115,30 @@ class Notifier {
     _notifyData = null;
     return result;
   }
+
+  T notify<T>(T Function() builder) {
+    final previousData = _notifyData;
+    final base = Rx<T>();
+    final debouncer = Debouncer(delay: const Duration(milliseconds: 15));
+    base.listen((e) => print("Value changed $e"));
+    print(base.runtimeType);
+    // Add a debounce to allow multiple update
+    _notifyData = NotifyData(
+        updater: () => debouncer(() => base.value = builder()),
+        disposers: [builder]);
+    final result = builder();
+    _notifyData = previousData;
+    base.value = result;
+    return base.value;
+  }
+
+  T silent<T>(T Function() builder) {
+    final previousData = _notifyData;
+    _notifyData = null;
+    final result = builder();
+    _notifyData = previousData;
+    return result;
+  }
 }
 
 class NotifyData {
@@ -213,6 +166,18 @@ class ObxError {
   }
 }
 
+class OneShotDual<T, S, V> extends OneShot<T> {
+  OneShotDual(Rx<S> e1, Rx<V> e2, T Function(S e1, V e2) callback)
+      : super(callback(e1.static, e2.static)) {
+    e1.listen((e1) {
+      callback(e1, e2.static);
+    });
+    e2.listen((e2) {
+      callback(e1.static, e2);
+    });
+  }
+}
+
 /// This class is internal to the package
 /// It's used to get value that refresh themselves
 /// For usage examples check in rx_iterable
@@ -237,6 +202,7 @@ class OneShot<T> extends RxListenable<T> {
   //       // TODO: find a way to map this properli
   //       ..bindStream(parent1.stream.map(transform));
 
+  // TODO: implement proper cleaning
   @override
   void _notify() {
     super._notify();

@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'notifier.dart';
 
+T observe<T>(T Function() builder) => Notifier.instance.notify(builder);
+
 class ObxElement = StatelessElement with StatelessObserverComponent;
 
 /// A StatelessWidget than can listen reactive changes.

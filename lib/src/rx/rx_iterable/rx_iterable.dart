@@ -2,7 +2,6 @@ import '../rx_impl/rx_core.dart';
 import '../../notifier.dart';
 
 // TODO: add dart documentation to those iterators
-
 extension RxIterableExt<T extends Iterable<E>, E> on Rx<T> {
   Iterator<E> get iterator => value.iterator;
   E operator [](int index) => elementAt(index);

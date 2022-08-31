@@ -46,6 +46,15 @@ class Rx<T> extends _RxImpl<T> {
       ? OneShot.fromMap<T, S>(this, toElement).value
       : toElement(static);
 
+  /// Allow to observe thos with another variable
+  /// This is entended way to do if you want refined controll
+  /// Use it inside an obx with a complex object and mixing another
+  /// This will allow only this particular value to update
+  S observeAnother<S, V>(Rx<V> other, S Function(T value, V other) toElement) =>
+      Notifier.inBuild
+          ? OneShotDual<S, T, V>(this, other, toElement).value
+          : toElement(static, other.static);
+
   /// Generates an obserable based on stream transformation of the observable
   /// You need to provide the stream transformation
   /// You can also provide an initial transformation (default to initial value)

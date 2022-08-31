@@ -16,15 +16,6 @@ extension RxBoolExt on Rx<bool> {
   void toggle() => call(!value);
 }
 
-// // TODO: implement some merge
-// extension RxBoolRxnExt on Rx<bool> {
-//   bool operator &(Rx<bool> other) => observe((e) => other && e);
-//
-//   bool operator |(Rx<bool> other) => observe((e) => other || e);
-//
-//   bool operator ^(Rx<bool> other) => observe((e) => !other == e);
-// }
-
 extension RxnBoolExt on Rx<bool?> {
   bool? get isTrue => value;
 
@@ -45,14 +36,3 @@ extension RxnBoolExt on Rx<bool?> {
     }
   }
 }
-
-// // TODO: implement some merge
-// extension RxnBoolRxnExt on Rx<bool> {
-//   bool operator &(Rx<bool> other) => observe((e) => other && e);
-//
-//   bool operator |(Rx<bool> other) => observe((e) => other || e);
-//
-//   bool operator ^(Rx<bool> other) => observe((e) => !other == e);
-// }
-
-

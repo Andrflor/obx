@@ -34,6 +34,13 @@ extension Plopi<T> on List<Rx<T>> {
   }
 }
 
+obsTest() {
+  final closure = () => {1 + 2};
+  print(closure.hashCode);
+  final numeric = 1;
+  print(numeric.hashCode);
+}
+
 extension Bend<T> on Rx<T> {
   void bend(Valuer v) {}
 }
@@ -42,15 +49,21 @@ extension Bind<T> on Rx<T> {
   void bend(RxBool v) {}
 }
 
+fun(Rx<bool?> rxBool) {
+  rxBool.value;
+}
+
 class Test extends StatelessWidget {
   Test() {
     // print(display.isDistinct);
     // print(display2.isDistinct);
 
-	DartSdk().isPackageGloballyActivated(String package);
-    final liste = [0.obs, 0.obs];
-    liste.observe((data) => data.first * 2);
-    final rx = RxBool(true);
+    obsTest();
+    obsTest();
+
+    final rx = Rx.indistinct(3);
+    print(rx.runtimeType);
+    print(rx.runtimeType);
     final rxStr = RxString("");
     print(rxStr < 3);
     print(rx.runtimeType);
@@ -58,10 +71,6 @@ class Test extends StatelessWidget {
     print(rnx.runtimeType);
 
     print("here");
-    print((rnx & true).runtimeType);
-    print(liste.runtimeType);
-    print(liste[0].runtimeType);
-    print(liste[1].runtimeType);
     print(list.runtimeType);
     print(list.length.runtimeType);
 
@@ -91,14 +100,16 @@ class Test extends StatelessWidget {
       print(runtimeType);
     });
 
-  final cond = false.obs
+  final cond = Rx(false)
     ..listen((e) {
       print("updated $e");
     });
-  final plep = false.obs;
+  final plep = Rx(false);
+  final plip = Rx(false);
 
-  final rxNum = 2.obs;
-  final rxNum2 = 3.obs;
+  final rxNum = Rx(20);
+  final rxStr = Rx("");
+  final rxNum2 = Rx(0);
 
   late final iCond = cond.dupe();
   late final display = cond.pipe(
@@ -132,13 +143,25 @@ class Test extends StatelessWidget {
             print("Building 2");
             return Column(
               children: [
-                Text("${rxNum * rxNum2.value}"),
+                Text(observe(() => rxNum.value.toString() + rxStr.toString())),
               ],
             );
           },
         ),
-        ElevatedButton(onPressed: () => rxNum(4), child: Text("Toggle")),
+        ElevatedButton(
+            onPressed: () {
+              rxNum(20);
+              rxStr("0");
+            },
+            child: Text("Toggle")),
       ],
     );
   }
+}
+
+extension Operators on int {
+  bool operator <(Rx<int> other) => this < other.value;
+  bool operator <=(Rx<int> other) => this <= other.value;
+  bool operator >(Rx<int> other) => this > other.value;
+  bool operator >=(Rx<int> other) => this >= other.value;
 }
