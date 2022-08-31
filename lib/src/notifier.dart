@@ -116,6 +116,7 @@ class Notifier {
     return result;
   }
 
+  // TODO: Check that this works properly
   T observe<T>(T Function() builder) {
     if (_notifyData == null) return builder();
     final previousData = _notifyData;

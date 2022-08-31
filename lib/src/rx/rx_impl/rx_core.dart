@@ -35,12 +35,14 @@ import 'rx_types.dart' show Rxn;
 // }
 
 // TODO: define better doc for this
+// TODO: maybe call builder if no buid?
 /// Allow to observe any Rx variable
 /// This is entended way to do if you want refined controll
 /// Provide a closure With Rx components and it will
 /// Use it inside an obx with a complex object
 /// This will allow only this particular value to update
-T observe<T>(T Function() builder) => Notifier.instance.observe(builder);
+T observe<T>(T Function() builder) =>
+    Notifier.inBuild ? Notifier.instance.observe(builder) : builder();
 
 class Rx<T> extends _RxImpl<T> {
   Rx._({T? initial, bool distinct = true}) : super(initial, distinct: distinct);
