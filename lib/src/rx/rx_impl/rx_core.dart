@@ -156,7 +156,7 @@ class Rx<T> extends _RxImpl<T> {
 }
 
 /// Base Rx class that manages all the stream logic for any Type.
-abstract class _RxImpl<T> extends RxListenable<T> with RxObjectMixin<T> {
+abstract class _RxImpl<T> extends RxImpl<T> with RxObjectMixin<T> {
   _RxImpl(T? initial, {bool distinct = true})
       : super(initial, distinct: distinct);
 
@@ -165,7 +165,7 @@ abstract class _RxImpl<T> extends RxListenable<T> with RxObjectMixin<T> {
   }
 }
 
-mixin RxObjectMixin<T> on RxListenable<T> {
+mixin RxObjectMixin<T> on RxImpl<T> {
   @override
   T call([T? v]) {
     if (v != null) {

@@ -150,7 +150,7 @@ class Test extends StatelessWidget {
         ),
         ElevatedButton(
             onPressed: () {
-              rxNum(20);
+              rxNum(2);
               rxStr("0");
             },
             child: Text("Toggle")),

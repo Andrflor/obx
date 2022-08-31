@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'notifier.dart';
 
-T observe<T>(T Function() builder) => Notifier.instance.notify(builder);
+T observe<T>(T Function() builder) => Notifier.instance.observe(builder);
 
 class ObxElement = StatelessElement with StatelessObserverComponent;
 

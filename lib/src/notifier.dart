@@ -12,11 +12,11 @@ typedef Disposer = void Function();
 typedef StateUpdate = void Function();
 
 /// A Notifier with single listeners
-class ListNotifierSingle = Listenable with ListNotifierSingleMixin;
+class ListNotifier = Listenable with ListNotifierMixin;
 
 /// This mixin add to Listenable the addListener, removerListener and
 /// containsListener implementation
-mixin ListNotifierSingleMixin on Listenable {
+mixin ListNotifierMixin on Listenable {
   List<StateUpdate>? _updaters = <StateUpdate>[];
 
   @override
@@ -98,11 +98,11 @@ class Notifier {
     _notifyData?.disposers.add(listener);
   }
 
-  void read(ListNotifierSingleMixin _updaters) {
+  void read(ListNotifierMixin updaters) {
     final listener = _notifyData?.updater;
-    if (listener != null && !_updaters.containsListener(listener)) {
-      _updaters.addListener(listener);
-      add(() => _updaters.removeListener(listener));
+    if (listener != null && !updaters.containsListener(listener)) {
+      updaters.addListener(listener);
+      add(() => updaters.removeListener(listener));
     }
   }
 
@@ -110,19 +110,17 @@ class Notifier {
     _notifyData = data;
     final result = builder();
     if (data.disposers.isEmpty && data.throwException) {
-      throw ObxError();
+      throw const ObxError();
     }
     _notifyData = null;
     return result;
   }
 
-  T notify<T>(T Function() builder) {
+  T observe<T>(T Function() builder) {
+    if (_notifyData == null) return builder();
     final previousData = _notifyData;
-    final base = Rx<T>();
+    final base = OneShot<T>();
     final debouncer = Debouncer(delay: const Duration(milliseconds: 15));
-    base.listen((e) => print("Value changed $e"));
-    print(base.runtimeType);
-    // Add a debounce to allow multiple update
     _notifyData = NotifyData(
         updater: () => debouncer(() => base.value = builder()),
         disposers: [builder]);
@@ -178,11 +176,15 @@ class OneShotDual<T, S, V> extends OneShot<T> {
   }
 }
 
+abstract class StreamBindable<T> {
+  void bindStream(Stream<T> stream);
+}
+
 /// This class is internal to the package
 /// It's used to get value that refresh themselves
 /// For usage examples check in rx_iterable
-class OneShot<T> extends RxListenable<T> {
-  OneShot(super.val, {super.distinct = true});
+class OneShot<T> extends Reactive<T> implements StreamBindable {
+  OneShot(super.val);
 
   static OneShot<T> fromMap<E, T>(
     Rx<E> parent,
@@ -208,6 +210,58 @@ class OneShot<T> extends RxListenable<T> {
     super._notify();
     dispose();
   }
+
+  @override
+  void bindStream(Stream stream) {
+    // TODO: implement bindStream
+  }
+}
+
+class DualShot<T> extends Reactive<T> {
+  DualShot([super.val]);
+
+  @override
+  set value(T value) {
+    if (!hasValue) {
+      _value = value;
+      return;
+    }
+    super.value = value;
+  }
+
+  @override
+  void _notify() {
+    super._notify();
+    dispose();
+  }
+}
+
+/// This is the mos basic reactive component
+class Reactive<T> extends ListNotifier implements ValueListenable<T> {
+  Reactive(T? val) : _value = val;
+
+  bool get hasValue => null is T || _value != null;
+
+  T? _value;
+
+  @override
+  T get value {
+    if (!hasValue) {
+      throw FlutterError(
+          '''Trying to access `value` for Rx<$T> but it's not initialized.
+Make sure to initialize it first or use `ValueOrNull` instead.''');
+    }
+    reportRead();
+    return _value as T;
+  }
+
+  set value(T newValue) {
+    if (_value == newValue) {
+      return;
+    }
+    _value = newValue;
+    _notify();
+  }
 }
 
 /// This class is the foundation for all reactive (Rx) classes that makes Get
@@ -215,17 +269,15 @@ class OneShot<T> extends RxListenable<T> {
 /// This interface is the contract that [_RxImpl]<T> uses in all it's
 /// subclass.
 
-class RxListenable<T> extends ListNotifierSingle implements ValueListenable<T> {
-  RxListenable(T? val, {bool distinct = true})
-      : _distinct = T == Null ? false : distinct,
-        _value = val;
+class RxImpl<T> extends Reactive<T> {
+  RxImpl(super.val, {bool distinct = true})
+      : _distinct = T == Null ? false : distinct;
 
   final _subbed = <VoidCallback>[];
 
   final bool _distinct;
   bool get isDistinct => _distinct;
 
-  bool get hasValue => null is T || _value != null;
   T? get valueOrNull => hasValue ? value : null;
 
   StreamController<T>? _controller;
@@ -292,8 +344,6 @@ class RxListenable<T> extends ListNotifierSingle implements ValueListenable<T> {
     _subbed.clear();
   }
 
-  T? _value;
-
   /// This is used to get a non moving value
   T get static {
     if (!hasValue) {
@@ -308,17 +358,6 @@ Make sure to initialize it first or use `StaticOrNull` instead.''');
 
   T? get staticOrNull => hasValue ? _value : null;
 
-  @override
-  T get value {
-    if (!hasValue) {
-      throw FlutterError(
-          '''Trying to access `value` for Rx<$T> but it's not initialized.
-Make sure to initialize it first or use `ValueOrNull` instead.''');
-    }
-    reportRead();
-    return _value as T;
-  }
-
   /// Called without a value it will refesh the ui
   /// Called with a value it will refresh the ui and update value
   void refresh([T? v]) {
@@ -331,6 +370,7 @@ Make sure to initialize it first or use `ValueOrNull` instead.''');
     _notify();
   }
 
+  @override
   set value(T newValue) {
     if (_value == newValue) {
       if (!isDistinct) {
@@ -384,24 +424,6 @@ Make sure to initialize it first or use `ValueOrNull` instead.''');
       onDone: onDone,
       cancelOnError: cancelOnError ?? false,
     );
-  }
-
-  /// Binds an existing `Stream<T>` to this Rx<T> to keep the values in sync.
-  /// You can bind multiple sources to update the value.
-  /// Once a stream closes the subscription will cancel itself
-  /// You can also cancel the sub with the provided callback
-  VoidCallback bindStream(Stream<T> stream) {
-    final sub = stream.listen((e) {
-      value = e;
-    }, cancelOnError: false);
-    _subbed.add(sub.cancel);
-    // ignore: prefer_function_declarations_over_variables
-    final clean = () {
-      _subbed.remove(sub.cancel);
-      sub.cancel();
-    };
-    sub.onDone(clean);
-    return clean;
   }
 
   VoidCallback bindRx(Rx<T> rx, [Stream<T>? stream]) {
