@@ -10,11 +10,11 @@ typedef Disposer = void Function();
 typedef StateUpdate = void Function();
 
 /// A Notifier with single listeners
-class ListNotifier = Listenable with ListNotifierMixin;
+class ListNotifier = Listenable with ListNotifiable;
 
 /// This mixin add to Listenable the addListener, removerListener and
 /// containsListener implementation
-mixin ListNotifierMixin on Listenable {
+mixin ListNotifiable on Listenable {
   List<StateUpdate>? _updaters = <StateUpdate>[];
 
   @override
@@ -96,7 +96,7 @@ class Notifier {
     _notifyData?.disposers.add(listener);
   }
 
-  void read(ListNotifierMixin updaters) {
+  void read(ListNotifiable updaters) {
     final listener = _notifyData?.updater;
     if (listener != null && !updaters.containsListener(listener)) {
       updaters.addListener(listener);
@@ -118,7 +118,8 @@ class Notifier {
     if (_notifyData == null) return builder();
     final previousData = _notifyData;
     final base = SingleShot<T>();
-    final debouncer = Debouncer(delay: const Duration(milliseconds: 5));
+    final debouncer =
+        EveryDebouncer(delay: const Duration(milliseconds: 5), retries: 4);
     _notifyData = NotifyData(
         updater: () => debouncer(() => base.value = builder()),
         disposers: [builder]);
