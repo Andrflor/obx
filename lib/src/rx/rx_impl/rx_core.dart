@@ -39,8 +39,11 @@ import '../../notifier.dart';
 /// This function is the refined state solution by excelence
 /// You can call it with any closure containing any combinaison of Rx
 /// The UI will rebuild only if the value of the result change
-T observe<T>(T Function() builder) =>
-    Notifier.inBuild ? Notifier.instance.observe(builder) : builder();
+T observe<T>(T Function() builder) {
+  print(
+      "InBuild: ${Notifier.inBuild}, Observing: ${Notifier.observing}, HasInstance: ${Notifier.hasIntance}");
+  return Notifier.inBuild ? Notifier.instance.observe(builder) : builder();
+}
 
 class Rx<T> extends RxImpl<T> {
   Rx._({T? initial, bool distinct = true}) : super(initial, distinct: distinct);

@@ -44,9 +44,50 @@ mixin Distinctive<T> on Actionable<T>, StreamCapable<T> {
   // This value will only be set if it matches
   @override
   set value(T newValue) {
-    if (!isDistinct || this != newValue) {
+    if (!isDistinct || static != newValue) {
       trigger(newValue);
     }
+  }
+}
+
+// This mixin is used to provide Actions to call
+mixin Actionable<T> on Reactive<T> {
+  T? call([T? v]) {
+    if (v != null) {
+      value = v;
+    }
+    return value;
+  }
+
+  /// Trigger update with a new value
+  /// Update the value, force notify listeners and update Widgets
+  void trigger(T v) {
+    static = v;
+    notify();
+  }
+
+  /// Trigger update with current value
+  /// Force notify listeners and update Widgets
+  void emit() {
+    if (hasValue) {
+      trigger(static);
+    }
+  }
+
+  /// Silent update
+  /// Update value without updating widgets and listeners
+  /// This means that piped object won't recieve the update
+  void silent(T v) {
+    static = v;
+  }
+
+  /// Called without a value it will refesh the ui
+  /// Called with a value it will refresh the ui and update value
+  void refresh([T? v]) {
+    if (v != null) {
+      static = v;
+    }
+    notify();
   }
 }
 
@@ -126,7 +167,7 @@ mixin StreamCapable<T> on Reactive<T> {
     bool? cancelOnError,
   }) {
     if (hasValue) {
-      onData?.call(value);
+      onData?.call(static);
     }
     return listen(
       onData,

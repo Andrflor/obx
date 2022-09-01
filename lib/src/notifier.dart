@@ -88,7 +88,12 @@ class Notifier {
 
   static Notifier? _instance;
   static Notifier get instance => _instance ??= Notifier._();
-  static bool get inBuild => instance._notifyData != null;
+  static bool get hasIntance => instance._notifyData != null;
+  static bool get inBuild =>
+      !(instance._notifyData == null || instance._observing);
+  static bool get observing => instance._observing;
+
+  bool _observing = false;
 
   NotifyData? _notifyData;
 
@@ -115,18 +120,27 @@ class Notifier {
   }
 
   T observe<T>(T Function() builder) {
-    if (_notifyData == null) return builder();
     final previousData = _notifyData;
     final base = SingleShot<T>();
-    final debouncer =
-        EveryDebouncer(delay: const Duration(milliseconds: 5), retries: 4);
+    final wrapper = wrap(builder);
+    final debouncer = MaxRetryDebouncer(
+        delay: const Duration(milliseconds: 5), maxRetries: 4);
     _notifyData = NotifyData(
-        updater: () => debouncer(() => base.value = builder()),
-        disposers: [builder]);
-    final result = builder();
+        updater: () => debouncer(() => base.value = wrapper()),
+        disposers: [wrapper]);
+    final result = wrapper();
     _notifyData = previousData;
     base.value = result;
     return base.value;
+  }
+
+  T Function() wrap<T>(T Function() builder) {
+    return () {
+      _observing = true;
+      final result = builder();
+      _observing = false;
+      return result;
+    };
   }
 
   T silent<T>(T Function() builder) {
@@ -169,7 +183,9 @@ class ObxError {
 /// Then it fire once, and then it dies
 /// So it really has a "single shot"
 class SingleShot<T> extends Reactive<T> {
-  SingleShot() : super(null);
+  SingleShot() : super(null) {
+    print("Building $runtimeType");
+  }
 
   @override
   bool get hasValue => _hasValue;
@@ -234,45 +250,12 @@ Make sure to initialize it first or use `ValueOrNull` instead.''');
   int get hashCode => value.hashCode;
 }
 
-// This mixin is used to provide Actions to call
-mixin Actionable<T> on Reactive<T> {
-  T? call([T? v]) {
-    if (v != null) {
-      value = v;
-    }
-    return _value;
-  }
-
-  /// Trigger update with a new value
-  /// Update the value, force notify listeners and update Widgets
-  void trigger(T v) {
-    _value = v;
-    _notify();
-  }
-
-  /// Trigger update with current value
-  /// Force notify listeners and update Widgets
-  void emit() {
-    if (hasValue) {
-      trigger(_value as T);
-    }
-  }
-
-  /// Silent update
-  /// Update value without updating widgets and listeners
-  /// This means that piped object won't recieve the update
-  void silent(T v) {
-    _value = v;
-  }
-
-  /// Called without a value it will refesh the ui
-  /// Called with a value it will refresh the ui and update value
-  void refresh([T? v]) {
-    if (v != null) {
-      _value = v;
-    }
-    _notify();
-  }
+/// This is used pass private field to other functions
+extension ProtectedAccess<T> on Reactive<T> {
+  T get static => _value as T;
+  set static(T value) => _value = value;
+  void notify() => _notify();
 }
 
+/// Little helper for type checks
 bool isSubtype<S, T>() => <S>[] is List<T>;
