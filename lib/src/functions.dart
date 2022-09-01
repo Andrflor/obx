@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
+
 import './rx/rx_impl/rx_mixins.dart';
 import '../obx.dart';
 import 'notifier.dart';
@@ -40,13 +42,20 @@ T observe<T>(T Function() builder) {
   return Notifier.inBuild ? Notifier.instance.observe(builder) : builder();
 }
 
+// TODO: make ever for properly
+// TODO: fix obsrerve avoid infinite loop when closure update the values
+// TODO: and the UI does not refresh
+
+// TODO: make documentation for this function
 StreamSubscription<T> ever<T>(
   Object builder,
   Function(T value) onData, {
   StreamFilter<T>? filter,
-  Function? onError,
   void Function()? onDone,
+  Function? onError,
   bool? cancelOnError,
+  // TODO: implements distinct
+  bool forceDistinct = false,
 }) {
   if (builder is Function) {
     if (builder is T Function()) {
@@ -77,10 +86,15 @@ StreamSubscription<T> ever<T>(
       onError: onError,
     );
   }
+  if (builder is ValueListenable<T>) {
+    // TODO: implements for value listnable
+    // TODO: this should be using proper observable
+  }
   // TODO: add assert for devellopement
   return EmptyStreamSubscription<T>();
 }
 
+// TODO: make documentation for this function
 StreamSubscription<T> everNow<T>(
   Object builder,
   Function(T value) onData, {
@@ -88,6 +102,8 @@ StreamSubscription<T> everNow<T>(
   Function? onError,
   void Function()? onDone,
   bool? cancelOnError,
+  // TODO: implements distinct
+  bool forceDistinct = false,
 }) {
   if (builder is Function) {
     if (builder is T Function()) {
@@ -118,6 +134,13 @@ StreamSubscription<T> everNow<T>(
       onError: onError,
     );
   }
+  if (builder is ValueListenable<T>) {
+    // TODO: implements for value listnable
+    // TODO: this should be using proper observable
+  }
   // TODO: add assert for devellopement
   return EmptyStreamSubscription<T>();
 }
+
+// TODO: implement Debounce, Once, Iterval, Every, Skip, Take
+// TODO: implement DebounceNow, OnceNow, ItervalNow, EveryNow, SkipNow, TakeNow

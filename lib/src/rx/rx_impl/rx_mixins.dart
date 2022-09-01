@@ -194,44 +194,6 @@ mixin BroadCastStreamCapable<T> on StreamCapable<T> {
   void addError(Object error, [StackTrace? stackTrace]) {
     subject.addError(error, stackTrace);
   }
-
-  /// Allow to listen to the observable
-  @override
-  StreamSubscription<T> listen(
-    void Function(T e) onData, {
-    Function? onError,
-    void Function()? onDone,
-    StreamFilter<T>? filter,
-    bool? cancelOnError,
-  }) {
-    return (filter == null ? stream : filter(stream)).listen(
-      onData,
-      onError: onError,
-      onDone: onDone,
-      cancelOnError: cancelOnError ?? false,
-    );
-  }
-
-  /// Same as listen but is also called now
-  @override
-  StreamSubscription<T> listenNow(
-    void Function(T e) onData, {
-    Function? onError,
-    void Function()? onDone,
-    StreamFilter<T>? filter,
-    bool? cancelOnError,
-  }) {
-    if (hasValue) {
-      onData.call(static);
-    }
-    return listen(
-      onData,
-      onError: onError,
-      onDone: onDone,
-      cancelOnError: cancelOnError ?? false,
-      filter: filter,
-    );
-  }
 }
 
 mixin StreamBindable<T> on StreamCapable<T> {
