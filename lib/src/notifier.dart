@@ -114,12 +114,11 @@ class Notifier {
     return result;
   }
 
-  // TODO: Check that this works properly
   T observe<T>(T Function() builder) {
     if (_notifyData == null) return builder();
     final previousData = _notifyData;
     final base = SingleShot<T>();
-    final debouncer = Debouncer(delay: const Duration(milliseconds: 15));
+    final debouncer = Debouncer(delay: const Duration(milliseconds: 5));
     _notifyData = NotifyData(
         updater: () => debouncer(() => base.value = builder()),
         disposers: [builder]);

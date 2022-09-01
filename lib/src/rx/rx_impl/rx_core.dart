@@ -34,13 +34,11 @@ import '../../notifier.dart';
 //       Rxn._fromListenable(listenable, init: initial, distinct: false);
 // }
 
-// TODO: define better doc for this
-// TODO: maybe call builder if no buid?
-/// Allow to observe any Rx variable
-/// This is entended way to do if you want refined controll
-/// Provide a closure With Rx components and it will
-/// Use it inside an obx with a complex object
-/// This will allow only this particular value to update
+/// Observes the results of any combinaison of Rx variables
+///
+/// This function is the refined state solution by excelence
+/// You can call it with any closure containing any combinaison of Rx
+/// The UI will rebuild only if the value of the result change
 T observe<T>(T Function() builder) =>
     Notifier.inBuild ? Notifier.instance.observe(builder) : builder();
 
@@ -48,6 +46,8 @@ class Rx<T> extends RxImpl<T> {
   Rx._({T? initial, bool distinct = true}) : super(initial, distinct: distinct);
 
   Rx([T? initial]) : super(initial, distinct: true);
+
+  /// Constructor for
   Rx.indistinct([T? initial]) : super(initial, distinct: false);
 
   // TODO: make this a private constructor
@@ -66,9 +66,7 @@ class Rx<T> extends RxImpl<T> {
     bindListenable(listenable);
   }
 
-  /// This allow to observe the changes
-  /// So you can only do when to observable are differents
-  /// Maybe remove that ?? Is there a point to observe this??
+  /// Oberve the result of the equality
   @override
   bool operator ==(Object o) {
     // TODO: find a common implementation for the hashCode of different Types.

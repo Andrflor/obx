@@ -88,12 +88,14 @@ class Test extends StatelessWidget {
     // print(display2.isDistinct);
 
     MbEater(0).data;
+    int numeral = 0;
+    print(++numeral == 1);
 
     print(Rx(null).runtimeType);
 
     Rx.fuse(() => plep.value && plep.value);
 
-    // func(plep, rxNum, rxNum2);
+    func(plep, rxNum, rxNum2);
 
     // final rx = Rx.indistinct(3);
     // print(rx.runtimeType);
@@ -173,7 +175,9 @@ class Test extends StatelessWidget {
         // ),
         Obx(
           () => plep.value
-              ? Obx(() => Column(
+              ? Obx(() {
+                  print("Building");
+                  return Column(
                     children: [
                       Text(rxNum2.toString()),
                       Text(
@@ -182,7 +186,8 @@ class Test extends StatelessWidget {
                             ).eat()),
                       ),
                     ],
-                  ))
+                  );
+                })
               : Obx(
                   () => Text("$rxStr"),
                 ),

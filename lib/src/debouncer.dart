@@ -9,14 +9,14 @@ import 'dart:async';
 /// delayed( () => print( 'called after 1 sec' ));
 /// ```
 class Debouncer {
-  final Duration? delay;
+  final Duration delay;
   Timer? _timer;
 
-  Debouncer({this.delay});
+  Debouncer({required this.delay});
 
   void call(void Function() action) {
     _timer?.cancel();
-    _timer = Timer(delay!, action);
+    _timer = Timer(delay, action);
   }
 
   /// Notifies if the delayed call is active.
@@ -24,4 +24,17 @@ class Debouncer {
 
   /// Cancel the current delayed call.
   void cancel() => _timer?.cancel();
+}
+
+class MaxedDebouncer extends Debouncer {
+  final int retries;
+  int _tried = 0;
+
+  MaxedDebouncer({required super.delay, required this.retries})
+      : assert(retries > 0);
+
+  @override
+  void call(void Function() action) {
+    if (++_tried <= retries) super(action);
+  }
 }
