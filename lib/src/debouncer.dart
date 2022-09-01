@@ -27,15 +27,17 @@ class Debouncer {
 }
 
 /// This debouncer will fire each X call
-class MaxRetryDebouncer extends Debouncer {
-  final int maxRetries;
-  int _tries = 0;
+class EveryDebouncer extends Debouncer {
+  final int retries;
+  int _tried = 0;
 
-  MaxRetryDebouncer({required super.delay, required this.maxRetries})
-      : assert(maxRetries > 0);
+  EveryDebouncer({required super.delay, required this.retries})
+      : assert(retries > 0);
 
   @override
   void call(void Function() action) {
-    if (_tries++ < maxRetries) super(action);
+    if (_tried++ < retries) return super(action);
+    _tried = 0;
+    _timer = Timer(delay, action);
   }
 }

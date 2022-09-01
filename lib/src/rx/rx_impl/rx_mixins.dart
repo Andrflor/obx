@@ -181,7 +181,7 @@ mixin StreamCapable<T> on Reactive<T> {
   /// You can bind multiple sources to update the value.
   /// Once a stream closes the subscription will cancel itself
   /// You can also cancel the sub with the provided callback
-  VoidCallback bindStream(Stream<T> stream) {
+  Disposer bindStream(Stream<T> stream) {
     final sub = stream.listen((e) {
       value = e;
     }, cancelOnError: false);
@@ -195,7 +195,7 @@ mixin StreamCapable<T> on Reactive<T> {
     return clean;
   }
 
-  VoidCallback bindRx(StreamCapable<T> rx, [Stream<T>? stream]) {
+  Disposer bindRx(StreamCapable<T> rx, [Stream<T>? stream]) {
     final sub = stream == null
         ? rx.listen((e) {
             value = e;
@@ -225,8 +225,8 @@ mixin StreamCapable<T> on Reactive<T> {
   /// It's impossible to know when a ValueListenable is Done
   /// You will have to clean it up yourself
   /// For that you can call the provided callback
-  VoidCallback bindListenable(Listenable listenable, [T Function()? callback]) {
-    VoidCallback? closure = callback == null
+  Disposer bindListenable(Listenable listenable, [T Function()? callback]) {
+    Disposer? closure = callback == null
         ? null
         : () {
             value = callback();

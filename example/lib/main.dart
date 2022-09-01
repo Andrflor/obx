@@ -72,9 +72,11 @@ class Test extends StatelessWidget {
                     children: [
                       // Text(rxNum2.toString()),
                       Text(
-                        observe(() {
-                          return rxNum.value.toStringAsFixed(0);
-                        }),
+                        () {
+                          return observe(() {
+                            return rxNum.value.toStringAsFixed(0);
+                          });
+                        }(),
                       ),
                     ],
                   );

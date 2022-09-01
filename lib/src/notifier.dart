@@ -119,20 +119,22 @@ class Notifier {
     return result;
   }
 
-  T observe<T>(T Function() builder) {
-    final previousData = _notifyData;
+  T _observe<T>(T Function() builder) {
     final base = SingleShot<T>();
-    final wrapper = wrap(builder);
-    final debouncer = MaxRetryDebouncer(
-        delay: const Duration(milliseconds: 5), maxRetries: 4);
-    _notifyData = NotifyData(
-        updater: () => debouncer(() => base.value = wrapper()),
-        disposers: [wrapper]);
-    final result = wrapper();
+    final previousData = _notifyData;
+    final debouncer =
+        EveryDebouncer(delay: const Duration(milliseconds: 5), retries: 4);
+    _notifyData = NotifyData(updater: () => base.value = builder(),
+        // TODO: fix disposers not called
+        disposers: [() => debouncer.cancel(), () => print("Called dispose")]);
+    final result = builder();
+    print(_notifyData?.disposers);
     _notifyData = previousData;
     base.value = result;
     return base.value;
   }
+
+  T observe<T>(T Function() builder) => wrap<T>(() => _observe(builder))();
 
   T Function() wrap<T>(T Function() builder) {
     return () {
