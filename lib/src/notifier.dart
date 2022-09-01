@@ -124,11 +124,11 @@ class Notifier {
     final previousData = _notifyData;
     final debouncer =
         EveryDebouncer(delay: const Duration(milliseconds: 5), retries: 4);
-    _notifyData = NotifyData(updater: () => base.value = builder(),
-        // TODO: fix disposers not called
+    _notifyData = NotifyData(
+        updater: () => debouncer(() => base.value = builder()),
         disposers: [() => debouncer.cancel(), () => print("Called dispose")]);
     final result = builder();
-    print(_notifyData?.disposers);
+    base.disposers = _notifyData?.disposers;
     _notifyData = previousData;
     base.value = result;
     return base.value;
@@ -143,14 +143,6 @@ class Notifier {
       _observing = false;
       return result;
     };
-  }
-
-  T silent<T>(T Function() builder) {
-    final previousData = _notifyData;
-    _notifyData = null;
-    final result = builder();
-    _notifyData = previousData;
-    return result;
   }
 }
 
@@ -186,8 +178,10 @@ class ObxError {
 /// So it really has a "single shot"
 class SingleShot<T> extends Reactive<T> {
   SingleShot() : super(null) {
-    print("Building $runtimeType");
+    print("Generating $runtimeType");
   }
+
+  List<Disposer>? disposers = <Disposer>[];
 
   @override
   bool get hasValue => _hasValue;
@@ -206,6 +200,11 @@ class SingleShot<T> extends Reactive<T> {
   @override
   void _notify() {
     super._notify();
+    for (final disposer in disposers!) {
+      disposer();
+    }
+    disposers!.clear();
+    disposers = null;
     dispose();
   }
 }

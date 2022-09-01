@@ -31,6 +31,9 @@ mixin StatelessObserverComponent on StatelessElement {
   @override
   void unmount() {
     super.unmount();
+    for (final disposer in disposers!) {
+      disposer();
+    }
     disposers!.clear();
     disposers = null;
   }

@@ -38,6 +38,7 @@ class EveryDebouncer extends Debouncer {
   void call(void Function() action) {
     if (_tried++ < retries) return super(action);
     _tried = 0;
-    _timer = Timer(delay, action);
+    cancel();
+    action();
   }
 }
