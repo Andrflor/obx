@@ -74,8 +74,6 @@ class Obx extends ObxWidget {
 ///    ),
 ///    false.obs,
 ///   ),
-// class ObxValue<T extends RxInteface> extends ObxWidget {
-
 class ObxValue<T extends Object> extends ObxWidget {
   final Widget Function(T) builder;
   final T data;

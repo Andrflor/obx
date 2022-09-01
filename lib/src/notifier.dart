@@ -88,13 +88,10 @@ class Notifier {
 
   static Notifier? _instance;
   static Notifier get instance => _instance ??= Notifier._();
-  static bool get hasIntance => instance._notifyData != null;
   static bool get inBuild =>
       !(instance._notifyData == null || instance._observing);
-  static bool get observing => instance._observing;
 
   bool _observing = false;
-
   NotifyData? _notifyData;
 
   void add(VoidCallback listener) {
@@ -126,7 +123,7 @@ class Notifier {
         EveryDebouncer(delay: const Duration(milliseconds: 5), retries: 4);
     _notifyData = NotifyData(
         updater: () => debouncer(() => base.value = builder()),
-        disposers: [() => debouncer.cancel(), () => print("Called dispose")]);
+        disposers: [debouncer.cancel]);
     final result = builder();
     base.disposers = _notifyData?.disposers;
     _notifyData = previousData;
@@ -177,9 +174,7 @@ class ObxError {
 /// Then it fire once, and then it dies
 /// So it really has a "single shot"
 class SingleShot<T> extends Reactive<T> {
-  SingleShot() : super(null) {
-    print("Generating $runtimeType");
-  }
+  SingleShot() : super(null);
 
   List<Disposer>? disposers = <Disposer>[];
 

@@ -6,18 +6,11 @@ import 'package:obx/obx.dart';
 
 void main() => runApp(MaterialApp(home: Test()));
 
-func(RxBool rxBool, RxNum rxNum, RxInt rxNum2) async {
+func(RxBool rxBool, RxNum rxNum, RxNum rxNum2) async {
   while (true) {
     await Future.delayed(Duration(microseconds: 1));
 
-    // if (rxNum >= 20.4) {
-    //   rxNum((rxNum - 0.1));
-    // } else {
-    //   rxNum((rxNum + 0.1));
-    // }
     rxNum((rxNum + 0.000001));
-    print(rxNum.value);
-    rxNum2((rxNum2 + 1) as int);
   }
 }
 
@@ -47,7 +40,7 @@ class Test extends StatelessWidget {
   final plep = Rx(true);
 
   final rxNum = RxDouble(20);
-  final rxNum2 = Rx(20);
+  final rxNum2 = RxDouble(20);
   final rxStr = Rx("");
 
   Test({Key? key}) : super(key: key) {
@@ -70,6 +63,13 @@ class Test extends StatelessWidget {
         //     return Text("$iCond");
         //   },
         // ),
+        Obx(
+          () => Text(observe(() {
+            rxNum2(rxNum2 + 0.1);
+            print(rxNum2);
+            return rxNum2.toStringAsFixed(2);
+          })),
+        ),
         Obx(
           () => plep.value
               ? Obx(() {

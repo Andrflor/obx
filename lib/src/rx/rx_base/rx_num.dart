@@ -975,10 +975,10 @@ extension RxnIntExt on Rx<int?> {
 
 extension RxDoubleExt on Rx<double> {
   /// Addition operator.
-  double operator +(num other) => observe(() => value * other);
+  double operator +(num other) => observe(() => value + other);
 
   /// Subtraction operator.
-  double operator -(num other) => observe(() => value * other);
+  double operator -(num other) => observe(() => value - other);
 
   /// Multiplication operator.
   double operator *(num other) => observe(() => value * other);
@@ -1078,11 +1078,11 @@ extension RxDoubleExt on Rx<double> {
 extension RxnDoubleExt on Rx<double?> {
   /// Addition operator.
   double? operator +(num other) =>
-      observe(() => value == null ? null : value! * other);
+      observe(() => value == null ? null : value! + other);
 
   /// Subtraction operator.
   double? operator -(num other) =>
-      observe(() => value == null ? null : value! * other);
+      observe(() => value == null ? null : value! - other);
 
   /// Multiplication operator.
   double? operator *(num other) =>

@@ -36,16 +36,32 @@ import '../../notifier.dart';
 
 /// Observes the results of any combinaison of Rx variables
 ///
-/// This function is the refined state solution by excelence
+/// This function is the refined state(less) control by excellence
 /// You can call it with any closure containing any combinaison of Rx
-/// The UI will rebuild only if the value of the result change
+/// The UI will rebuild only if the value of the result changes
+///  Sample with RxDouble data1, RxDouble data2:
+///     Obx(
+///       () => Text(observe(() =>
+///           data2.toStringAsFixed(0) == data2.toStringAsFixed(0)
+///               ? "Equals"
+///               : "Different")),
+///     ),
+/// Will only rebuild when the result String changes
+///
+/// [observe] is smart, it knows where it's called
+/// In fact, you can call it anywhere
+/// Furthermore calling it outside of a reactive widget has zero cost
+/// This especially pratical for getters
+///
+/// With complex structures you may endup with [observe] inside [observe]
+/// Again, it has zero cost and you should feel free to do so
+///
+/// You may have a lot of observables updating at the same time
+/// Or even observables updating way more often that once a frame
+/// [observe] will make sure that you closure is evaluated only when needed
 T observe<T>(T Function() builder) {
   return Notifier.inBuild ? Notifier.instance.observe(builder) : builder();
 }
-
-// TODO: remove that
-String inBuild() =>
-    "InBuild: ${Notifier.inBuild}, Observing: ${Notifier.observing}, HasInstance: ${Notifier.hasIntance}";
 
 class Rx<T> extends RxImpl<T> {
   Rx._({T? initial, bool distinct = true}) : super(initial, distinct: distinct);
