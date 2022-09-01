@@ -1,3 +1,4 @@
+import '../../functions.dart';
 import '../rx_impl/rx_core.dart';
 
 extension RxStringExt on Rx<String> {

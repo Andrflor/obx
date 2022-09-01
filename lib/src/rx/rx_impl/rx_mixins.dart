@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 
+import '../../functions.dart';
 import '../../notifier.dart';
-import 'rx_core.dart';
 
 /// This mixin allow to observe object descriptions
 mixin Descriptible<T> on ValueListenable<T> {
@@ -95,6 +95,7 @@ typedef Worker<T> = StreamSubscription<T> Function(void Function(T)?,
     {bool? cancelOnError, void Function()? onDone, Function? onError});
 
 typedef StreamTransformation<S, T> = Stream<S> Function(Stream<T> stream);
+typedef StreamFilter<T> = StreamTransformation<T, T>;
 
 mixin StreamCapable<T> on DisposersTrackable<T> {
   StreamController<T>? _controller;
@@ -104,6 +105,7 @@ mixin StreamCapable<T> on DisposersTrackable<T> {
   Stream<T> get stream {
     if (_controller == null) {
       _controller = StreamController<T>();
+      _controller!.onCancel = dispose;
       _stream = _controller!.stream;
     }
     return _stream!;
@@ -112,7 +114,7 @@ mixin StreamCapable<T> on DisposersTrackable<T> {
   /// This method allow to remove all incoming subs
   /// This will detatched this obs from stream listenable other piped obs
   void detatch() {
-    for (Disposer disposer in disposers!) {
+    for (Disposer disposer in disposers ?? []) {
       disposer();
     }
     disposers?.clear();
@@ -123,10 +125,10 @@ mixin StreamCapable<T> on DisposersTrackable<T> {
     void Function(T e) onData, {
     Function? onError,
     void Function()? onDone,
-    StreamTransformation<T, T>? transform,
+    StreamFilter<T>? filter,
     bool? cancelOnError,
   }) {
-    return (transform == null ? stream : transform(stream)).listen(
+    return (filter == null ? stream : filter(stream)).listen(
       onData,
       onError: onError,
       onDone: onDone,
@@ -139,7 +141,7 @@ mixin StreamCapable<T> on DisposersTrackable<T> {
     void Function(T e) onData, {
     Function? onError,
     void Function()? onDone,
-    StreamTransformation<T, T>? transform,
+    StreamFilter<T>? filter,
     bool? cancelOnError,
   }) {
     if (hasValue) {
@@ -150,6 +152,7 @@ mixin StreamCapable<T> on DisposersTrackable<T> {
       onError: onError,
       onDone: onDone,
       cancelOnError: cancelOnError,
+      filter: filter,
     );
   }
 }
@@ -180,7 +183,7 @@ mixin BroadCastStreamCapable<T> on StreamCapable<T> {
   @override
   @mustCallSuper
   void dispose() {
-    if (disposers?.isNotEmpty ?? false || _controller != null) {
+    if (_controller != null) {
       detatch();
       _controller?.close();
     }
@@ -198,10 +201,10 @@ mixin BroadCastStreamCapable<T> on StreamCapable<T> {
     void Function(T e) onData, {
     Function? onError,
     void Function()? onDone,
-    StreamTransformation<T, T>? transform,
+    StreamFilter<T>? filter,
     bool? cancelOnError,
   }) {
-    return (transform == null ? stream : transform(stream)).listen(
+    return (filter == null ? stream : filter(stream)).listen(
       onData,
       onError: onError,
       onDone: onDone,
@@ -215,7 +218,7 @@ mixin BroadCastStreamCapable<T> on StreamCapable<T> {
     void Function(T e) onData, {
     Function? onError,
     void Function()? onDone,
-    StreamTransformation<T, T>? transform,
+    StreamFilter<T>? filter,
     bool? cancelOnError,
   }) {
     if (hasValue) {
@@ -226,7 +229,7 @@ mixin BroadCastStreamCapable<T> on StreamCapable<T> {
       onError: onError,
       onDone: onDone,
       cancelOnError: cancelOnError ?? false,
-      transform: transform,
+      filter: filter,
     );
   }
 }
