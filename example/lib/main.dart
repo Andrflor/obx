@@ -89,6 +89,8 @@ class Test extends StatelessWidget {
 
     MbEater(0).data;
 
+    print(Rx(null).runtimeType);
+
     // func(plep, rxNum, rxNum2);
 
     // final rx = Rx.indistinct(3);
