@@ -14,6 +14,16 @@ func(RxBool rxBool, RxNum rxNum, RxNum rxNum2) async {
   }
 }
 
+ever<T>(T Function() data, Function(T value) clojure) {
+  print("in data");
+  print(data.hashCode);
+}
+
+bool printer() {
+  print("called");
+  return false;
+}
+
 int numeral = 0;
 
 class MbEater {
@@ -44,8 +54,14 @@ class Test extends StatelessWidget {
   final rxStr = Rx("");
 
   Test({Key? key}) : super(key: key) {
-    func(Rx(false), rxNum, rxNum2);
+    // func(Rx(false), rxNum, rxNum2);
+    /// Since observe outside of A reactive widget has no cost we can use it
+    ever(() => equals, ((value) => value.toString()));
+    ever(() => equals, print);
   }
+
+  // Transparent composing of reactive elements
+  bool get equals => observe(() => rxNum == rxNum2);
 
   @override
   Widget build(context) {
@@ -63,14 +79,16 @@ class Test extends StatelessWidget {
         //     return Text("$iCond");
         //   },
         // ),
-        Obx(
-          () => Text(observe(() {
+        // TODO: fix non rebuild infinite loop
+        Obx(() {
+          print("built");
+          return Text(observe(() {
             print("called");
-            rxNum2(rxNum2 + 0.1);
+            rxNum2(rxNum2 + 0.001);
             print(rxNum2);
-            return rxNum2.toStringAsFixed(2);
-          })),
-        ),
+            return rxNum2.toStringAsFixed(0);
+          }));
+        }),
         // Obx(
         //   () => plep.value
         //       ? Obx(() {
@@ -94,7 +112,7 @@ class Test extends StatelessWidget {
         // ),
         ElevatedButton(
             onPressed: () {
-              rxNum2(rxNum2 + 0.1);
+              rxNum2(rxNum2 + 0.001);
             },
             child: Text("Toggle")),
         // ElevatedButton(

@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
+import 'package:obx/src/rx/rx_impl/rx_mixins.dart';
 
+import '../obx.dart';
 import 'debouncer.dart';
 
 // This callback remove the listener on addListener function
@@ -89,9 +91,9 @@ class Notifier {
   static Notifier? _instance;
   static Notifier get instance => _instance ??= Notifier._();
   static bool get inBuild =>
-      !(instance._notifyData == null || instance._observing);
+      !(instance._notifyData == null || instance._working);
 
-  bool _observing = false;
+  bool _working = false;
   NotifyData? _notifyData;
 
   void add(VoidCallback listener) {
@@ -118,6 +120,12 @@ class Notifier {
 
   T _observe<T>(T Function() builder) {
     final base = SingleShot<T>();
+    _internal(builder, base);
+    return base.value;
+  }
+
+  void _internal<T, S extends DisposersTrackable<T>>(
+      T Function() builder, S base) {
     final previousData = _notifyData;
     final debouncer = EveryDebouncer(
         delay: const Duration(milliseconds: 5), retries: 4, enabled: false);
@@ -126,19 +134,35 @@ class Notifier {
         disposers: [debouncer.cancel]);
     final result = builder();
     debouncer.start();
-    base.disposers = _notifyData?.disposers;
+    base._disposers = _notifyData?.disposers;
     _notifyData = previousData;
     base.value = result;
-    return base.value;
   }
 
-  T observe<T>(T Function() builder) => wrap<T>(() => _observe(builder))();
+  Worker<T> _listen<T>(T Function() builder) {
+    final base = MultiShot<T>();
+    _internal(builder, base);
+    return base.listen;
+  }
 
-  T Function() wrap<T>(T Function() builder) {
+  Worker<T> _listenNow<T>(T Function() builder) {
+    final base = MultiShot<T>();
+    _internal(builder, base);
+    return base.listenNow;
+  }
+
+  T observe<T>(T Function() builder) => work<T>(() => _observe(builder))();
+  Worker<T> listen<T>(T Function() builder) =>
+      work<Worker<T>>(() => _listen(builder))();
+
+  Worker<T> listenNow<T>(T Function() builder) =>
+      work<Worker<T>>(() => _listenNow(builder))();
+
+  T Function() work<T>(T Function() builder) {
     return () {
-      _observing = true;
+      _working = true;
       final result = builder();
-      _observing = false;
+      _working = false;
       return result;
     };
   }
@@ -170,14 +194,32 @@ class ObxError {
 }
 
 /// This is an internal class
-/// It's the basic class for the observe function
+/// It's the basic class for the [observe] function
 /// It's name comes from the fact that it is set up
 /// Then it fire once, and then it dies
 /// So it really has a "single shot"
-class SingleShot<T> extends Reactive<T> {
-  SingleShot() : super(null);
+class SingleShot<T> extends Shot<T> {
+  @override
+  void _notify() {
+    super._notify();
+    for (final disposer in _disposers!) {
+      disposer();
+    }
+    _disposers!.clear();
+    _disposers = null;
+    dispose();
+  }
+}
 
-  List<Disposer>? disposers = <Disposer>[];
+/// This is an internal class
+/// It's the basic class for the [ever] function
+class MultiShot<T> = Shot<T> with StreamCapable<T>;
+
+/// This is an internal class
+/// It's the basic class for [observe] and [ever]
+/// It's name comes from the fact that it shoots
+class Shot<T> extends Reactive<T> with DisposersTrackable<T> {
+  Shot() : super(null);
 
   @override
   bool get hasValue => _hasValue;
@@ -192,17 +234,10 @@ class SingleShot<T> extends Reactive<T> {
     }
     super.value = value;
   }
+}
 
-  @override
-  void _notify() {
-    super._notify();
-    for (final disposer in disposers!) {
-      disposer();
-    }
-    disposers!.clear();
-    disposers = null;
-    dispose();
-  }
+mixin DisposersTrackable<T> on Reactive<T> {
+  List<Disposer>? _disposers = <Disposer>[];
 }
 
 /// This is the mos basic reactive component
@@ -247,11 +282,17 @@ Make sure to initialize it first or use `ValueOrNull` instead.''');
   int get hashCode => value.hashCode;
 }
 
-/// This is used pass private field to other functions
-extension ProtectedAccess<T> on Reactive<T> {
+/// This is used to pass private fields to other files
+extension ReactiveProtectedAccess<T> on Reactive<T> {
   T get static => _value as T;
   set static(T value) => _value = value;
   void notify() => _notify();
+}
+
+/// This is used to pass private fields to other files
+extension DisposerTrackableProtectedAccess<T> on DisposersTrackable<T> {
+  List<Disposer>? get disposers => _disposers;
+  set disposers(List<Disposer>? newDisposers) => _disposers = newDisposers;
 }
 
 /// Little helper for type checks

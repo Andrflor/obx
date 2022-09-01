@@ -70,6 +70,17 @@ T observe<T>(T Function() builder) {
   return Notifier.inBuild ? Notifier.instance.observe(builder) : builder();
 }
 
+StreamSubscription<S> ever<S, T>(
+  T Function() builder,
+  Function(S value) callback, {
+  Stream<T> Function(Stream<T> stream)? transformer,
+  Function? onError,
+  void Function()? onDone,
+  bool? cancelOnError,
+}) {
+  return Notifier.instance.listen(builder);
+}
+
 class Rx<T> extends RxImpl<T> {
   Rx._({T? initial, bool distinct = true}) : super(initial, distinct: distinct);
 
@@ -130,7 +141,7 @@ class Rx<T> extends RxImpl<T> {
   /// The value of the observable will default to null or empty
   /// If you want an initial value in such cases you must provide the initital transformation
   /// Be aware, you must call detatch or dispose otherwise streams won't close
-  Rx<S> pipe<S>(Stream<S> Function(Stream<T> e) transformer,
+  Rx<S> pipe<S>(Stream<S> Function(Stream<T> stream) transformer,
           {S? Function(T e)? init, bool? distinct}) =>
       _clone(
         convert: init,

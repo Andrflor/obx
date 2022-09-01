@@ -20,7 +20,7 @@ mixin Descriptible<T> on ValueListenable<T> {
 }
 
 /// This is used to maked RxImpl distinctive or Not on need
-mixin Distinctive<T> on Actionable<T>, StreamCapable<T> {
+mixin Distinguishable<T> on Actionable<T>, StreamCapable<T> {
   bool get isDistinct => false;
 
   /// Trigger update with a new value
@@ -91,55 +91,29 @@ mixin Actionable<T> on Reactive<T> {
   }
 }
 
-/// This mixin holds stream
-mixin StreamCapable<T> on Reactive<T> {
-  final _subbed = <VoidCallback>[];
+typedef Worker<T> = StreamSubscription<T> Function(void Function(T)?,
+    {bool? cancelOnError, void Function()? onDone, Function? onError});
 
+mixin StreamCapable<T> on DisposersTrackable<T> {
   StreamController<T>? _controller;
-
-  void _initController() {
-    _controller = StreamController<T>.broadcast();
-    _stream = _controller!.stream;
-  }
-
-  StreamController<T> get subject {
-    if (_controller == null) {
-      _initController();
-    }
-    return _controller!;
-  }
 
   Stream<T>? _stream;
 
   Stream<T> get stream {
     if (_controller == null) {
-      _initController();
+      _controller = StreamController<T>();
+      _stream = _controller!.stream;
     }
     return _stream!;
-  }
-
-  @override
-  @mustCallSuper
-  void dispose() {
-    if (_subbed.isNotEmpty || _controller != null) {
-      detatch();
-      _controller?.close();
-    }
-    super.dispose();
   }
 
   /// This method allow to remove all incoming subs
   /// This will detatched this obs from stream listenable other piped obs
   void detatch() {
-    for (VoidCallback callbak in _subbed) {
-      callbak();
+    for (Disposer disposer in disposers!) {
+      disposer();
     }
-    _subbed.clear();
-  }
-
-  /// This can be used if you want to add an error to the stream
-  void addError(Object error, [StackTrace? stackTrace]) {
-    subject.addError(error, stackTrace);
+    disposers?.clear();
   }
 
   /// Allow to listen to the observable
@@ -176,7 +150,85 @@ mixin StreamCapable<T> on Reactive<T> {
       cancelOnError: cancelOnError ?? false,
     );
   }
+}
 
+/// This mixin holds stream
+mixin BroadCastStreamCapable<T> on StreamCapable<T> {
+  void _initController() {
+    _controller = StreamController<T>.broadcast();
+    _stream = _controller!.stream;
+  }
+
+  @override
+  Stream<T> get stream {
+    if (_controller == null) {
+      _initController();
+      _stream = _controller!.stream;
+    }
+    return _stream!;
+  }
+
+  StreamController<T> get subject {
+    if (_controller == null) {
+      _initController();
+    }
+    return _controller!;
+  }
+
+  @override
+  @mustCallSuper
+  void dispose() {
+    if (disposers?.isNotEmpty ?? false || _controller != null) {
+      detatch();
+      _controller?.close();
+    }
+    super.dispose();
+  }
+
+  /// This can be used if you want to add an error to the stream
+  void addError(Object error, [StackTrace? stackTrace]) {
+    subject.addError(error, stackTrace);
+  }
+
+  /// Allow to listen to the observable
+  @override
+  StreamSubscription<T> listen(
+    void Function(T e)? onData, {
+    Function? onError,
+    void Function()? onDone,
+    bool? cancelOnError,
+  }) {
+    return stream.listen(
+      onData,
+      onError: onError,
+
+      /// Implement cleanUp of the controller if there is no more streams
+      onDone: onDone,
+      cancelOnError: cancelOnError ?? false,
+    );
+  }
+
+  /// Same as listen but is also called now
+  @override
+  StreamSubscription<T> listenNow(
+    void Function(T e)? onData, {
+    Function? onError,
+    void Function()? onDone,
+    bool? cancelOnError,
+  }) {
+    if (hasValue) {
+      onData?.call(static);
+    }
+    return listen(
+      onData,
+      onError: onError,
+      onDone: onDone,
+      cancelOnError: cancelOnError ?? false,
+    );
+  }
+}
+
+mixin StreamBindable<T> on StreamCapable<T> {
   /// Binds an existing `Stream<T>` to this Rx<T> to keep the values in sync.
   /// You can bind multiple sources to update the value.
   /// Once a stream closes the subscription will cancel itself
@@ -185,10 +237,10 @@ mixin StreamCapable<T> on Reactive<T> {
     final sub = stream.listen((e) {
       value = e;
     }, cancelOnError: false);
-    _subbed.add(sub.cancel);
+    disposers?.add(sub.cancel);
     // ignore: prefer_function_declarations_over_variables
     final clean = () {
-      _subbed.remove(sub.cancel);
+      disposers?.remove(sub.cancel);
       sub.cancel();
     };
     sub.onDone(clean);
@@ -208,10 +260,10 @@ mixin StreamCapable<T> on Reactive<T> {
             // TODO: implement some cleanup
             // onDone: rx._checkClean,
           );
-    _subbed.add(sub.cancel);
+    disposers?.add(sub.cancel);
     // ignore: prefer_function_declarations_over_variables
     final clean = () {
-      _subbed.remove(sub.cancel);
+      disposers?.remove(sub.cancel);
       sub.cancel();
     };
     sub.onDone(clean);
@@ -242,10 +294,10 @@ mixin StreamCapable<T> on Reactive<T> {
     listenable.addListener(closure);
     // ignore: prefer_function_declarations_over_variables
     final cancel = () => listenable.removeListener(closure!);
-    _subbed.add(cancel);
+    disposers?.add(cancel);
 
     return () {
-      _subbed.remove(cancel);
+      disposers?.remove(cancel);
       cancel();
     };
   }
