@@ -1,7 +1,5 @@
-import 'dart:async';
 import 'package:flutter/foundation.dart';
 
-import 'rx/rx_impl/rx_core.dart';
 import 'debouncer.dart';
 
 // This callback remove the listener on addListener function
@@ -165,11 +163,6 @@ class ObxError {
   }
 }
 
-/// Abstract class for more reusability
-abstract class StreamBindable<T> {
-  void bindStream(Stream<T> stream);
-}
-
 /// This is an internal class
 /// It's the basic class for the observe function
 /// It's name comes from the fact that it is set up
@@ -200,6 +193,7 @@ class SingleShot<T> extends Reactive<T> {
 }
 
 /// This is the mos basic reactive component
+/// This will just update the ui when it updates
 class Reactive<T> extends ListNotifier implements ValueListenable<T> {
   Reactive(T? val) : _value = val;
 
@@ -240,48 +234,18 @@ Make sure to initialize it first or use `ValueOrNull` instead.''');
   int get hashCode => value.hashCode;
 }
 
-/// This class is the foundation for all reactive (Rx) classes that makes Get
-/// so powerful.
-/// This interface is the contract that [_RxImpl]<T> uses in all it's
-/// subclass.
-class RxImpl<T> extends Reactive<T> implements StreamBindable<T> {
-  RxImpl(super.val, {bool distinct = true})
-      : _distinct = T == Null ? false : distinct;
-
-  final _subbed = <VoidCallback>[];
-
-  final bool _distinct;
-  bool get isDistinct => _distinct;
-
-  T? get valueOrNull => hasValue ? value : null;
-
-  StreamController<T>? _controller;
-
-  void _initController() {
-    _controller = StreamController<T>.broadcast();
-    _stream = _controller!.stream;
-  }
-
-  StreamController<T> get subject {
-    if (_controller == null) {
-      _initController();
+// This mixin is used to provide Actions to call
+mixin Actionable<T> on Reactive<T> {
+  T? call([T? v]) {
+    if (v != null) {
+      value = v;
     }
-    return _controller!;
-  }
-
-  Stream<T>? _stream;
-
-  Stream<T> get stream {
-    if (_controller == null) {
-      _initController();
-    }
-    return _stream!;
+    return _value;
   }
 
   /// Trigger update with a new value
   /// Update the value, force notify listeners and update Widgets
   void trigger(T v) {
-    _controller?.add(v);
     _value = v;
     _notify();
   }
@@ -301,182 +265,14 @@ class RxImpl<T> extends Reactive<T> implements StreamBindable<T> {
     _value = v;
   }
 
-  @override
-  @mustCallSuper
-  void dispose() {
-    assert(_debugAssertNotDisposed());
-    detatch();
-    _controller?.close();
-    super.dispose();
-  }
-
-  /// This method allow to remove all incoming subs
-  /// This will detatched this obs from stream listenable other piped obs
-  void detatch() {
-    for (VoidCallback callbak in _subbed) {
-      callbak();
-    }
-    _subbed.clear();
-  }
-
-  /// This is used to get a non moving value
-  T get static {
-    if (!hasValue) {
-      if (!hasValue) {
-        throw FlutterError(
-            '''Trying to access `static` for Rx<$T> but it's not initialized.
-Make sure to initialize it first or use `StaticOrNull` instead.''');
-      }
-    }
-    return _value as T;
-  }
-
-  T? get staticOrNull => hasValue ? _value : null;
-
   /// Called without a value it will refesh the ui
   /// Called with a value it will refresh the ui and update value
   void refresh([T? v]) {
     if (v != null) {
-      if (!isDistinct || v != _value) {
-        _controller?.add(v);
-      }
       _value = v;
     }
     _notify();
   }
-
-  @override
-  set value(T newValue) {
-    if (_value == newValue) {
-      if (!isDistinct) {
-        _controller?.add(_value as T);
-        _notify();
-      }
-      return;
-    }
-    _controller?.add(newValue);
-    _value = newValue;
-    _notify();
-  }
-
-  T? call([T? v]) {
-    if (v != null) {
-      value = v;
-    }
-    return valueOrNull;
-  }
-
-  /// Allow to listen to the observable
-  StreamSubscription<T> listen(
-    void Function(T e)? onData, {
-    Function? onError,
-    void Function()? onDone,
-    bool? cancelOnError,
-  }) {
-    return stream.listen(
-      onData,
-      onError: onError,
-
-      /// Implement cleanUp of the controller if there is no more streams
-      onDone: onDone,
-      cancelOnError: cancelOnError ?? false,
-    );
-  }
-
-  /// Same as listen but is also called now
-  StreamSubscription<T> listenNow(
-    void Function(T e)? onData, {
-    Function? onError,
-    void Function()? onDone,
-    bool? cancelOnError,
-  }) {
-    if (hasValue) {
-      onData?.call(_value as T);
-    }
-    return listen(
-      onData,
-      onError: onError,
-      onDone: onDone,
-      cancelOnError: cancelOnError ?? false,
-    );
-  }
-
-  /// Binds an existing `Stream<T>` to this Rx<T> to keep the values in sync.
-  /// You can bind multiple sources to update the value.
-  /// Once a stream closes the subscription will cancel itself
-  /// You can also cancel the sub with the provided callback
-  @override
-  VoidCallback bindStream(Stream<T> stream) {
-    final sub = stream.listen((e) {
-      value = e;
-    }, cancelOnError: false);
-    _subbed.add(sub.cancel);
-    // ignore: prefer_function_declarations_over_variables
-    final clean = () {
-      _subbed.remove(sub.cancel);
-      sub.cancel();
-    };
-    sub.onDone(clean);
-    return clean;
-  }
-
-  VoidCallback bindRx(Rx<T> rx, [Stream<T>? stream]) {
-    final sub = stream == null
-        ? rx.listen((e) {
-            value = e;
-          })
-        : stream.listen(
-            (e) {
-              value = e;
-            },
-            cancelOnError: false,
-            // TODO: implement some cleanup
-            // onDone: rx._checkClean,
-          );
-    _subbed.add(sub.cancel);
-    // ignore: prefer_function_declarations_over_variables
-    final clean = () {
-      _subbed.remove(sub.cancel);
-      sub.cancel();
-    };
-    sub.onDone(clean);
-    return clean;
-  }
-
-  /// Binding to any listener with callback
-  /// Binds an existing `ValueListenable<T>` this might be a `ValueNotifier<T>`
-  /// Keeping this Rx<T> values in sync.
-  /// You can bind multiple sources to update the value.
-  /// It's impossible to know when a ValueListenable is Done
-  /// You will have to clean it up yourself
-  /// For that you can call the provided callback
-  VoidCallback bindListenable(Listenable listenable, [T Function()? callback]) {
-    VoidCallback? closure = callback == null
-        ? null
-        : () {
-            value = callback();
-          };
-
-    if (listenable is ValueListenable<T> && closure == null) {
-      // ignore: prefer_function_declarations_over_variables
-      closure = () {
-        value = listenable.value;
-      };
-    }
-    if (closure == null) return () {};
-    listenable.addListener(closure);
-    // ignore: prefer_function_declarations_over_variables
-    final cancel = () => listenable.removeListener(closure!);
-    _subbed.add(cancel);
-
-    return () {
-      _subbed.remove(cancel);
-      cancel();
-    };
-  }
-
-  @override
-  String toString() => value.toString();
 }
 
 bool isSubtype<S, T>() => <S>[] is List<T>;

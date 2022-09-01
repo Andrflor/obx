@@ -91,6 +91,8 @@ class Test extends StatelessWidget {
 
     print(Rx(null).runtimeType);
 
+    Rx.fuse(() => plep.value && plep.value);
+
     // func(plep, rxNum, rxNum2);
 
     // final rx = Rx.indistinct(3);

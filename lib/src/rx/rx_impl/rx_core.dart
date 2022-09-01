@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:obx/src/rx/rx_impl/rx_impl.dart';
 import '../../notifier.dart';
-import 'rx_types.dart' show Rxn;
 
 // TODO: make this another way
 // abstract class RxStream {
@@ -44,7 +44,7 @@ import 'rx_types.dart' show Rxn;
 T observe<T>(T Function() builder) =>
     Notifier.inBuild ? Notifier.instance.observe(builder) : builder();
 
-class Rx<T> extends _RxImpl<T> {
+class Rx<T> extends RxImpl<T> {
   Rx._({T? initial, bool distinct = true}) : super(initial, distinct: distinct);
 
   Rx([T? initial]) : super(initial, distinct: true);
@@ -57,7 +57,7 @@ class Rx<T> extends _RxImpl<T> {
 
   // TODO: bind this callback to create a rx from this
   // TODO: make a proper implem for it
-  Rx.fuse(T Function() callback) : super(callback());
+  Rx.fuse(T Function() callback) : super(null);
 
   // TODO: make this a private constructor
   Rx.fromListenable(Listenable listenable, {T? init, super.distinct})
@@ -74,7 +74,7 @@ class Rx<T> extends _RxImpl<T> {
     // TODO: find a common implementation for the hashCode of different Types.
     return observe(() => o is T
         ? value == o
-        : (o is RxObjectMixin<T> ? value == o.value : false));
+        : (o is ValueListenable<T> ? value == o.value : false));
   }
 
   @override
@@ -91,7 +91,7 @@ class Rx<T> extends _RxImpl<T> {
 
   Rx<S> _clone<S>({bool? distinct, S? Function(T e)? convert}) => Rx._(
       // TODO assert if null is S or not in that
-      initial: hasValue ? (convert?.call(static) ?? static as S) : null,
+      initial: hasValue ? (convert?.call(value) ?? value as S) : null,
       distinct: distinct ?? isDistinct);
   Rx<T> _dupe({bool? distinct}) =>
       _clone(distinct: distinct)..bindStream(subject.stream);
@@ -193,42 +193,5 @@ class Rx<T> extends _RxImpl<T> {
         throw '$S has not method [stream]';
       }
     }
-  }
-}
-
-/// Base Rx class that manages all the stream logic for any Type.
-abstract class _RxImpl<T> extends RxImpl<T> with RxObjectMixin<T> {
-  _RxImpl(T? initial, {bool distinct = true})
-      : super(initial, distinct: distinct);
-
-  void addError(Object error, [StackTrace? stackTrace]) {
-    subject.addError(error, stackTrace);
-  }
-}
-
-mixin RxObjectMixin<T> on RxImpl<T> {
-  @override
-  T call([T? v]) {
-    if (v != null) {
-      value = v;
-    }
-    return value;
-  }
-
-  String get string => value.toString();
-
-  @override
-  String toString() => value.toString();
-
-  /// Returns the json representation of `value`.
-  dynamic toJson() => value;
-
-  /// Updates the [value] and adds it to the stream, updating the observer
-  /// Widget. Indistinct will always update whereas distinct (default) will only
-  /// update when new value differs from the previous
-  @override
-  set value(T val) {
-    if (isDisposed) return;
-    super.value = val;
   }
 }

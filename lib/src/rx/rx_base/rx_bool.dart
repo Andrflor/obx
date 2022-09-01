@@ -19,7 +19,7 @@ extension RxBoolExt on Rx<bool> {
 extension RxnBoolExt on Rx<bool?> {
   bool? get isTrue => value;
 
-  bool? get isFalse => static == null ? value : !value!;
+  bool? get isFalse => value == null ? value : !value!;
 
   bool? operator &(bool other) =>
       observe(() => value == null ? null : other && value!);
