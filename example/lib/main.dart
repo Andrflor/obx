@@ -65,37 +65,38 @@ class Test extends StatelessWidget {
         // ),
         Obx(
           () => Text(observe(() {
+            print("called");
             rxNum2(rxNum2 + 0.1);
             print(rxNum2);
             return rxNum2.toStringAsFixed(2);
           })),
         ),
-        Obx(
-          () => plep.value
-              ? Obx(() {
-                  print("Building");
-                  return Column(
-                    children: [
-                      // Text(rxNum2.toString()),
-                      Text(
-                        () {
-                          return observe(() {
-                            return rxNum.toStringAsFixed(0);
-                          });
-                        }(),
-                      ),
-                    ],
-                  );
-                })
-              : Obx(
-                  () => Text("$rxStr"),
-                ),
-        ),
-        // ElevatedButton(
-        //     onPressed: () {
-        //       plep.toggle();
-        //     },
-        //     child: Text("Toggle")),
+        // Obx(
+        //   () => plep.value
+        //       ? Obx(() {
+        //           print("Building");
+        //           return Column(
+        //             children: [
+        //               // Text(rxNum2.toString()),
+        //               Text(
+        //                 () {
+        //                   return observe(() {
+        //                     return rxNum.toStringAsFixed(0);
+        //                   });
+        //                 }(),
+        //               ),
+        //             ],
+        //           );
+        //         })
+        //       : Obx(
+        //           () => Text("$rxStr"),
+        //         ),
+        // ),
+        ElevatedButton(
+            onPressed: () {
+              rxNum2(rxNum2 + 0.1);
+            },
+            child: Text("Toggle")),
         // ElevatedButton(
         //     onPressed: () {
         //       rxNum((rxNum + 1) as int);

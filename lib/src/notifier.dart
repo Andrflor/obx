@@ -119,12 +119,13 @@ class Notifier {
   T _observe<T>(T Function() builder) {
     final base = SingleShot<T>();
     final previousData = _notifyData;
-    final debouncer =
-        EveryDebouncer(delay: const Duration(milliseconds: 5), retries: 4);
+    final debouncer = EveryDebouncer(
+        delay: const Duration(milliseconds: 5), retries: 4, enabled: false);
     _notifyData = NotifyData(
         updater: () => debouncer(() => base.value = builder()),
         disposers: [debouncer.cancel]);
     final result = builder();
+    debouncer.start();
     base.disposers = _notifyData?.disposers;
     _notifyData = previousData;
     base.value = result;

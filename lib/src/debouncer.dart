@@ -28,17 +28,24 @@ class Debouncer {
 
 /// This debouncer will fire each X call
 class EveryDebouncer extends Debouncer {
+  bool _enabled;
   final int retries;
   int _tried = 0;
 
-  EveryDebouncer({required super.delay, required this.retries})
-      : assert(retries > 0);
+  EveryDebouncer({required super.delay, required this.retries, bool? enabled})
+      : _enabled = enabled ?? true,
+        assert(retries > 0);
 
   @override
   void call(void Function() action) {
+    if (!_enabled) return;
     if (_tried++ < retries) return super(action);
     _tried = 0;
     cancel();
     action();
+  }
+
+  void start() {
+    _enabled = true;
   }
 }

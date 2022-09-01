@@ -39,14 +39,14 @@ import '../../notifier.dart';
 /// This function is the refined state(less) control by excellence
 /// You can call it with any closure containing any combinaison of Rx
 /// The UI will rebuild only if the value of the result changes
-///  Sample with RxDouble data1, RxDouble data2:
+///  Sample with RxDouble data1 and RxDouble data2:
 ///     Obx(
 ///       () => Text(observe(() =>
 ///           data2.toStringAsFixed(0) == data2.toStringAsFixed(0)
 ///               ? "Equals"
 ///               : "Different")),
 ///     ),
-/// Will only rebuild when the result String changes
+/// Will only rebuild when the result String ("Equals" or "Different") changes
 ///
 /// [observe] is smart, it knows where it's called
 /// In fact, you can call it anywhere
@@ -58,7 +58,14 @@ import '../../notifier.dart';
 ///
 /// You may have a lot of observables updating at the same time
 /// Or even observables updating way more often that once a frame
-/// [observe] will make sure that you closure is evaluated only when needed
+/// [observe] will make sure that your closure is evaluated only when needed
+///
+/// Since you give a closure, you may want to update Rx values inside it
+/// This is generaly a bad practice but you can still do it
+/// [obsreve] will prevent any infinite loop
+/// Be aware that building requires to call [obsreve] again
+/// So you may end up with those changes done twice
+/// This is the reason why i wouldn't recommend it
 T observe<T>(T Function() builder) {
   return Notifier.inBuild ? Notifier.instance.observe(builder) : builder();
 }
