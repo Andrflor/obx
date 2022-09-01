@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:obx/src/rx/rx_impl/rx_mixins.dart';
 
@@ -139,24 +141,15 @@ class Notifier {
     base.value = result;
   }
 
-  Worker<T> _listen<T>(T Function() builder) {
+  MultiShot<T> _listen<T>(T Function() builder) {
     final base = MultiShot<T>();
     _internal(builder, base);
-    return base.listen;
-  }
-
-  Worker<T> _listenNow<T>(T Function() builder) {
-    final base = MultiShot<T>();
-    _internal(builder, base);
-    return base.listenNow;
+    return base;
   }
 
   T observe<T>(T Function() builder) => work<T>(() => _observe(builder))();
-  Worker<T> listen<T>(T Function() builder) =>
-      work<Worker<T>>(() => _listen(builder))();
-
-  Worker<T> listenNow<T>(T Function() builder) =>
-      work<Worker<T>>(() => _listenNow(builder))();
+  MultiShot<T> listen<T>(T Function() builder) =>
+      work<MultiShot<T>>(() => _listen(builder))();
 
   T Function() work<T>(T Function() builder) {
     return () {
@@ -297,3 +290,28 @@ extension DisposerTrackableProtectedAccess<T> on DisposersTrackable<T> {
 
 /// Little helper for type checks
 bool isSubtype<S, T>() => <S>[] is List<T>;
+
+/// This allow [ever] to run properly even when the user input the wrong data
+/// In debug mode assert check will advert the developper
+class EmptyStreamSubscription<T> extends StreamSubscription<T> {
+  @override
+  Future<E> asFuture<E>([E? futureValue]) => throw FlutterError(
+      '''You tried to call asFuture on an EmptyStreamSubscription
+			This should never append, make sure you respect contract when calling [ever]
+			''');
+
+  @override
+  Future<void> cancel() async {}
+  @override
+  bool get isPaused => true;
+  @override
+  void onData(void Function(T data)? handleData) {}
+  @override
+  void onDone(void Function()? handleDone) {}
+  @override
+  void onError(Function? handleError) {}
+  @override
+  void pause([Future<void>? resumeSignal]) {}
+  @override
+  void resume() {}
+}

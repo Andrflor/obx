@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:obx/obx.dart';
 
@@ -12,11 +11,6 @@ func(RxBool rxBool, RxNum rxNum, RxNum rxNum2) async {
 
     rxNum((rxNum + 0.000001));
   }
-}
-
-ever<T>(T Function() data, Function(T value) clojure) {
-  print("in data");
-  print(data.hashCode);
 }
 
 bool printer() {

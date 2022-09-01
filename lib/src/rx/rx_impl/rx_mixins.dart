@@ -94,6 +94,8 @@ mixin Actionable<T> on Reactive<T> {
 typedef Worker<T> = StreamSubscription<T> Function(void Function(T)?,
     {bool? cancelOnError, void Function()? onDone, Function? onError});
 
+typedef StreamTransformation<S, T> = Stream<S> Function(Stream<T> stream);
+
 mixin StreamCapable<T> on DisposersTrackable<T> {
   StreamController<T>? _controller;
 
@@ -118,16 +120,15 @@ mixin StreamCapable<T> on DisposersTrackable<T> {
 
   /// Allow to listen to the observable
   StreamSubscription<T> listen(
-    void Function(T e)? onData, {
+    void Function(T e) onData, {
     Function? onError,
     void Function()? onDone,
+    StreamTransformation<T, T>? transform,
     bool? cancelOnError,
   }) {
-    return stream.listen(
+    return (transform == null ? stream : transform(stream)).listen(
       onData,
       onError: onError,
-
-      /// Implement cleanUp of the controller if there is no more streams
       onDone: onDone,
       cancelOnError: cancelOnError ?? false,
     );
@@ -135,19 +136,20 @@ mixin StreamCapable<T> on DisposersTrackable<T> {
 
   /// Same as listen but is also called now
   StreamSubscription<T> listenNow(
-    void Function(T e)? onData, {
+    void Function(T e) onData, {
     Function? onError,
     void Function()? onDone,
+    StreamTransformation<T, T>? transform,
     bool? cancelOnError,
   }) {
     if (hasValue) {
-      onData?.call(static);
+      onData.call(static);
     }
     return listen(
       onData,
       onError: onError,
       onDone: onDone,
-      cancelOnError: cancelOnError ?? false,
+      cancelOnError: cancelOnError,
     );
   }
 }
@@ -193,16 +195,15 @@ mixin BroadCastStreamCapable<T> on StreamCapable<T> {
   /// Allow to listen to the observable
   @override
   StreamSubscription<T> listen(
-    void Function(T e)? onData, {
+    void Function(T e) onData, {
     Function? onError,
     void Function()? onDone,
+    StreamTransformation<T, T>? transform,
     bool? cancelOnError,
   }) {
-    return stream.listen(
+    return (transform == null ? stream : transform(stream)).listen(
       onData,
       onError: onError,
-
-      /// Implement cleanUp of the controller if there is no more streams
       onDone: onDone,
       cancelOnError: cancelOnError ?? false,
     );
@@ -211,19 +212,21 @@ mixin BroadCastStreamCapable<T> on StreamCapable<T> {
   /// Same as listen but is also called now
   @override
   StreamSubscription<T> listenNow(
-    void Function(T e)? onData, {
+    void Function(T e) onData, {
     Function? onError,
     void Function()? onDone,
+    StreamTransformation<T, T>? transform,
     bool? cancelOnError,
   }) {
     if (hasValue) {
-      onData?.call(static);
+      onData.call(static);
     }
     return listen(
       onData,
       onError: onError,
       onDone: onDone,
       cancelOnError: cancelOnError ?? false,
+      transform: transform,
     );
   }
 }

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:obx/src/rx/rx_impl/rx_impl.dart';
+import 'package:obx/src/rx/rx_impl/rx_mixins.dart';
 import '../../notifier.dart';
 
 // TODO: make this another way
@@ -70,16 +71,61 @@ T observe<T>(T Function() builder) {
   return Notifier.inBuild ? Notifier.instance.observe(builder) : builder();
 }
 
-StreamSubscription<S> ever<S, T>(
-  T Function() builder,
-  Function(S value) callback, {
-  Stream<T> Function(Stream<T> stream)? transformer,
+StreamSubscription<T> ever<T>(
+  Object builder,
+  Function(T value) onData, {
+  StreamTransformation<T, T>? transform,
   Function? onError,
   void Function()? onDone,
   bool? cancelOnError,
 }) {
-  return Notifier.instance.listen(builder);
+  if (builder is Function) {
+    if (builder is T Function()) {
+      return Notifier.instance.listen(builder).listen(
+            onData,
+            onDone: onDone,
+            cancelOnError: cancelOnError,
+            onError: onError,
+            transform: transform,
+          );
+    }
+    builder = builder();
+  }
+  if (builder is Rx<T>) {
+    return builder.listen(
+      onData,
+      onDone: onDone,
+      cancelOnError: cancelOnError,
+      onError: onError,
+      transform: transform,
+    );
+  }
+  if (builder is Stream<T>) {
+    return (transform == null ? builder : transform(builder)).listen(
+      onData,
+      onDone: onDone,
+      cancelOnError: cancelOnError ?? false,
+      onError: onError,
+    );
+  }
+  // TODO: add assert for devellopement
+  return EmptyStreamSubscription<T>();
 }
+
+// (builder is Function) ?( builder is Rx<T> Function() ? builder(): builder is T Function() ?  ) :()
+//
+//     (builder is Rx<T>
+//             ? builder
+//             : builder is Rx<T> Function()
+//                 ? builder() : builder is ValueListenable
+//                 : Notifier.instance.listen(builder as T Function()))
+//         .listen(
+//       onData,
+//       onDone: onDone,
+//       cancelOnError: cancelOnError,
+//       onError: onError,
+//       transform: transform,
+//     );
 
 class Rx<T> extends RxImpl<T> {
   Rx._({T? initial, bool distinct = true}) : super(initial, distinct: distinct);
