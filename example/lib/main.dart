@@ -10,7 +10,14 @@ func(RxBool rxBool, RxNum rxNum, RxNum rxNum2) async {
     await Future.delayed(Duration(microseconds: 1));
 
     rxNum((rxNum + 0.000001));
+    Emitter().emit();
+    Emitter()?.isOdd();
+    Rx().emit();
+    Rxn().emit();
   }
+}
+
+class Valuer() {
 }
 
 bool printer() {

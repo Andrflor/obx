@@ -1,12 +1,22 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import '../../../obx.dart';
+import '../../functions.dart';
+import '../../notifier.dart';
+import 'rx_types.dart';
 import 'rx_impl.dart';
 
+// TODO: add doc here
 class Rx<T> extends RxImpl<T> {
   Rx._({T? initial, bool distinct = true}) : super(initial, distinct: distinct);
 
-  // TODO: doc
+  /// Creates and Instance of the [Rx<T>] class
+  ///
+  /// Type [T] will be infered from the initial parameter
+  /// If you want the paramater to bee null you will have to type your [Rx]
+  /// You can just use `Rx<T>()` or use the provided typedef
+  ///
+  /// See also:
+  /// - [Rx]
   Rx([T? initial]) : super(initial, distinct: true);
 
   /// Creates an indistinct [Rx<T>]
@@ -68,6 +78,7 @@ class Rx<T> extends RxImpl<T> {
   /// Oberve the result of the equality
   @override
   bool operator ==(Object o) {
+    // TODO: make use of deep equals
     return observe(() => o is T
         ? value == o
         : (o is ValueListenable<T> ? value == o.value : false));
@@ -78,19 +89,21 @@ class Rx<T> extends RxImpl<T> {
       initial: hasValue ? (convert?.call(value) ?? value as S) : null,
       distinct: distinct ?? isDistinct);
   Rx<T> _dupe({bool? distinct}) =>
-      _clone(distinct: distinct)..bindStream(subject.stream);
+      Rx._(initial: staticOrNull, distinct: distinct ?? isDistinct)
+        ..bindStream(subject.stream);
 
   /// Creates a new [Rx<S>] based on [StreamTransformation<S,T>] of this [Rx<T>]
   ///
-  /// TODO: proper doc
+  /// The provided `transformer` will be used to
+  /// If you want to change the `distinct` property on the result [Rx<S>]
+  /// Provide the [bool] paramterer `distinct`
   ///
-  /// You need to provide the stream transformation
-  /// You can also provide an initial transformation (default to initial value)
-  /// Be aware that if your stream transform change the internal type
-  /// And you don't provide an initial transformation
-  /// The value of the observable will default to null or empty
-  /// If you want an initial value in such cases you must provide the initital transformation
-  /// Be aware, you must call detatch or dispose otherwise streams won't close
+  /// Avoid chaining this operator
+  /// If you have a common operation to do,
+  /// See also:
+  /// - [pipeMap]
+  /// - [pipeWhere]
+  /// - [pipeMapWhere]
   Rx<S> pipe<S>(StreamTransformation<S, T> transformer,
           {S? Function(T e)? init, bool? distinct}) =>
       _clone(
@@ -100,31 +113,38 @@ class Rx<T> extends RxImpl<T> {
 
   /// Maps this [Rx<T>] into a new [Rx<S>]
   ///
-  /// TODO: more doc
+  /// The provided `transfrom` parameter will be applied to each element
+  /// If you want to change the `distinct` property on the result [Rx<S>]
+  /// Provide the [bool] paramterer `distinct`
   ///
-  /// Do not chain this operator !
+  /// Avoid chaining this operator
   /// If you have more complex operation to do, use [pipe] instead
   Rx<S> pipeMap<S>(S Function(T e) transform, {bool? distinct}) =>
       pipe((e) => e.map(transform), init: transform, distinct: distinct);
 
   /// Create a [Rx<T>] from this [Rx<T>] discarding elements based on a `test`
   ///
-  /// TODO: more doc
+  /// Provided `test` parameter will be applied to each element to filter them
+  /// If you want to change the `distinct` property on the result [Rx<T>]
+  /// Provide the [bool] paramterer `distinct`
   ///
-  /// Do not chain this operator !
+  /// Avoid chaining this operator
   /// If you have more complex operation to do, use [pipe] instead
   Rx<T> pipeWhere(bool Function(T e) test, {bool? distinct}) =>
       pipe((e) => e.where(test), distinct: distinct);
 
   /// Maps this [Rx<T>] into [Rx<T>] discarding elements based on a `test`
   ///
-  /// TODO: more doc
+  /// The provided `transfrom` parameter will be applied to each element
+  /// Provided `test` parameter will be applied to each element to filter them
+  /// If you want to change the `distinct` property on the result [Rx<S>]
+  /// Provide the [bool] paramterer `distinct`
   ///
-  /// Do not chain this operator !
+  /// Avoid chaining this operator
   /// If you have more complex operation to do, use [pipe] instead
-  Rx<S> pipeMapWhere<S>(S Function(T e) transform, bool Function(S e) test,
+  Rx<S> pipeMapWhere<S>(S Function(T e) transform, bool Function(T e) test,
           {bool? distinct}) =>
-      pipe((e) => e.map(transform).where(test),
+      pipe((e) => e.where(test).map(transform),
           init: transform, distinct: distinct);
 
   /// Create an exact copy of the [Rx<T>]

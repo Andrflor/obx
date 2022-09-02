@@ -8,7 +8,7 @@ import '../obx.dart';
 // This callback remove the listener on addListener function
 typedef Disposer = void Function();
 
-// replacing StateSetter, return if the Widget is mounted for extra validation.
+// Replacing StateSetter, returns if the Widget is mounted for extra validation.
 // if it brings overhead the extra call,
 typedef StateUpdate = void Function();
 
@@ -277,6 +277,7 @@ Make sure to initialize it first or use `ValueOrNull` instead.''');
 /// This is used to pass private fields to other files
 extension ReactiveProtectedAccess<T> on Reactive<T> {
   T get static => _value as T;
+  T? get staticOrNull => _value;
   set static(T value) => _value = value;
   void notify() => _notify();
 }
