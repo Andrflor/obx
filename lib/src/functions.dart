@@ -53,6 +53,13 @@ T observe<T>(T Function() builder) {
 /// Takes an observable parameter that can be either
 /// [Rx<T>] or [Stream<T>] or [ValueListenable<T>] or [T Function()]
 /// [ever] provides an harmonized interface for all of those types
+/// onData is the [Function(T value)] callback to apply
+/// You can also specify standard stream subscription parameters
+/// onError, onDone, cancelOnError
+/// It will return a [StreamSubscription<T>]
+///
+/// By default [ever] will respect the distinct rule of the incoming observable
+/// To enforce [ever] to be distinct you can use the enforceDistinct parameter
 ///
 /// Passing a [T Function()] is practicaly usefull
 /// Like [observe] the callback will fire only when the result changes
@@ -78,7 +85,12 @@ T observe<T>(T Function() builder) {
 /// [ever] is a reactive callback handler
 /// Like [observe] it will only evaluate your closure when really needed
 /// Used with [Rx<T>], [Stream<T>] or [ValueListenable<T>]
-/// It simply acts a stream listener
+/// It simply acts as a stream listener
+///
+/// The filter parameter is intended for advanced users
+/// It takes a [StreamFilter<T>] aka [Stream<T> Function(Stream<T>)]
+/// It allows you to make any stream filtering operation
+/// Example: (stream) => stream.skip(1).skipWhile(//someCondition).take(5)
 StreamSubscription<T> ever<T>(
   Object observable,
   Function(T value) onData, {
