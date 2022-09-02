@@ -52,7 +52,6 @@ class Test extends StatelessWidget {
 
   Test({Key? key}) : super(key: key) {
     // func(Rx(false), rxNum, rxNum2);
-    /// Since observe outside of A reactive widget has no cost we can use it
     ever(() => equals, myHandler);
     ever(
         () => rxNum.toStringAsFixed(0) == rxNum2.toStringAsFixed(0)

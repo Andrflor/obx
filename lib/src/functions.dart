@@ -10,7 +10,7 @@ import 'notifier.dart';
 /// This function is the refined state(less) control by excellence
 /// You can call it with any closure containing any combinaison of [Rx]
 /// The UI will rebuild only if the value of the result changes
-///  Sample with [RxDouble] data1 and [RxDouble] data2:
+///  Example with [RxDouble] data1 and [RxDouble] data2:
 ///     Obx(
 ///       () => Text(observe(() =>
 ///           data2.toStringAsFixed(0) == data2.toStringAsFixed(0)
@@ -56,7 +56,7 @@ T observe<T>(T Function() builder) {
 ///
 /// Passing a [T Function()] is practicaly usefull
 /// Like [observe] the callback will fire only when the result changes
-/// Samples with [RxDouble] data1 and [RxDouble] data2:
+/// Examples with [RxDouble] data1 and [RxDouble] data2:
 /// ever(data1, (bool value) => // Some work here);
 /// ever(data2, someBooleanHandler);
 /// ever(
@@ -143,6 +143,11 @@ StreamSubscription<T> ever<T>(
 ///
 /// Like the [ever] function but the callback will also fire now
 /// For complete docuementation see [ever]
+///
+/// See also:
+/// - [onceNow]
+/// - [debounceNow]
+/// - [ever]
 StreamSubscription<T> everNow<T>(
   Object observable,
   Function(T value) onData, {
@@ -210,6 +215,11 @@ or you may have wrongly typed $inner in the onData [Function($inner value)] func
 ///
 /// Like the [ever] function but the callback is only run once
 /// For complete docuementation see [ever]
+///
+/// See also:
+/// - [ever]
+/// - [debounce]
+/// - [onceNow]
 StreamSubscription<T> once<T>(
   Object observable,
   Function(T value) onData, {
@@ -231,6 +241,11 @@ StreamSubscription<T> once<T>(
 /// Like the [ever] function but the callback runs only once and now
 /// Like the [once] function but the callback also fires now
 /// For complete docuementation see [ever]
+///
+/// See also:
+/// - [once]
+/// - [everNow]
+/// - [debounceNow]
 StreamSubscription<T> onceNow<T>(
   Object observable,
   Function(T value) onData, {
@@ -257,6 +272,11 @@ StreamSubscription<T> onceNow<T>(
 ///
 /// Be aware, since it returns a StreamSubscription<T> you could change the
 /// onData callback, but then you would loose the debounce property
+///
+/// See also:
+/// - [ever]
+/// - [once]
+/// - [debounceNow]
 StreamSubscription<T> debounce<T>(
   Object observable,
   Function(T value) onData, {
@@ -292,6 +312,11 @@ StreamSubscription<T> debounce<T>(
 ///
 /// Be aware, since it returns a StreamSubscription<T> you could change the
 /// onData callback, but then you would loose the debounce property
+///
+/// See also:
+/// - [everNow]
+/// - [onceNow]
+/// - [debounce]
 StreamSubscription<T> debounceNow<T>(
   Object observable,
   Function(T value) onData, {
