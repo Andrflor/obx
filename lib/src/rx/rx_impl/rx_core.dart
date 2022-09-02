@@ -8,35 +8,34 @@ class Rx<T> extends RxImpl<T> {
 
   Rx([T? initial]) : super(initial, distinct: true);
 
-  /// Constructor for the indistinct version of a [Rx]
+  // TODO: doc
   Rx.indistinct([T? initial]) : super(initial, distinct: false);
 
+  // TODO: doc
   Rx.fromStream(Stream<T> stream, {T? init, super.distinct}) : super(init) {
     bindStream(stream);
   }
 
-  // TODO: bind this callback to create a rx from this
-  // TODO: make a proper implem for it
-  Rx.fuse(T Function() callback) : super(null);
-
-  // TODO: make this a private constructor
-  Rx.fromListenable(Listenable listenable, T Function() onEvent,
-      {T? init, super.distinct})
-      : super(init ??
-            (listenable is ValueListenable<T> ? listenable.value : null)) {
-    bindListenable(listenable);
+  // TODO: doc
+  Rx.fromListenable(Listenable listenable,
+      {required T Function() onEvent,
+      T? init,
+      super.distinct,
+      bool callbackInit = false})
+      : super(callbackInit ? onEvent() : init) {
+    bindListenable(listenable, onEvent: onEvent);
   }
 
+  // TODO: doc
   Rx.fromValueListenable(ValueListenable<T> listenable,
       {T? init, super.distinct})
       : super(init ?? listenable.value) {
-    bindListenable(listenable);
+    bindValueListenable(listenable);
   }
 
   /// Oberve the result of the equality
   @override
   bool operator ==(Object o) {
-    // TODO: find a common implementation for the hashCode of different Types.
     return observe(() => o is T
         ? value == o
         : (o is ValueListenable<T> ? value == o.value : false));

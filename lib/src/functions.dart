@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
-import './rx/rx_impl/rx_mixins.dart';
 import '../obx.dart';
 import 'notifier.dart';
 
@@ -268,11 +267,11 @@ StreamSubscription<T> debounce<T>(
   bool? cancelOnError,
   bool forceDistinct = false,
 }) {
-  final _debouncer = Debouncer(delay: delay);
+  final debouncer = Debouncer(delay: delay);
   return ever(
     observable,
     (value) {
-      _debouncer(() {
+      debouncer(() {
         onData(value);
       });
     },
@@ -303,11 +302,11 @@ StreamSubscription<T> debounceNow<T>(
   bool? cancelOnError,
   bool forceDistinct = false,
 }) {
-  final _debouncer = Debouncer(delay: delay);
+  final debouncer = Debouncer(delay: delay);
   return everNow(
     observable,
     (value) {
-      _debouncer(() {
+      debouncer(() {
         onData(value);
       });
     },

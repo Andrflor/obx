@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 
-import '../../functions.dart';
+import '../../../obx.dart';
 import '../../notifier.dart';
 
 /// This mixin allow to observe object descriptions
@@ -90,12 +90,6 @@ mixin Actionable<T> on Reactive<T> {
     notify();
   }
 }
-
-typedef Worker<T> = StreamSubscription<T> Function(void Function(T)?,
-    {bool? cancelOnError, void Function()? onDone, Function? onError});
-
-typedef StreamTransformation<S, T> = Stream<S> Function(Stream<T> stream);
-typedef StreamFilter<T> = StreamTransformation<T, T>;
 
 mixin StreamCapable<T> on DisposersTrackable<T> {
   StreamController<T>? _controller;
@@ -203,6 +197,7 @@ mixin BroadCastStreamCapable<T> on StreamCapable<T> {
 
 mixin StreamBindable<T> on StreamCapable<T> {
   /// Binds an existing `Stream<T>` to this Rx<T> to keep the values in sync.
+  ///
   /// You can bind multiple sources to update the value.
   /// Once a stream closes the subscription will cancel itself
   /// You can also cancel the sub with the provided callback
@@ -220,7 +215,15 @@ mixin StreamBindable<T> on StreamCapable<T> {
     return clean;
   }
 
-  Disposer bindRx(StreamCapable<T> rx, [Stream<T>? stream]) {
+  /// Binding to this [Rx<T>] to any other [Rx<T>]
+  ///
+  /// Binds an existing [ValueListenable<T>] this might be a [ValueNotifier<T>]
+  /// Keeping this [Rx<T>] values in sync.
+  /// You can bind multiple sources to update the value.
+  /// It's impossible to know when a [ValueListenable] is done
+  /// You will have to clean it up yourself
+  /// For that you can call the provided [Disposer]
+  Disposer bindRx(StreamCapable<T> rx, [StreamFilter<T>? filter]) {
     final sub = stream == null
         ? rx.listen((e) {
             value = e;
@@ -243,31 +246,47 @@ mixin StreamBindable<T> on StreamCapable<T> {
     return clean;
   }
 
-  /// TODO: split bindListnable and bindValueListenable
   /// Binding to any listener with callback
-  /// Binds an existing `ValueListenable<T>` this might be a `ValueNotifier<T>`
-  /// Keeping this Rx<T> values in sync.
+  ///
+  /// Binds an existing [ValueListenable<T>] this might be a [ValueNotifier<T>]
+  /// Keeping this [Rx<T>] values in sync.
   /// You can bind multiple sources to update the value.
-  /// It's impossible to know when a ValueListenable is Done
+  /// It's impossible to know when a [ValueListenable] is done
   /// You will have to clean it up yourself
-  /// For that you can call the provided callback
-  Disposer bindListenable(Listenable listenable, [T Function()? callback]) {
-    Disposer? closure = callback == null
-        ? null
-        : () {
-            value = callback();
-          };
-
-    if (listenable is ValueListenable<T> && closure == null) {
-      // ignore: prefer_function_declarations_over_variables
-      closure = () {
-        value = listenable.value;
-      };
-    }
-    if (closure == null) return () {};
+  /// For that you can call the provided [Disposer]
+  Disposer bindValueListenable(
+    ValueListenable<T> listenable,
+  ) {
+    // ignore: prefer_function_declarations_over_variables
+    final closure = () {
+      value = listenable.value;
+    };
     listenable.addListener(closure);
     // ignore: prefer_function_declarations_over_variables
-    final cancel = () => listenable.removeListener(closure!);
+    final cancel = () => listenable.removeListener(closure);
+    disposers?.add(cancel);
+
+    return () {
+      disposers?.remove(cancel);
+      cancel();
+    };
+  }
+
+  /// Binding to any listener with provided `onEvent` callback
+  ///
+  /// Binds an existing [Listenable]
+  /// Keeping this [Rx<T>] values in sync.
+  /// You can bind multiple sources to update the value.
+  /// It's impossible to know when a [Listenable] is done
+  /// You will have to clean it up yourself
+  /// For that you can call the provided [Disposer]
+  Disposer bindListenable(Listenable listenable,
+      {required T Function() onEvent}) {
+    // ignore: prefer_function_declarations_over_variables
+    final closure = () => value = onEvent();
+    listenable.addListener(closure);
+    // ignore: prefer_function_declarations_over_variables
+    final cancel = () => listenable.removeListener(closure);
     disposers?.add(cancel);
 
     return () {

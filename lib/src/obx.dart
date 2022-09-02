@@ -55,7 +55,7 @@ mixin StatelessObserverComponent on StatelessElement {
 class Obx extends ObxWidget {
   final Widget Function() builder;
 
-  const Obx(this.builder);
+  const Obx(this.builder, {super.key});
 
   @override
   Widget build(BuildContext context) {

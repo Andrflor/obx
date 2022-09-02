@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'rx_core.dart';
 
 typedef Emitter = RxNull;
@@ -24,6 +26,12 @@ typedef RxnIter<T> = Rxn<Iterable<T>>;
 typedef RxnList<T> = Rxn<List>;
 typedef RxnSet<T> = Rxn<Set>;
 typedef RxnMap<K, V> = Rxn<Map<K, V>>;
+
+typedef Worker<T> = StreamSubscription<T> Function(void Function(T)?,
+    {bool? cancelOnError, void Function()? onDone, Function? onError});
+
+typedef StreamTransformation<S, T> = Stream<S> Function(Stream<T> stream);
+typedef StreamFilter<T> = StreamTransformation<T, T>;
 
 // TODO: maybe add operators from collection in RxIterable?
 // TODO: check how Obx would detect internal object change
