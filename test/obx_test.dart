@@ -35,11 +35,6 @@ void main() {
 
       group('emiter', () {
         init();
-        nullListen('obs', Rx(null));
-        nullListen('iobs', Rx.indistinct(null));
-        nullListen('nobs', Rxn(null));
-        nullListen('inobs', Rxn.indistinct(null));
-        nullListen('RxNull', RxNull());
         nullListen('Emitter', Emitter());
       });
 
@@ -153,15 +148,15 @@ void nullListen(String name, Emitter emitter) {
   });
 }
 
-void boolRefreshListen(String name, Rx<bool?> rxBool, [bool stream = false]) {
+void boolRefreshListen(String name, Rx<bool?> rxBool) {
   return test(name, () async {
     bool fired = false;
-    (stream ? rxBool.subject.stream : rxBool.stream).listen((e) {
+    rxBool.stream.listen((e) {
       fired = true;
     });
     rxBool.refresh(rxBool());
     await Future.delayed(Duration.zero);
-    expect(fired, stream ? stream : !rxBool.isDistinct, reason: "same failed");
+    expect(fired, !rxBool.isDistinct, reason: "same failed");
     fired = false;
     rxBool.refresh(!rxBool()!);
     await Future.delayed(Duration.zero);
@@ -169,10 +164,10 @@ void boolRefreshListen(String name, Rx<bool?> rxBool, [bool stream = false]) {
   });
 }
 
-void boolTriggerListen(String name, Rx<bool?> rxBool, [bool stream = false]) {
+void boolTriggerListen(String name, Rx<bool?> rxBool) {
   return test(name, () async {
     bool fired = false;
-    (stream ? rxBool.subject.stream : rxBool.stream).listen((e) {
+    rxBool.stream.listen((e) {
       fired = true;
     });
     rxBool.trigger(rxBool());
@@ -185,10 +180,10 @@ void boolTriggerListen(String name, Rx<bool?> rxBool, [bool stream = false]) {
   });
 }
 
-void boolSilentListen(String name, Rx<bool?> rxBool, [bool stream = false]) {
+void boolSilentListen(String name, Rx<bool?> rxBool) {
   return test(name, () async {
     bool fired = false;
-    (stream ? rxBool.subject.stream : rxBool.stream).listen((e) {
+    rxBool.stream.listen((e) {
       fired = true;
     });
     rxBool.silent(rxBool());

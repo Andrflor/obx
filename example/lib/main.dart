@@ -11,6 +11,7 @@ func(RxBool rxBool, RxNum rxNum, RxNum rxNum2) async {
 
     rxNum((rxNum + 0.000001));
     Rxn().emit();
+    Emitter().emit();
   }
 }
 

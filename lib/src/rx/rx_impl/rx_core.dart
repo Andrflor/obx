@@ -2,13 +2,9 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../../functions.dart';
 import '../../notifier.dart';
+import 'rx_mixins.dart';
 import 'rx_types.dart';
 import 'rx_impl.dart';
-
-//ignore: prefer_void_to_null
-class Emitter extends RxBase<Null> {
-  Emitter(super.val);
-}
 
 // TODO: add doc here
 class Rx<T> extends RxImpl<T> {

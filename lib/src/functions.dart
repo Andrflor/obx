@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import './rx/rx_impl/rx_mixins.dart';
 import '../obx.dart';
 import 'notifier.dart';
 

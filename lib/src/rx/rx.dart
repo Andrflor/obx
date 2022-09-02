@@ -1,6 +1,7 @@
 /// Core implementation of Rx
 export 'rx_impl/rx_core.dart';
 export 'rx_impl/rx_types.dart';
+export 'rx_impl/rx_mixins.dart' hide StreamCapableProtectedAccess;
 
 /// Basic type adapters
 export 'rx_base/rx_bool.dart';

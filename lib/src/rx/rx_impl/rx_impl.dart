@@ -3,8 +3,7 @@ import 'rx_mixins.dart';
 
 /// Complete implementation of Rx
 class RxImpl<T> extends RxBase<T>
-    with
-        StreamBindable<T> {
+    with Actionable<T>, Distinguishable<T>, StreamBindable<T> {
   RxImpl(super.val, {bool distinct = true}) : _distinct = distinct;
 
   @override
@@ -16,11 +15,9 @@ class RxImpl<T> extends RxBase<T>
 /// We have put a lot in the mixer (mixins)
 class RxBase<T> extends Reactive<T>
     with
-        Actionable<T>,
         Descriptible<T>,
         DisposersTrackable<T>,
         StreamCapable<T>,
-        BroadCastStreamCapable<T>,
-        Distinguishable<T> {
+        BroadCastStreamCapable<T> {
   RxBase(super.val);
-
+}

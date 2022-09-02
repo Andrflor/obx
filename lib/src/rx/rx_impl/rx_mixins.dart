@@ -3,6 +3,78 @@ import 'package:flutter/foundation.dart';
 
 import '../../../obx.dart';
 import '../../notifier.dart';
+import 'rx_impl.dart';
+
+/// Simple emitter for when you don't care about the value
+///
+/// Example:
+/// ```dart
+/// final emitter = Emitter();
+/// emitter.emit(); \\ Will emit a null value
+/// ```
+///
+/// This null emit will be forwareded to Listeners
+//ignore: prefer_void_to_null
+class Emitter extends RxBase<Null> implements Emitting {
+  Emitter() : super(null);
+
+  /// Creates an emitter that emits from an Interval
+  factory Emitter.fromInterval(
+    Duration delay,
+  ) =>
+      Emitter()..emitEvery(delay);
+
+  /// Cancel the emitter from auto emitting
+  void cancel() {
+    for (Disposer disposer in disposers!) {
+      disposer();
+    }
+    disposers!.clear();
+  }
+
+  /// Will emit after `delay`
+  void emitIn(Duration delay) {
+    disposers!.add(Timer.periodic(delay, (_) {
+      emit();
+    }).cancel);
+  }
+
+  /// Will emit every `delay`
+  void emitEvery(Duration delay) {
+    disposers!.add(Timer(delay, () {
+      emit();
+    }).cancel);
+  }
+
+  @override
+  //ignore: prefer_void_to_null
+  set value(Null value) => emit();
+
+  @override
+  Null get value {
+    reportRead();
+    return null;
+  }
+
+  /// Emit a change to update UI/Listeners
+  @override
+  emit() {
+    _controller?.add(null);
+    notify();
+  }
+
+  /// Bundle a [T] with this emitter
+  ///
+  /// This allow to pass the emitter inside the UI
+  /// Example:
+  /// ```dart
+  /// Obx(() => Text(emiter.bundle(myVariable)));
+  /// ```
+  T bundle<T>(T value) {
+    reportRead();
+    return value;
+  }
+}
 
 /// This mixin allow to observe object descriptions
 mixin Descriptible<T> on ValueListenable<T> {
@@ -50,8 +122,12 @@ mixin Distinguishable<T> on Actionable<T>, StreamCapable<T> {
   }
 }
 
+abstract class Emitting {
+  void emit();
+}
+
 // This mixin is used to provide Actions to call
-mixin Actionable<T> on Reactive<T> {
+mixin Actionable<T> on Reactive<T> implements Emitting {
   T? call([T? v]) {
     if (v != null) {
       value = v;
@@ -68,6 +144,7 @@ mixin Actionable<T> on Reactive<T> {
 
   /// Trigger update with current value
   /// Force notify listeners and update Widgets
+  @override
   void emit() {
     if (hasValue) {
       trigger(static);
@@ -172,7 +249,7 @@ mixin BroadCastStreamCapable<T> on StreamCapable<T> {
     return _stream!;
   }
 
-  StreamController<T> get subject {
+  StreamController<T> get _subject {
     if (_controller == null) {
       _initController();
     }
@@ -182,8 +259,8 @@ mixin BroadCastStreamCapable<T> on StreamCapable<T> {
   @override
   @mustCallSuper
   void dispose() {
+    detatch();
     if (_controller != null) {
-      detatch();
       _controller?.close();
     }
     super.dispose();
@@ -191,7 +268,7 @@ mixin BroadCastStreamCapable<T> on StreamCapable<T> {
 
   /// This can be used if you want to add an error to the stream
   void addError(Object error, [StackTrace? stackTrace]) {
-    subject.addError(error, stackTrace);
+    _subject.addError(error, stackTrace);
   }
 }
 
@@ -294,4 +371,9 @@ mixin StreamBindable<T> on StreamCapable<T> {
       cancel();
     };
   }
+}
+
+/// This is used to pass private fields to other files
+extension StreamCapableProtectedAccess<T> on BroadCastStreamCapable<T> {
+  StreamController<T> get subject => _subject;
 }
