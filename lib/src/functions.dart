@@ -21,8 +21,9 @@ import 'notifier.dart';
 ///
 /// [observe] is smart, it knows where it's called
 /// In fact, you can call it anywhere
-/// Furthermore calling it outside of a reactive widget has zero cost
+/// Furthermore calling it outside of a reactive widget has zero cost**
 /// This especially pratical to make getters
+/// **The exact cost is just a boolean check
 ///
 /// With complex structures you may endup with [observe] inside [observe]
 /// Again, it has zero cost and you should feel free to do so
