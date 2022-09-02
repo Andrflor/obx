@@ -15,8 +15,11 @@ func(RxBool rxBool, RxNum rxNum, RxNum rxNum2) async {
 
 bool printer() {
   print("called");
+
   return false;
 }
+
+someStringHandler(String data) {}
 
 int numeral = 0;
 
@@ -51,7 +54,14 @@ class Test extends StatelessWidget {
     // func(Rx(false), rxNum, rxNum2);
     /// Since observe outside of A reactive widget has no cost we can use it
     ever(() => equals, myHandler);
+    ever(
+        () => rxNum.toStringAsFixed(0) == rxNum2.toStringAsFixed(0)
+            ? "Equals"
+            : "Different",
+        someStringHandler);
+
     print(ever(() => equals, (bool val) => val.toString()).cancel());
+    ever(() => equals, displayEqual);
   }
   bool tester = false;
 
@@ -59,7 +69,8 @@ class Test extends StatelessWidget {
       print("They are ${value ? "equals" : "diffrents"}!");
 
   bool get equals => observe(() => rxNum == rxNum2);
-
+  void displayEqual(bool equality) =>
+      print("We have those ${equality ? "equals" : "inequals"}");
   // Transparent composing of reactive elements
 
   @override
