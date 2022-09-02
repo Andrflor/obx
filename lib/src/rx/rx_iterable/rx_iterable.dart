@@ -39,7 +39,7 @@ extension RxIterableExt<T extends Iterable<E>, E> on Rx<T> {
   ///
   /// When the returned iterable creates a new object that depends on
   /// the type [S], e.g., from [toList], it will have exactly the type [S].
-  Iterable<S> cast<S>() => value.cast<S>();
+  Iterable<S> cast<S>() => observe(() => value.cast<S>());
 
   /// Cast this [Rx<Iteralbe<T>>] into an [Rx<Iterable<S>>]
   ///
@@ -51,7 +51,8 @@ extension RxIterableExt<T extends Iterable<E>, E> on Rx<T> {
   ///
   /// When the returned iterable creates a new object that depends on
   /// the type [S], e.g., from [toList], it will have exactly the type [S].
-  Rx<Iterable<S>> pipeCast<S>() => pipeMap((e) => value.cast<S>());
+  Rx<Iterable<S>> pipeCast<S>() =>
+      S == E ? this as Rx<Iterable<S>> : pipeMap((e) => value.cast<S>());
 
   /// Returns the number of elements in [this].
   ///
@@ -628,7 +629,7 @@ extension RxnIterableExt<T extends Iterable<E>?, E> on Rx<T> {
   ///
   /// When the returned iterable creates a new object that depends on
   /// the type [S], e.g., from [toList], it will have exactly the type [S].
-  Iterable<S>? cast<S>() => value?.cast<S>();
+  Iterable<S>? cast<S>() => observe(() => value?.cast<S>());
 
   /// Cast this [Rx<Iteralbe<T>>] into an [Rx<Iterable<S>>]
   ///
@@ -640,7 +641,8 @@ extension RxnIterableExt<T extends Iterable<E>?, E> on Rx<T> {
   ///
   /// When the returned iterable creates a new object that depends on
   /// the type [S], e.g., from [toList], it will have exactly the type [S].
-  Rx<Iterable<S>?> pipeCast<S>() => pipeMap((e) => value?.cast<S>());
+  Rx<Iterable<S>?> pipeCast<S>() =>
+      S == E ? this as Rx<Iterable<S>> : pipeMap((e) => value?.cast<S>());
 
   /// Returns the number of elements in [this].
   ///

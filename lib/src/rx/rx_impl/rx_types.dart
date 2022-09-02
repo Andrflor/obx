@@ -13,6 +13,7 @@ typedef RxIter<T> = Rx<Iterable<T>>;
 typedef RxList<T> = Rx<List<T>>;
 typedef RxSet<T> = Rx<Set<T>>;
 typedef RxMap<K, V> = Rx<Map<K, V>>;
+typedef RxMapEntry<K, V> = Rx<MapEntry<K, V>>;
 
 typedef RxnBool = Rxn<bool>;
 typedef RxnInt = Rxn<int>;
@@ -23,6 +24,7 @@ typedef RxnIter<T> = Rxn<Iterable<T>>;
 typedef RxnList<T> = Rxn<List>;
 typedef RxnSet<T> = Rxn<Set>;
 typedef RxnMap<K, V> = Rxn<Map<K, V>>;
+typedef RxnMapEntry<K, V> = Rxn<MapEntry<K, V>>;
 
 typedef Worker<T> = StreamSubscription<T> Function(void Function(T)?,
     {bool? cancelOnError, void Function()? onDone, Function? onError});
@@ -30,7 +32,5 @@ typedef Worker<T> = StreamSubscription<T> Function(void Function(T)?,
 typedef StreamTransformation<S, T> = Stream<S> Function(Stream<T> stream);
 typedef StreamFilter<T> = StreamTransformation<T, T>;
 
-// TODO: maybe add operators from collection in RxIterable?
-// TODO: check how Obx would detect internal object change
 // TODO: check all docuementation to be good
 // TODO: write the README.md
