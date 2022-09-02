@@ -161,6 +161,11 @@ mixin StreamCapable<T> on DisposersTrackable<T> {
 mixin BroadCastStreamCapable<T> on StreamCapable<T> {
   void _initController() {
     _controller = StreamController<T>.broadcast();
+    _controller!.onCancel = () {
+      if (!_controller!.hasListener) {
+        _controller?.close();
+      }
+    };
     _stream = _controller!.stream;
   }
 
@@ -238,6 +243,7 @@ mixin StreamBindable<T> on StreamCapable<T> {
     return clean;
   }
 
+  /// TODO: split bindListnable and bindValueListenable
   /// Binding to any listener with callback
   /// Binds an existing `ValueListenable<T>` this might be a `ValueNotifier<T>`
   /// Keeping this Rx<T> values in sync.

@@ -25,14 +25,6 @@ void main() {
         boolListen('inobs', inobs, true);
       });
 
-      group('clone', () {
-        init();
-        boolListen('obs', obs, false, obs.clone(), false);
-        boolListen('nobs', nobs, false, nobs.clone(), false);
-        boolListen('iobs', iobs, false, iobs.clone(), false);
-        boolListen('inobs', inobs, false, inobs.clone(), false);
-      });
-
       group('detatch', () {
         init();
         boolListen('obs', obs, false, obs.dupe()..detatch(), false);

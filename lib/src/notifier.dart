@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart';
 import 'package:obx/src/rx/rx_impl/rx_mixins.dart';
 
 import '../obx.dart';
-import 'debouncer.dart';
 
 // This callback remove the listener on addListener function
 typedef Disposer = void Function();
@@ -297,8 +296,7 @@ class EmptyStreamSubscription<T> extends StreamSubscription<T> {
   @override
   Future<E> asFuture<E>([E? futureValue]) => throw FlutterError(
       '''You tried to call asFuture on an EmptyStreamSubscription
-			This should never append, make sure you respect contract when calling [ever]
-			''');
+This should never append, make sure you respect contract when calling [ever]''');
 
   @override
   Future<void> cancel() async {}

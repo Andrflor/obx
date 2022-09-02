@@ -3,46 +3,14 @@ import 'package:flutter/foundation.dart';
 import '../../functions.dart';
 import 'rx_impl.dart';
 
-// TODO: make this another way
-// abstract class RxStream {
-//   static call<T>(Stream<T> stream, [T? initial]) =>
-//       Rx._fromStream(stream, init: initial);
-//   static indistinct<T>(Stream<T> stream, [T? initial]) =>
-//       Rx._fromStream(stream, init: initial, distinct: false);
-// }
-//
-// class RxnStream {
-//   static call<T>(Stream<T> stream, [T? initial]) =>
-//       Rxn._fromStream(stream, init: initial);
-//   static indistinct<T>(Stream<T> stream, [T? initial]) =>
-//       Rxn._fromStream(stream, init: initial, distinct: false);
-// }
-//
-// // TODO: need a way to pass the closure without breaking contract
-// class RxListen {
-//   static call<T>(Listenable listenable, [T? initial]) =>
-//       Rx._fromListenable(listenable, init: initial);
-//   static indistinct<T>(Listenable listenable, [T? initial]) =>
-//       Rx._fromListenable(listenable, init: initial, distinct: false);
-// }
-//
-// // TODO: need a way to pass the closure without breaking contract
-// class RxnListen {
-//   static call<T>(Listenable listenable, [T? initial]) =>
-//       Rxn._fromListenable(listenable, init: initial);
-//   static indistinct<T>(Listenable listenable, [T? initial]) =>
-//       Rxn._fromListenable(listenable, init: initial, distinct: false);
-// }
-
 class Rx<T> extends RxImpl<T> {
   Rx._({T? initial, bool distinct = true}) : super(initial, distinct: distinct);
 
   Rx([T? initial]) : super(initial, distinct: true);
 
-  /// Constructor for
+  /// Constructor for the indistinct version of a [Rx]
   Rx.indistinct([T? initial]) : super(initial, distinct: false);
 
-  // TODO: make this a private constructor
   Rx.fromStream(Stream<T> stream, {T? init, super.distinct}) : super(init) {
     bindStream(stream);
   }
@@ -52,9 +20,16 @@ class Rx<T> extends RxImpl<T> {
   Rx.fuse(T Function() callback) : super(null);
 
   // TODO: make this a private constructor
-  Rx.fromListenable(Listenable listenable, {T? init, super.distinct})
+  Rx.fromListenable(Listenable listenable, T Function() onEvent,
+      {T? init, super.distinct})
       : super(init ??
             (listenable is ValueListenable<T> ? listenable.value : null)) {
+    bindListenable(listenable);
+  }
+
+  Rx.fromValueListenable(ValueListenable<T> listenable,
+      {T? init, super.distinct})
+      : super(init ?? listenable.value) {
     bindListenable(listenable);
   }
 
@@ -121,10 +96,6 @@ class Rx<T> extends RxImpl<T> {
       pipe((e) => e.where(test).map(transform),
           init: transform, distinct: distinct);
 
-  /// Create a standalone copy of the observale
-  /// Distinct parameter is used to enforce distinct or indistinct
-  Rx<T> clone({bool? distinct}) => _clone(distinct: distinct);
-
   /// Create an exact copy of the observable
   /// The dupe will receive all event comming from the original
   Rx<T> dupe() => _dupe();
@@ -139,37 +110,4 @@ class Rx<T> extends RxImpl<T> {
   /// Be aware that even if this observable is indistinct
   /// The value it recieves from the parent will match parent policy
   Rx<T> indistinct() => _dupe(distinct: false);
-
-  /// Allow to bind to an object
-  /// The object must be a stream<T> or a valueListenable<T>
-  /// Or the object must implement a stream parameter that contains a Stream<T>
-  /// Will provide a VoidCallback to close the sub and clean
-  /// Stream subscriptions are automatically closed when the stream is done
-  VoidCallback bind<S extends Object>(S other) {
-    if (other is Stream<T>) {
-      return bindStream(other);
-    }
-
-    if (other is Rx<T>) {
-      return bindStream(other.subject.stream);
-    }
-    if (other is ValueListenable<T>) {
-      return bindListenable(other);
-    } else {
-      try {
-        final stream = (other as dynamic).stream;
-        if (stream is Stream<T>) {
-          return bindStream(stream);
-        } else {
-          try {
-            return bindStream(stream);
-          } catch (_) {
-            throw '${stream.runtimeType} from $S method [stream] is not a Stream<$T>';
-          }
-        }
-      } catch (_) {
-        throw '$S has not method [stream]';
-      }
-    }
-  }
 }

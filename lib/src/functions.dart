@@ -42,12 +42,6 @@ T observe<T>(T Function() builder) {
   return Notifier.inBuild ? Notifier.instance.observe(builder) : builder();
 }
 
-// TODO: make ever for properly
-// TODO: fix obsrerve avoid infinite loop when closure update the values
-// TODO: and the UI does not refresh
-
-// TODO: make documentation for this function
-
 /// Run a calback each time the observable [Object] changes
 ///
 /// Takes an observable parameter that can be either
@@ -98,23 +92,22 @@ StreamSubscription<T> ever<T>(
   void Function()? onDone,
   Function? onError,
   bool? cancelOnError,
-  // TODO: implements distinct
   bool forceDistinct = false,
 }) {
-  if (observable is Function) {
-    if (observable is T Function()) {
-      return Notifier.instance.listen(observable).listen(
-            onData,
-            onDone: onDone,
-            cancelOnError: cancelOnError,
-            onError: onError,
-            filter: filter,
-          );
-    }
-    observable = observable();
+  if (observable is T Function()) {
+    return Notifier.instance.listen(observable).listen(
+          onData,
+          onDone: onDone,
+          cancelOnError: cancelOnError,
+          onError: onError,
+          filter: filter,
+        );
   }
   if (observable is Rx<T>) {
-    return observable.listen(
+    return (forceDistinct && !observable.isDistinct
+            ? observable.distinct()
+            : observable)
+        .listen(
       onData,
       onDone: onDone,
       cancelOnError: cancelOnError,
@@ -123,6 +116,7 @@ StreamSubscription<T> ever<T>(
     );
   }
   if (observable is Stream<T>) {
+    observable = forceDistinct ? observable.distinct() : observable;
     return (filter == null ? observable : filter(observable)).listen(
       onData,
       onDone: onDone,
@@ -131,14 +125,25 @@ StreamSubscription<T> ever<T>(
     );
   }
   if (observable is ValueListenable<T>) {
-    // TODO: implements for value listnable
-    // TODO: this should be using proper observable
+    final obs = Rx.fromValueListenable(observable, distinct: forceDistinct);
+    obs.subject.onCancel = obs.dispose;
+    return obs.listen(
+      onData,
+      onDone: onDone,
+      cancelOnError: cancelOnError ?? false,
+      onError: onError,
+      filter: filter,
+    );
   }
-  // TODO: add assert for devellopement
+
+  _debugAssertObservableType(observable, T, 'ever');
   return EmptyStreamSubscription<T>();
 }
 
-// TODO: make documentation for this function
+/// Runs a calback each time the observable [Object] changes and now
+///
+/// Like the [ever] function but the callback will also fire now
+/// For complete docuementation see [ever]
 StreamSubscription<T> everNow<T>(
   Object observable,
   Function(T value) onData, {
@@ -146,23 +151,22 @@ StreamSubscription<T> everNow<T>(
   Function? onError,
   void Function()? onDone,
   bool? cancelOnError,
-  // TODO: implements distinct
   bool forceDistinct = false,
 }) {
-  if (observable is Function) {
-    if (observable is T Function()) {
-      return Notifier.instance.listen(observable).listenNow(
-            onData,
-            onDone: onDone,
-            cancelOnError: cancelOnError,
-            onError: onError,
-            filter: filter,
-          );
-    }
-    observable = observable();
+  if (observable is T Function()) {
+    return Notifier.instance.listen(observable).listenNow(
+          onData,
+          onDone: onDone,
+          cancelOnError: cancelOnError,
+          onError: onError,
+          filter: filter,
+        );
   }
   if (observable is Rx<T>) {
-    return observable.listenNow(
+    return (forceDistinct && !observable.isDistinct
+            ? observable.distinct()
+            : observable)
+        .listenNow(
       onData,
       onDone: onDone,
       cancelOnError: cancelOnError,
@@ -171,6 +175,7 @@ StreamSubscription<T> everNow<T>(
     );
   }
   if (observable is Stream<T>) {
+    observable = forceDistinct ? observable.distinct() : observable;
     return (filter == null ? observable : filter(observable)).listen(
       onData,
       onDone: onDone,
@@ -179,12 +184,137 @@ StreamSubscription<T> everNow<T>(
     );
   }
   if (observable is ValueListenable<T>) {
-    // TODO: implements for value listnable
-    // TODO: this should be using proper observable
+    final obs = Rx.fromValueListenable(observable, distinct: forceDistinct);
+    obs.subject.onCancel = obs.dispose;
+    return obs.listenNow(
+      onData,
+      onDone: onDone,
+      cancelOnError: cancelOnError ?? false,
+      onError: onError,
+      filter: filter,
+    );
   }
-  // TODO: add assert for devellopement
+  _debugAssertObservableType(observable, T, 'everNow');
   return EmptyStreamSubscription<T>();
 }
 
-// TODO: implement Debounce, Once, Iterval, Every, Skip, Take
-// TODO: implement DebounceNow, OnceNow, ItervalNow, EveryNow, SkipNow, TakeNow
+void _debugAssertObservableType<S>(S value, Type inner, String name) {
+  assert(() {
+    throw FlutterError(
+        '''The type ${value.runtimeType} is not respecting the type constraints in [$name]
+it should [Rx<$inner>], [Stream<$inner>] or [ValueListenable<$inner>] or [$inner Function()]
+or you may have wrongly typed $inner in the onData [Function($inner value)] function''');
+  }());
+}
+
+/// Runs a calback once the observable [Object] changes
+///
+/// Like the [ever] function but the callback is only run once
+/// For complete docuementation see [ever]
+StreamSubscription<T> once<T>(
+  Object observable,
+  Function(T value) onData, {
+  Function? onError,
+  void Function()? onDone,
+  bool? cancelOnError,
+}) =>
+    ever(
+      observable,
+      onData,
+      filter: (stream) => stream.take(1),
+      onError: onError,
+      onDone: onDone,
+      cancelOnError: cancelOnError,
+    );
+
+/// Runs a calback once the observable [Object] changes and now
+///
+/// Like the [ever] function but the callback runs only once and now
+/// Like the [once] function but the callback also fires now
+/// For complete docuementation see [ever]
+StreamSubscription<T> onceNow<T>(
+  Object observable,
+  Function(T value) onData, {
+  Function? onError,
+  void Function()? onDone,
+  bool? cancelOnError,
+  bool forceDistinct = false,
+}) =>
+    everNow(
+      observable,
+      onData,
+      filter: (stream) => stream.take(1),
+      onError: onError,
+      onDone: onDone,
+      cancelOnError: cancelOnError,
+      forceDistinct: forceDistinct,
+    );
+
+/// Runs a calback with debounce dalay when the observable [Object] changes
+///
+/// Like the [ever] function but the callback has a debouncer
+/// This is convenient to prevent the user from blasting an API
+/// For complete docuementation see [ever]
+///
+/// Be aware, since it returns a StreamSubscription<T> you could change the
+/// onData callback, but then you would loose the debounce property
+StreamSubscription<T> debounce<T>(
+  Object observable,
+  Function(T value) onData, {
+  StreamFilter<T>? filter,
+  Duration delay = const Duration(milliseconds: 800),
+  Function? onError,
+  void Function()? onDone,
+  bool? cancelOnError,
+  bool forceDistinct = false,
+}) {
+  final _debouncer = Debouncer(delay: delay);
+  return ever(
+    observable,
+    (value) {
+      _debouncer(() {
+        onData(value);
+      });
+    },
+    filter: filter,
+    onError: onError,
+    onDone: onDone,
+    cancelOnError: cancelOnError,
+    forceDistinct: forceDistinct,
+  );
+}
+
+/// Runs a calback with debounce dalay when observable [Object] changes and now
+///
+/// Like the [ever] function but the callback has a debouncer
+/// Like the [debounce] function but the callback also fires now
+/// This is convenient to prevent the user from blasting an API
+/// For complete docuementation see [ever]
+///
+/// Be aware, since it returns a StreamSubscription<T> you could change the
+/// onData callback, but then you would loose the debounce property
+StreamSubscription<T> debounceNow<T>(
+  Object observable,
+  Function(T value) onData, {
+  StreamFilter<T>? filter,
+  Duration delay = const Duration(milliseconds: 800),
+  Function? onError,
+  void Function()? onDone,
+  bool? cancelOnError,
+  bool forceDistinct = false,
+}) {
+  final _debouncer = Debouncer(delay: delay);
+  return everNow(
+    observable,
+    (value) {
+      _debouncer(() {
+        onData(value);
+      });
+    },
+    filter: filter,
+    onError: onError,
+    onDone: onDone,
+    cancelOnError: cancelOnError,
+    forceDistinct: forceDistinct,
+  );
+}
