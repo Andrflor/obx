@@ -2,8 +2,51 @@ import '../../functions.dart';
 import '../rx_impl/rx_core.dart';
 
 extension RxStringExt on Rx<String> {
+  /// The character (as a single-code-unit [String]) at the given [index].
+  ///
+  /// The returned string represents exactly one UTF-16 code unit, which may be
+  /// half of a surrogate pair. A single member of a surrogate pair is an
+  /// invalid UTF-16 string:
+  /// ```dart
+  /// var clef = '\u{1D11E}';
+  /// // These represent invalid UTF-16 strings.
+  /// clef[0].codeUnits;      // [0xD834]
+  /// clef[1].codeUnits;      // [0xDD1E]
+  /// ```
+  /// This method is equivalent to
+  /// `String.fromCharCode(this.codeUnitAt(index))`.
+  String operator [](int index) => (observe(() => value[index]));
+
+  /// Creates a new string by concatenating this string with [other].
+  ///
+  /// Example:
+  /// ```dart
+  /// const string = 'dart' + 'lang'; // 'dartlang'
+  /// ```
   String operator +(String val) => (observe(() => value + val));
 
+  /// Compares this string to [other].
+  ///
+  /// Returns a negative value if `this` is ordered before `other`,
+  /// a positive value if `this` is ordered after `other`,
+  /// or zero if `this` and `other` are equivalent.
+  ///
+  /// The ordering is the same as the ordering of the code units at the first
+  /// position where the two strings differ.
+  /// If one string is a prefix of the other,
+  /// then the shorter string is ordered before the longer string.
+  /// If the strings have exactly the same content, they are equivalent with
+  /// regard to the ordering.
+  /// Ordering does not check for Unicode equivalence.
+  /// The comparison is case sensitive.
+  /// ```dart
+  /// var relation = 'Dart'.compareTo('Go');
+  /// print(relation); // < 0
+  /// relation = 'Go'.compareTo('Forward');
+  /// print(relation); // > 0
+  /// relation = 'Forward'.compareTo('Forward');
+  /// print(relation); // 0
+  /// ```
   int compareTo(String other) => value.compareTo(other);
 
   /// Returns true if this string ends with [other]. For example:
@@ -11,13 +54,20 @@ extension RxStringExt on Rx<String> {
   ///     'Dart'.endsWith('t'); // true
   bool endsWith(String other) => observe(() => value.endsWith(other));
 
+  /// The length of the string.
+  ///
+  /// Returns the number of UTF-16 code units in this string. The number
+  /// of [runes] might be fewer if the string contains characters outside
+  /// the Basic Multilingual Plane (plane 0):
+  /// ```dart
+  /// 'Dart'.length;          // 4
+  /// 'Dart'.runes.length;    // 4
+  ///
+  /// var clef = '\u{1D11E}';
+  /// clef.length;            // 2
+  /// clef.runes.length;      // 1
+  /// ```
   int get length => observe(() => value.length);
-
-  bool operator <(num other) => observe(() => value.length < other);
-  bool operator <=(num other) => observe(() => value.length <= other);
-
-  bool operator >(num other) => observe(() => value.length > other);
-  bool operator >=(num other) => observe(() => value.length >= other);
 
   /// Returns true if this string starts with a match of [pattern].
   bool startsWith(Pattern pattern, [int index = 0]) =>
@@ -194,29 +244,118 @@ extension RxStringExt on Rx<String> {
   /// If the string is already in all upper case, this method returns `this`.
   String toUpperCase() => observe(() => value.toUpperCase());
 
+  /// Matches this pattern against the string repeatedly.
+  ///
+  /// If [start] is provided, matching will start at that index.
+  ///
+  /// The returned iterable lazily finds non-overlapping matches
+  /// of the pattern in the [string].
+  /// If a user only requests the first match,
+  /// this function should not compute all possible matches.
+  ///
+  /// The matches are found by repeatedly finding the first match
+  /// of the pattern in the string, initially starting from [start],
+  /// and then from the end of the previous match (but always
+  /// at least one position later than the *start* of the previous
+  /// match, in case the pattern matches an empty substring).
+  /// ```dart
+  /// RegExp exp = RegExp(r'(\w+)');
+  /// var str = 'Dash is a bird';
+  /// Iterable<Match> matches = exp.allMatches(str, 8);
+  /// for (final Match m in matches) {
+  ///   String match = m[0]!;
+  ///   print(match);
+  /// }
+  /// ```
+  /// The output of the example is:
+  /// ```
+  /// a
+  /// bird
+  /// ```
   Iterable<Match> allMatches(String string, [int start = 0]) =>
       value.allMatches(string, start);
 
+  ///
+  /// Returns a match if the pattern matches a substring of [string]
+  /// starting at [start], and `null` if the pattern doesn't match
+  /// at that point.
+  ///
+  /// The [start] must be non-negative and no greater than `string.length`.
+  /// ```dart
+  /// final string = 'Dash is a bird';
+  ///
+  /// var regExp = RegExp(r'bird');
+  /// var match = regExp.matchAsPrefix(string, 10); // Match found.
+  ///
+  /// regExp = RegExp(r'bird');
+  /// match = regExp.matchAsPrefix(string); // null
+  /// ```
   Match? matchAsPrefix(String string, [int start = 0]) =>
       value.matchAsPrefix(string, start);
 }
 
 extension RxnStringExt on Rx<String?> {
+  /// The character (as a single-code-unit [String]) at the given [index].
+  ///
+  /// The returned string represents exactly one UTF-16 code unit, which may be
+  /// half of a surrogate pair. A single member of a surrogate pair is an
+  /// invalid UTF-16 string:
+  /// ```dart
+  /// var clef = '\u{1D11E}';
+  /// // These represent invalid UTF-16 strings.
+  /// clef[0].codeUnits;      // [0xD834]
+  /// clef[1].codeUnits;      // [0xDD1E]
+  /// ```
+  /// This method is equivalent to
+  /// `String.fromCharCode(this.codeUnitAt(index))`.
+  String? operator [](int index) => (observe(() => value?[index]));
+
+  /// Creates a new string by concatenating this string with [other].
+  ///
+  /// Example:
+  /// ```dart
+  /// const string = 'dart' + 'lang'; // 'dartlang'
+  /// ```
   String operator +(String val) =>
       (observe(() => value == null ? val : value! + val));
 
-  bool operator <(num other) =>
-      observe(() => value == null ? true : value!.length < other);
-  bool operator <=(num other) =>
-      observe(() => value == null ? true : value!.length <= other);
-
-  bool operator >(num other) =>
-      observe(() => value == null ? false : value!.length > other);
-  bool operator >=(num other) =>
-      observe(() => value == null ? false : value!.length >= other);
-
+  /// Compares this string to [other].
+  ///
+  /// Returns a negative value if `this` is ordered before `other`,
+  /// a positive value if `this` is ordered after `other`,
+  /// or zero if `this` and `other` are equivalent.
+  ///
+  /// The ordering is the same as the ordering of the code units at the first
+  /// position where the two strings differ.
+  /// If one string is a prefix of the other,
+  /// then the shorter string is ordered before the longer string.
+  /// If the strings have exactly the same content, they are equivalent with
+  /// regard to the ordering.
+  /// Ordering does not check for Unicode equivalence.
+  /// The comparison is case sensitive.
+  /// ```dart
+  /// var relation = 'Dart'.compareTo('Go');
+  /// print(relation); // < 0
+  /// relation = 'Go'.compareTo('Forward');
+  /// print(relation); // > 0
+  /// relation = 'Forward'.compareTo('Forward');
+  /// print(relation); // 0
+  /// ```
   int? compareTo(String other) => observe(() => value?.compareTo(other));
 
+  /// The length of the string.
+  ///
+  /// Returns the number of UTF-16 code units in this string. The number
+  /// of [runes] might be fewer if the string contains characters outside
+  /// the Basic Multilingual Plane (plane 0):
+  /// ```dart
+  /// 'Dart'.length;          // 4
+  /// 'Dart'.runes.length;    // 4
+  ///
+  /// var clef = '\u{1D11E}';
+  /// clef.length;            // 2
+  /// clef.runes.length;      // 1
+  /// ```
   int? get length => observe(() => value?.length);
 
   /// Returns true if this string ends with [other]. For example:
@@ -400,9 +539,52 @@ extension RxnStringExt on Rx<String?> {
   /// If the string is already in all upper case, this method returns `this`.
   String? toUpperCase() => observe(() => value?.toUpperCase());
 
+  /// Matches this pattern against the string repeatedly.
+  ///
+  /// If [start] is provided, matching will start at that index.
+  ///
+  /// The returned iterable lazily finds non-overlapping matches
+  /// of the pattern in the [string].
+  /// If a user only requests the first match,
+  /// this function should not compute all possible matches.
+  ///
+  /// The matches are found by repeatedly finding the first match
+  /// of the pattern in the string, initially starting from [start],
+  /// and then from the end of the previous match (but always
+  /// at least one position later than the *start* of the previous
+  /// match, in case the pattern matches an empty substring).
+  /// ```dart
+  /// RegExp exp = RegExp(r'(\w+)');
+  /// var str = 'Dash is a bird';
+  /// Iterable<Match> matches = exp.allMatches(str, 8);
+  /// for (final Match m in matches) {
+  ///   String match = m[0]!;
+  ///   print(match);
+  /// }
+  /// ```
+  /// The output of the example is:
+  /// ```
+  /// a
+  /// bird
+  /// ```
   Iterable<Match>? allMatches(String string, [int start = 0]) =>
       value?.allMatches(string, start);
 
+  ///
+  /// Returns a match if the pattern matches a substring of [string]
+  /// starting at [start], and `null` if the pattern doesn't match
+  /// at that point.
+  ///
+  /// The [start] must be non-negative and no greater than `string.length`.
+  /// ```dart
+  /// final string = 'Dash is a bird';
+  ///
+  /// var regExp = RegExp(r'bird');
+  /// var match = regExp.matchAsPrefix(string, 10); // Match found.
+  ///
+  /// regExp = RegExp(r'bird');
+  /// match = regExp.matchAsPrefix(string); // null
+  /// ```
   Match? matchAsPrefix(String string, [int start = 0]) =>
       value?.matchAsPrefix(string, start);
 }
