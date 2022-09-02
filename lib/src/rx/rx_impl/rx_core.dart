@@ -80,7 +80,9 @@ class Rx<T> extends RxImpl<T> {
   Rx<T> _dupe({bool? distinct}) =>
       _clone(distinct: distinct)..bindStream(subject.stream);
 
-  /// Generates an [Rx<S>] based on [StreamTransformation<S,T>] of this [Rx<T>]
+  /// Creates a new [Rx<S>] based on [StreamTransformation<S,T>] of this [Rx<T>]
+  ///
+  /// TODO: proper doc
   ///
   /// You need to provide the stream transformation
   /// You can also provide an initial transformation (default to initial value)
@@ -98,50 +100,47 @@ class Rx<T> extends RxImpl<T> {
 
   /// Maps this [Rx<T>] into a new [Rx<S>]
   ///
-  /// This will map the value of this observable in another
-  /// Do not chain that kind of operators
-  /// If you have more complex operation to do, use pipe instead
+  /// TODO: more doc
+  ///
+  /// Do not chain this operator !
+  /// If you have more complex operation to do, use [pipe] instead
   Rx<S> pipeMap<S>(S Function(T e) transform, {bool? distinct}) =>
       pipe((e) => e.map(transform), init: transform, distinct: distinct);
 
-  /// This is a convenient function to make a common pipe operation
-  /// This will create an observalbe based on the condition assertion
-  /// Do not chain that kind of operators
-  /// If you have more complex operation to do, use pipe instead
+  /// Create a [Rx<T>] from this [Rx<T>] discarding elements based on a `test`
+  ///
+  /// TODO: more doc
+  ///
+  /// Do not chain this operator !
+  /// If you have more complex operation to do, use [pipe] instead
   Rx<T> pipeWhere(bool Function(T e) test, {bool? distinct}) =>
       pipe((e) => e.where(test), distinct: distinct);
 
-  /// This is a convenient function to make a common pipe operation
-  /// This will first map it and then assert the condition
-  /// Do not chain operators, prefer this
-  /// If you have more complex operation to do, use pipe instead
+  /// Maps this [Rx<T>] into [Rx<T>] discarding elements based on a `test`
+  ///
+  /// TODO: more doc
+  ///
+  /// Do not chain this operator !
+  /// If you have more complex operation to do, use [pipe] instead
   Rx<S> pipeMapWhere<S>(S Function(T e) transform, bool Function(S e) test,
           {bool? distinct}) =>
       pipe((e) => e.map(transform).where(test),
           init: transform, distinct: distinct);
 
-  /// This is a convenient function to make a common pipe operation
-  /// This will first assert the condition then map it
-  /// Do not chain operators, prefer this
-  /// If you have more complex operation to do, use pipe instead
-  Rx<S> pipeWhereMap<S>(bool Function(T e) test, S Function(T e) transform,
-          {bool? distinct}) =>
-      pipe((e) => e.where(test).map(transform),
-          init: transform, distinct: distinct);
-
   /// Create an exact copy of the [Rx<T>]
-  /// The dupe will receive all event comming from the original
+  ///
+  /// The copy will receive all events comming from the original
   Rx<T> dupe() => _dupe();
 
   /// Create an exact copy of the [Rx<T>] but distinct enforced
   ///
-  /// The dupe will receive all event comming from the original
+  /// The copy will receive all events comming from the original
   /// Events that are indistinct will be skipped
   Rx<T> distinct() => _dupe(distinct: true);
 
   /// Create an exact copy of the [Rx<T>] but indistinct enforced
   ///
-  /// The dupe will receive all event comming from the original
+  /// The copy will receive all events comming from the original
   /// Be aware that even if this observable is indistinct
   /// The value it recieves from the parent will match parent policy
   Rx<T> indistinct() => _dupe(distinct: false);
