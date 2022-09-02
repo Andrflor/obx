@@ -10,14 +10,14 @@ func(RxBool rxBool, RxNum rxNum, RxNum rxNum2) async {
     await Future.delayed(Duration(microseconds: 1));
 
     rxNum((rxNum + 0.000001));
-    Emitter().emit();
-    Emitter()?.isOdd();
-    Rx().emit();
     Rxn().emit();
   }
 }
 
-class Valuer() {
+class Valuer {}
+
+extension Ext on Rx<Valuer> {
+  bool get plop => true;
 }
 
 bool printer() {
@@ -59,7 +59,10 @@ class Test extends StatelessWidget {
 
   Test({Key? key}) : super(key: key) {
     // func(Rx(false), rxNum, rxNum2);
+    print(Rx(null).runtimeType);
+    print(Rxn(Valuer()).plop);
     ever(() => equals, myHandler);
+
     ever(
         () => rxNum.toStringAsFixed(0) == rxNum2.toStringAsFixed(0)
             ? "Equals"

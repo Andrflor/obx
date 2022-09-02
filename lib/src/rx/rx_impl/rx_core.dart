@@ -5,6 +5,11 @@ import '../../notifier.dart';
 import 'rx_types.dart';
 import 'rx_impl.dart';
 
+//ignore: prefer_void_to_null
+class Emitter extends RxBase<Null> {
+  Emitter(super.val);
+}
+
 // TODO: add doc here
 class Rx<T> extends RxImpl<T> {
   Rx._({T? initial, bool distinct = true}) : super(initial, distinct: distinct);
@@ -15,8 +20,12 @@ class Rx<T> extends RxImpl<T> {
   /// If you want the paramater to bee null you will have to type your [Rx]
   /// You can just use `Rx<T>()` or use the provided typedef
   ///
+  /// You should avoid creating [Rx<dynamic>] or [Rx<void>]
+  /// You should avoid creating [Rx<Null>] use [Emitter] instead
+  ///
   /// See also:
   /// - [Rx]
+  /// - [Emmiter]
   Rx([T? initial]) : super(initial, distinct: true);
 
   /// Creates an indistinct [Rx<T>]

@@ -2,11 +2,8 @@ import 'dart:async';
 
 import 'rx_core.dart';
 
-typedef Emitter = RxNull;
 typedef Rxn<T> = Rx<T?>;
 
-//ignore: prefer_void_to_null
-typedef RxNull = Rx<Null>;
 typedef RxBool = Rx<bool>;
 typedef RxInt = Rx<int>;
 typedef RxNum = Rx<num>;
