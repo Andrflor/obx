@@ -41,19 +41,17 @@ abstract class Notifier {
     return base.value;
   }
 
-  static void _internal<T, S extends DisposersTrackable<T>>(
-      T Function() builder, S base) {
+  static void _internal<T, S extends Shot<T>>(T Function() builder, S base) {
     final previousData = _notifyData;
     final debouncer = EveryDebouncer(
         delay: const Duration(milliseconds: 5), retries: 4, enabled: false);
     _notifyData = NotifyData(
         updater: () => debouncer(() => base.value = builder()),
         disposers: {debouncer.cancel});
-    final result = builder();
+    base.init(builder());
     debouncer.start();
     base.disposers = _notifyData?.disposers;
     _notifyData = previousData;
-    base.value = result;
   }
 
   static MultiShot<T> listen<T>(T Function() builder) {
@@ -113,4 +111,24 @@ Equality equalizer<T>() {
   } else {
     return const DefaultEquality();
   }
+}
+
+/// Defines the equalizer depending on T
+Equality equalizing<T>(T? val) {
+  if (val != null) {
+    if (val is Iterable) {
+      if (val is List) {
+        return const ListEquality();
+      }
+      if (val is Set) {
+        return const SetEquality();
+      }
+      return const IterableEquality();
+    }
+    if (val is Map) {
+      return const MapEquality();
+    }
+    return const DefaultEquality();
+  }
+  return equalizer<T>();
 }

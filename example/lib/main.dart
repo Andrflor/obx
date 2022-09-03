@@ -143,47 +143,75 @@ import 'package:get/get.dart' as getx;
 // }
 
 main() async {
-  final boolx = false.obs;
-  final rxbool = Rx(false);
   final singleShot = SingleShot<bool>();
   final multiShot = MultiShot<bool>();
 
   await Future.delayed(Duration(milliseconds: 500));
+  // await delay(() => boolx.toString());
+  // await delay(() => rxbool.toString());
+  // print("");
+  // await delay(() => boolx.value);
+  // await delay(() => rxbool.value);
+  // print("");
+
+  final boolx = false.obs;
+  final rxbool = Rx(false);
   print("");
+  print("Getx vs Obx benchmark");
+  print("");
+  print("Instantiation");
   await delay(() => false.obs);
   await delay(() => Rx(false));
-  await delay(() => Shot());
   print("");
-  await delay(() => boolx.toString());
-  await delay(() => rxbool.toString());
-  print("");
+  print("Accesss");
   await delay(() => boolx.value);
   await delay(() => rxbool.value);
   print("");
+  print("Same value assign");
   await delay(() => boolx.value = false);
   await delay(() => rxbool.value = false);
   print("");
-  await delay(() => boolx == 1);
-  await delay(() => rxbool == 1);
-  print("");
+  print("Different value assign");
   await delay(() => boolx.value = true);
   await delay(() => rxbool.value = true);
   print("");
-  await delay(() => singleShot.value);
-  await delay(() => multiShot.value);
+  print("Equality");
+  await delay(() => boolx == 1);
+  await delay(() => rxbool == 1);
 
+  // print("");
+  // print("");
+  // await delay(() => singleShot.value);
+  // await delay(() => multiShot.value);
+
+  // print(equalizing([]));
+  //
+  // await delay(() => equalizer<bool>());
+  // await delay(() => equalizer<List>());
+  // await delay(() => equalizer<Set>());
+  //
+  // await delay(() => equalizing(false));
+  // await delay(() => equalizing([]));
+  // await delay(() => equalizing({}));
   while (true) {
     await Future.delayed(Duration(milliseconds: 500));
   }
 }
 
+int index = 0;
+const loops = 100000000;
+const div = loops / 1000;
+
 Future<void> delay(Function() callback) async {
-  final time = DateTime.now();
-  for (int i = 0; i < 100000000; i++) {
+  final lib = index % 2 == 0 ? "Getx" : "Obx";
+  index += 1;
+  final start = DateTime.now();
+  for (int i = 0; i < loops; i++) {
     callback();
   }
+  final end = DateTime.now();
   print(
-      "Elasped: ${DateTime.now().difference(time).inMicroseconds / 100000} ns");
+      "$lib: ${(end.difference(start).inMicroseconds / div).toStringAsFixed(2)} ns");
 }
 
 bool isSubtype<S, T>() => <S>[] is List<T>;

@@ -31,7 +31,6 @@ dependencies:
     sdk: flutter
   obx:
     path: ../
-  get: ^5.0.0-beta.52
 
 
   # The following adds the Cupertino Icons font to your application.
@@ -41,6 +40,7 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  get: ^4.6.5
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is

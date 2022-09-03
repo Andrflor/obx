@@ -15,11 +15,17 @@ class RxImpl<T> extends RxBase<T>
         StreamBindable<T>,
         EmptyAble<T>,
         Equalizable<T> {
-  RxImpl(super.val, {bool distinct = true}) : _distinct = distinct {
+  RxImpl(super.val, {bool distinct = true})
+      : _distinct = distinct,
+        _equalizer = equalizing(val) {
     if (_distinct) {
       _hashCode = _equalizer.hash(_value);
     }
   }
+
+  @override
+  // ignore: overridden_fields
+  final Equality _equalizer;
 
   @override
   bool get isDistinct => _distinct;
@@ -66,7 +72,7 @@ mixin Equalizable<T> on Reactive<T> {
   /// Since it's late it won't even use space if indistinct
   /// Since Equality are all const constructor there will only be
   /// One instance of each, so this is just a pointer in memory
-  final Equality _equalizer = equalizer<T>();
+  late final Equality _equalizer;
 
   @override
   bool operator ==(Object other) {
@@ -169,6 +175,14 @@ class RxBase<T> extends Reactive<T>
 /// So it really has a "single shot"
 class SingleShot<T> extends Shot<T> {
   @override
+  set value(T newValue) {
+    if (_hashCode == _equalizer.hash(newValue)) {
+      return;
+    }
+    _notify();
+  }
+
+  @override
   void _notify() {
     super._notify();
     for (final disposer in _disposers!) {
@@ -182,7 +196,15 @@ class SingleShot<T> extends Shot<T> {
 
 /// This is an internal class
 /// It's the basic class for the [ever] function
-class MultiShot<T> = Shot<T> with StreamCapable<T>;
+class MultiShot<T> extends Shot<T> with StreamCapable<T> {
+  @override
+  set value(T newValue) {
+    if (_equals(newValue)) {
+      return;
+    }
+    _value = newValue;
+  }
+}
 
 /// This is an internal class
 /// It's the basic class for [observe] and [ever]
@@ -192,13 +214,16 @@ class Shot<T> extends Reactive<T> with DisposersTrackable<T>, Equalizable<T> {
 
   @override
   set value(T newValue) {
-    _hashCode = _equalizer.hash(newValue);
-    _value = newValue;
     if (_equals(newValue)) {
       return;
     }
     _value = newValue;
     _notify();
+  }
+
+  void init(T value) {
+    _equalizer = equalizing(value);
+    _hashCode = _equalizer.hash(value);
   }
 }
 
