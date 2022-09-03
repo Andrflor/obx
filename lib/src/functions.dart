@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import './rx/rx_impl/rx_mixins.dart';
-import '../obx.dart';
+import './rx/rx_impl/rx_types.dart';
+import './rx/rx_impl/rx_core.dart';
+import 'debouncer.dart';
 import 'notifier.dart';
 
 /// Observes the results of any combinaison of [Rx] variables

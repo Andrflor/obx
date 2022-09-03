@@ -1,7 +1,5 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import '../../functions.dart';
-import '../../notifier.dart';
 import 'rx_mixins.dart';
 import 'rx_types.dart';
 import 'rx_impl.dart';
@@ -86,7 +84,7 @@ class Rx<T> extends RxImpl<T> {
       distinct: distinct ?? isDistinct);
   Rx<T> _dupe({bool? distinct}) =>
       Rx._(initial: staticOrNull, distinct: distinct ?? isDistinct)
-        ..bindStream(subject.stream);
+        ..bindStream(stream);
 
   /// Creates a new [Rx<S>] based on [StreamTransformation<S,T>] of this [Rx<T>]
   ///
@@ -105,7 +103,7 @@ class Rx<T> extends RxImpl<T> {
       _clone(
         convert: init,
         distinct: distinct,
-      )..bindStream(transformer(subject.stream));
+      )..bindStream(transformer(stream));
 
   /// Maps this [Rx<T>] into a new [Rx<S>]
   ///

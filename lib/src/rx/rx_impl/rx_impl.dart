@@ -205,6 +205,7 @@ class Shot<T> extends Reactive<T> with DisposersTrackable<T>, Equalizable<T> {
   @override
   set value(T newValue) {
     if (!_hasValue) {
+      _hashCode = _equalizer.hash(newValue);
       _value = newValue;
       _hasValue = true;
       return;
@@ -214,12 +215,6 @@ class Shot<T> extends Reactive<T> with DisposersTrackable<T>, Equalizable<T> {
     }
     _value = newValue;
     _notify();
-  }
-
-  @override
-  set _value(T? val) {
-    _hashCode = _equalizer.hash(val);
-    super._value = val;
   }
 }
 

@@ -322,7 +322,7 @@ extension StreamCapableProtectedAccess<T> on BroadCastStreamCapable<T> {
 /// In debug mode assert check will advert the developper
 class EmptyStreamSubscription<T> extends StreamSubscription<T> {
   @override
-  Future<E> asFuture<E>([E? futureValue]) => throw FlutterError(
+  Future<Never> asFuture<Never>([Never? futureValue]) => throw FlutterError(
       '''You tried to call asFuture on an EmptyStreamSubscription
 This should never append, make sure you respect contract when calling [ever]''');
 
