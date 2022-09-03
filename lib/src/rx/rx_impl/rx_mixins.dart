@@ -103,20 +103,10 @@ mixin Distinguishable<T> on Actionable<T>, StreamCapable<T> {
     super.trigger(v);
   }
 
-  /// Called without a value it will refesh the ui
-  /// Called with a value it will refresh the ui and update value
-  @override
-  void refresh([T? v]) {
-    if (v != null) {
-      value = v;
-    }
-    super.refresh();
-  }
-
   // This value will only be set if it matches
   @override
   set value(T newValue) {
-    if (!isDistinct || static != newValue) {
+    if (!isDistinct || this != newValue) {
       trigger(newValue);
     }
   }
@@ -139,8 +129,6 @@ mixin StreamCapable<T> on DisposersTrackable<T> {
     }
     return _stream!;
   }
-
-  get static => null;
 
   /// This method allow to remove all incoming subs
   /// This will detatched this obs from stream listenable other piped obs
@@ -175,7 +163,7 @@ mixin StreamCapable<T> on DisposersTrackable<T> {
     StreamFilter<T>? filter,
     bool? cancelOnError,
   }) {
-    onData.call(static);
+    onData(value);
     return listen(
       onData,
       onError: onError,
@@ -193,6 +181,7 @@ mixin BroadCastStreamCapable<T> on StreamCapable<T> {
     _controller!.onCancel = () {
       if (!_controller!.hasListener) {
         _controller?.close();
+        _controller = null;
       }
     };
     _stream = _controller!.stream;
@@ -259,18 +248,11 @@ mixin StreamBindable<T> on StreamCapable<T> {
   /// You will have to clean it up yourself
   /// For that you can call the provided [Disposer]
   Disposer bindRx(StreamCapable<T> rx, [StreamFilter<T>? filter]) {
-    final sub = stream == null
-        ? rx.listen((e) {
-            value = e;
-          })
-        : stream.listen(
-            (e) {
-              value = e;
-            },
-            cancelOnError: false,
-            // TODO: implement some cleanup
-            // onDone: rx._checkClean,
-          );
+    final sub = rx.listen(
+      (e) {
+        value = e;
+      },
+    );
     disposers?.add(sub.cancel);
     // ignore: prefer_function_declarations_over_variables
     final clean = () {

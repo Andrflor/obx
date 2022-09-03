@@ -1,6 +1,17 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:obx/obx.dart';
+import 'package:equatable/equatable.dart';
+
+class Person extends Equatable {
+  // ignore: prefer_const_constructors_in_immutables
+  Person(this.name);
+
+  final String name;
+
+  @override
+  List<Object> get props => [name];
+}
 
 RxBool obs = Rx(false);
 RxnBool nobs = Rxn(false);
@@ -112,7 +123,47 @@ void main() {
         boolSilentListen('inobs', inobs);
       });
     });
+    group('equal', () {
+      equals(
+        "empty list",
+        Rx([]),
+        Rx([]),
+      );
+      equals(
+        "equatable",
+        Rx(Person("bill")),
+        Rx(Person("bill")),
+      );
+    });
+    group('inequals', () {
+      inequals(
+        "list int",
+        Rx([1]),
+        Rx([2]),
+      );
+      inequals(
+        "equatable",
+        Rx(Person("bill")),
+        Rx(Person("billy")),
+      );
+    });
   });
+}
+
+void isEqual<S, T>(String name, Rx<T> t, Rx<S> s, bool isEqual) {
+  return test(name, () {
+    expect(t == s, isEqual, reason: 'Rx failed');
+    expect(t == s.value, isEqual, reason: 'Left failed');
+    expect(s == t.value, isEqual, reason: 'Right failed');
+  });
+}
+
+void equals<S, T>(String name, Rx<T> t, Rx<S> s) {
+  isEqual(name, t, s, true);
+}
+
+void inequals<S, T>(String name, Rx<T> t, Rx<S> s) {
+  isEqual(name, t, s, false);
 }
 
 void boolListen(String name, Rx<bool?> rxBool, bool shouldFire,

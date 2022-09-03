@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../notifier.dart';
@@ -8,12 +9,76 @@ import 'rx_mixins.dart';
 
 /// Complete implementation of Rx
 class RxImpl<T> extends RxBase<T>
-    with Actionable<T>, Distinguishable<T>, StreamBindable<T>, EmptyAble<T> {
-  RxImpl(super.val, {bool distinct = true}) : _distinct = distinct;
+    with
+        Actionable<T>,
+        Distinguishable<T>,
+        StreamBindable<T>,
+        EmptyAble<T>,
+        Equalizable<T> {
+  RxImpl(super.val, {bool distinct = true}) : _distinct = distinct {
+    if (_distinct) {
+      _hashCode = _equalizer.hash(_value);
+    }
+  }
+
+  // This value will only be set if it matches
+  @override
+  set value(T newValue) {
+    if (!isDistinct || _equals(newValue)) {
+      _value = newValue;
+      notify();
+    }
+  }
+
+  /// Called without a value it will refesh the ui
+  /// Called with a value it will refresh the ui and update value
+  @override
+  void refresh([T? v]) {
+    if (v != null) {
+      _hashCode = _equalizer.hash(v);
+      _value = v;
+    }
+    notify();
+  }
+
+  /// Trigger update with a new value
+  /// Update the value, force notify listeners and update Widgets
+  @override
+  void trigger(T v) {
+    _hashCode = _equalizer.hash(v);
+    _value = v;
+    notify();
+  }
 
   @override
   bool get isDistinct => _distinct;
   final bool _distinct;
+}
+
+mixin Equalizable<T> on Reactive<T> {
+  /// Used to check for equality
+  /// Since it's late it won't even use space if indistinct
+  /// Since Equality are all const constructor there will only be
+  /// One instance of each, so this is just a pointer in memory
+  final Equality _equalizer = equalizer<T>();
+
+  @override
+  bool operator ==(Object other) {
+    if (other is Iterable || other is Map) {
+      return other.runtimeType == T && hashCode == _equalizer.hash(other);
+    }
+    return hashCode == other.hashCode;
+  }
+
+  bool _equals(T val) {
+    final hash = _hashCode;
+    _hashCode = _equalizer.hash(val);
+    return hash == _equalizer.hash(val);
+  }
+
+  @override
+  int get hashCode => _hashCode ?? value.hashCode;
+  int? _hashCode;
 }
 
 // This mixin is used to provide Actions to call
@@ -68,7 +133,7 @@ mixin EmptyAble<T> on RxBase<T> {
     bool? cancelOnError,
   }) {
     if (hasValue) {
-      onData.call(_value as T);
+      onData(_value as T);
     }
     return listen(
       onData,
@@ -126,19 +191,29 @@ class MultiShot<T> = Shot<T> with StreamCapable<T>;
 /// This is an internal class
 /// It's the basic class for [observe] and [ever]
 /// It's name comes from the fact that it shoots
-class Shot<T> extends Reactive<T> with DisposersTrackable<T> {
+class Shot<T> extends Reactive<T> with DisposersTrackable<T>, Equalizable<T> {
   Shot() : super(null);
 
   bool _hasValue = false;
 
   @override
-  set value(T value) {
+  set value(T newValue) {
     if (!_hasValue) {
-      _value = value;
+      _value = newValue;
       _hasValue = true;
       return;
     }
-    super.value = value;
+    if (_equals(newValue)) {
+      return;
+    }
+    _value = newValue;
+    _notify();
+  }
+
+  @override
+  set _value(T? val) {
+    _hashCode = _equalizer.hash(val);
+    super._value = val;
   }
 }
 
@@ -160,25 +235,12 @@ class Reactive<T> extends ListNotifier implements ValueListenable<T> {
   }
 
   set value(T newValue) {
-    if (_value == newValue) {
+    if (value == newValue) {
       return;
     }
     _value = newValue;
     _notify();
   }
-
-  /// This equality override works for instances and the internal
-  /// values.
-  @override
-  bool operator ==(Object o) {
-    // Todo, find a common implementation for the hashCode of different Types.
-    if (o is T) return value == o;
-    if (o is ValueListenable<T>) return value == o.value;
-    return false;
-  }
-
-  @override
-  int get hashCode => value.hashCode;
 }
 
 /// A Notifier with single listeners
@@ -255,9 +317,16 @@ mixin ListNotifiable on Listenable {
   }
 }
 
+extension ValueOrNull<T> on Reactive<T> {
+  T? get valueOrNull {
+    reportRead();
+    return _value;
+  }
+}
+
 /// This is used to pass private fields to other files
 extension ReactiveProtectedAccess<T> on Reactive<T> {
-  set static(T value) => _value = value;
+  T? get staticOrNull => _value;
   void notify() => _notify();
 }
 

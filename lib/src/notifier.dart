@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'rx/rx_impl/rx_impl.dart';
 import 'debouncer.dart';
+import 'package:collection/collection.dart';
 
 // This callback remove the listener on addListener function
 typedef Disposer = void Function();
@@ -110,3 +111,27 @@ class ObxError {
 
 /// Little helper for type checks
 bool isSubtype<S, T>() => <S>[] is List<T>;
+
+/// Little helper to check if a type is a collection
+bool isList<T>() => isSubtype<T, List?>();
+bool isMap<T>() => isSubtype<T, Map?>();
+bool isSet<T>() => isSubtype<T, Set?>();
+bool isIterable<T>() => isSubtype<T, Iterable?>();
+
+/// Defines the equalizer depending on T
+Equality equalizer<T>() {
+  if (isIterable<T>()) {
+    if (isList<T>()) {
+      return const ListEquality();
+    }
+    if (isSet<T>()) {
+      return const SetEquality();
+    } else {
+      return const IterableEquality();
+    }
+  } else if (isMap<T>()) {
+    return const MapEquality();
+  } else {
+    return const DefaultEquality();
+  }
+}
