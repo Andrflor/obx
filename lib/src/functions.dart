@@ -42,7 +42,7 @@ import 'notifier.dart';
 /// So you may end up with those changes done twice
 /// This is the reason why i wouldn't recommend it
 T observe<T>(T Function() builder) {
-  return Notifier.inBuild ? Notifier.instance.observe(builder) : builder();
+  return Notifier.notInBuild ? builder() : Notifier.observe(builder);
 }
 
 /// Run a calback each time the observable [Object] changes
@@ -98,13 +98,13 @@ StreamSubscription<T> ever<T>(
   bool forceDistinct = false,
 }) {
   if (observable is T Function()) {
-    return Notifier.instance.listen(observable).listen(
-          onData,
-          onDone: onDone,
-          cancelOnError: cancelOnError,
-          onError: onError,
-          filter: filter,
-        );
+    return Notifier.listen(observable).listen(
+      onData,
+      onDone: onDone,
+      cancelOnError: cancelOnError,
+      onError: onError,
+      filter: filter,
+    );
   }
   if (observable is Rx<T>) {
     return (forceDistinct && !observable.isDistinct
@@ -162,13 +162,13 @@ StreamSubscription<T> everNow<T>(
   bool forceDistinct = false,
 }) {
   if (observable is T Function()) {
-    return Notifier.instance.listen(observable).listenNow(
-          onData,
-          onDone: onDone,
-          cancelOnError: cancelOnError,
-          onError: onError,
-          filter: filter,
-        );
+    return Notifier.listen(observable).listenNow(
+      onData,
+      onDone: onDone,
+      cancelOnError: cancelOnError,
+      onError: onError,
+      filter: filter,
+    );
   }
   if (observable is Rx<T>) {
     return (forceDistinct && !observable.isDistinct

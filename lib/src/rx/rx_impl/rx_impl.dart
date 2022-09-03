@@ -149,16 +149,6 @@ mixin EmptyAble<T> on RxBase<T> {
       filter: filter,
     );
   }
-
-  @override
-  T get value {
-    if (!hasValue) {
-      throw FlutterError(
-          '''Trying to access `value` for $runtimeType but it's not initialized.
-Make sure to initialize it first or use `ValueOrNull` instead.''');
-    }
-    return super.value;
-  }
 }
 
 /// Basic implementation of the Rx
@@ -200,16 +190,10 @@ class MultiShot<T> = Shot<T> with StreamCapable<T>;
 class Shot<T> extends Reactive<T> with DisposersTrackable<T>, Equalizable<T> {
   Shot() : super(null);
 
-  bool _hasValue = false;
-
   @override
   set value(T newValue) {
-    if (!_hasValue) {
-      _hashCode = _equalizer.hash(newValue);
-      _value = newValue;
-      _hasValue = true;
-      return;
-    }
+    _hashCode = _equalizer.hash(newValue);
+    _value = newValue;
     if (_equals(newValue)) {
       return;
     }
@@ -219,7 +203,7 @@ class Shot<T> extends Reactive<T> with DisposersTrackable<T>, Equalizable<T> {
 }
 
 mixin DisposersTrackable<T> on Reactive<T> {
-  List<Disposer>? _disposers = <Disposer>[];
+  Set<Disposer>? _disposers = <Disposer>{};
 }
 
 /// This is the mos basic reactive component
@@ -231,7 +215,7 @@ class Reactive<T> extends ListNotifier implements ValueListenable<T> {
 
   @override
   T get value {
-    reportRead();
+    if (!Notifier.notInBuild) reportRead();
     return _value as T;
   }
 
@@ -250,7 +234,7 @@ class ListNotifier = Listenable with ListNotifiable;
 /// This mixin add to Listenable the addListener, removerListener and
 /// containsListener implementation
 mixin ListNotifiable on Listenable {
-  List<StateUpdate>? _updaters = <StateUpdate>[];
+  Set<StateUpdate>? _updaters = <StateUpdate>{};
 
   @override
   Disposer addListener(StateUpdate listener) {
@@ -277,12 +261,12 @@ mixin ListNotifiable on Listenable {
 
   @protected
   void reportRead() {
-    Notifier.instance.read(this);
+    Notifier.read(this);
   }
 
   @protected
   void reportAdd(VoidCallback disposer) {
-    Notifier.instance.add(disposer);
+    Notifier.add(disposer);
   }
 
   void _notifyUpdate() {
@@ -333,6 +317,6 @@ extension ReactiveProtectedAccess<T> on Reactive<T> {
 
 /// This is used to pass private fields to other files
 extension DisposerTrackableProtectedAccess<T> on DisposersTrackable<T> {
-  List<Disposer>? get disposers => _disposers;
-  set disposers(List<Disposer>? newDisposers) => _disposers = newDisposers;
+  Set<Disposer>? get disposers => _disposers;
+  set disposers(Set<Disposer>? newDisposers) => _disposers = newDisposers;
 }

@@ -1,9 +1,10 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 
-import '../../../obx.dart';
+import '../../functions.dart';
 import '../../notifier.dart';
 import 'rx_impl.dart';
+import 'rx_types.dart';
 
 /// Simple emitter for when you don't care about the value
 ///

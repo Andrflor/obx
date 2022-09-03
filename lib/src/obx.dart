@@ -16,7 +16,7 @@ abstract class ObxWidget extends StatelessWidget {
 
 /// Component that can track changes in a reactive variable
 mixin StatelessObserverComponent on StatelessElement {
-  List<Disposer>? disposers = <Disposer>[];
+  Set<Disposer>? disposers = <Disposer>{};
 
   void getUpdate() {
     if (disposers != null) {
@@ -26,7 +26,7 @@ mixin StatelessObserverComponent on StatelessElement {
 
   @override
   Widget build() {
-    return Notifier.instance.append(
+    return Notifier.append(
         NotifyData(disposers: disposers!, updater: getUpdate), super.build);
   }
 

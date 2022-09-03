@@ -10,30 +10,22 @@ typedef Disposer = void Function();
 // if it brings overhead the extra call,
 typedef StateUpdate = void Function();
 
-class Notifier {
-  Notifier._();
+abstract class Notifier {
+  static bool get notInBuild => _notifyData == null;
+  static NotifyData? _notifyData;
 
-  static Notifier? _instance;
-  static Notifier get instance => _instance ??= Notifier._();
-  static bool get inBuild =>
-      !(instance._notifyData == null || instance._working);
-
-  bool _working = false;
-  NotifyData? _notifyData;
-
-  void add(VoidCallback listener) {
+  static void add(VoidCallback listener) {
     _notifyData?.disposers.add(listener);
   }
 
-  void read(ListNotifiable updaters) {
-    final listener = _notifyData?.updater;
-    if (listener != null && !updaters.containsListener(listener)) {
-      updaters.addListener(listener);
-      add(() => updaters.removeListener(listener));
+  static void read(ListNotifiable updaters) {
+    final listener = _notifyData!.updater;
+    if (!updaters.containsListener(listener)) {
+      _notifyData?.disposers.add(updaters.addListener(listener));
     }
   }
 
-  T append<T>(NotifyData data, T Function() builder) {
+  static T append<T>(NotifyData data, T Function() builder) {
     _notifyData = data;
     final result = builder();
     if (data.disposers.isEmpty && data.throwException) {
@@ -43,20 +35,20 @@ class Notifier {
     return result;
   }
 
-  T _observe<T>(T Function() builder) {
+  static T observe<T>(T Function() builder) {
     final base = SingleShot<T>();
     _internal(builder, base);
     return base.value;
   }
 
-  void _internal<T, S extends DisposersTrackable<T>>(
+  static void _internal<T, S extends DisposersTrackable<T>>(
       T Function() builder, S base) {
     final previousData = _notifyData;
     final debouncer = EveryDebouncer(
         delay: const Duration(milliseconds: 5), retries: 4, enabled: false);
     _notifyData = NotifyData(
         updater: () => debouncer(() => base.value = builder()),
-        disposers: [debouncer.cancel]);
+        disposers: {debouncer.cancel});
     final result = builder();
     debouncer.start();
     base.disposers = _notifyData?.disposers;
@@ -64,23 +56,10 @@ class Notifier {
     base.value = result;
   }
 
-  MultiShot<T> _listen<T>(T Function() builder) {
+  static MultiShot<T> listen<T>(T Function() builder) {
     final base = MultiShot<T>();
     _internal(builder, base);
     return base;
-  }
-
-  T observe<T>(T Function() builder) => work<T>(() => _observe(builder))();
-  MultiShot<T> listen<T>(T Function() builder) =>
-      work<MultiShot<T>>(() => _listen(builder))();
-
-  T Function() work<T>(T Function() builder) {
-    return () {
-      _working = true;
-      final result = builder();
-      _working = false;
-      return result;
-    };
   }
 }
 
@@ -90,7 +69,7 @@ class NotifyData {
       required this.disposers,
       this.throwException = true});
   final StateUpdate updater;
-  final List<VoidCallback> disposers;
+  final Set<VoidCallback> disposers;
   final bool throwException;
 }
 

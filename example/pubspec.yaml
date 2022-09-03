@@ -31,6 +31,7 @@ dependencies:
     sdk: flutter
   obx:
     path: ../
+  get: ^5.0.0-beta.52
 
 
   # The following adds the Cupertino Icons font to your application.
