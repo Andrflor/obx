@@ -1,3 +1,4 @@
+import 'package:equatable/equatable.dart';
 import 'package:obx/obx.dart';
 import 'package:get/get.dart' as getx;
 
@@ -7,14 +8,21 @@ main() async {
   await bench(false, true);
   await bench(<String>[], [""]);
   await bench(<String>{}, {""});
-  await bench({"my key": const Foo(1)}, {"my key": const Foo(2)});
+  await bench({"my key": Foo(1, "first"), "my second key": Foo(2, "second")},
+      {"my key": Foo(2, "first"), "my second key": Foo(1, "second")});
+  await bench(3, 4);
   await bench(1.3, 2.6);
-  await bench(const Foo(1), const Foo(2));
+  await bench(Foo(1, "first"), Foo(2, "second"));
 }
 
-class Foo {
-  const Foo(this.val);
-  final int val;
+// ignore: must_be_immutable
+class Foo extends Equatable {
+  Foo(this.val, this.otherVal);
+  int val;
+  String otherVal;
+
+  @override
+  List<Object?> get props => [val, otherVal];
 }
 
 Future<void> bench<S extends Object>(S value, S diff) async {

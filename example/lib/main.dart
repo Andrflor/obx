@@ -1,7 +1,6 @@
 import 'package:obx/obx.dart';
-import 'package:get/get.dart' as getx;
 
-// void main() => runApp(MaterialApp(home: Test()));
+void main() => runApp(MaterialApp(home: Test()));
 //
 // func(RxBool rxBool, RxNum rxNum, RxNum rxNum2) async {
 //   while (true) {
