@@ -28,9 +28,10 @@ abstract class Notifier {
   static T append<T>(NotifyData data, T Function() builder) {
     _notifyData = data;
     final result = builder();
-    if (data.disposers.isEmpty && data.throwException) {
-      throw const ObxError();
-    }
+    // TODO: add back this
+    // if (data.disposers.isEmpty && data.throwException) {
+    //   throw const ObxError();
+    // }
     _notifyData = null;
     return result;
   }
