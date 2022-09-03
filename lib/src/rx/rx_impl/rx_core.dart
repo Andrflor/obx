@@ -80,15 +80,6 @@ class Rx<T> extends RxImpl<T> {
     bindValueListenable(listenable);
   }
 
-  /// Oberve the result of the equality
-  @override
-  bool operator ==(Object o) {
-    // TODO: make use of deep equals
-    return observe(() => o is T
-        ? value == o
-        : (o is ValueListenable<T> ? value == o.value : false));
-  }
-
   Rx<S> _clone<S>({bool? distinct, S? Function(T e)? convert}) => Rx._(
       // TODO assert if null is S or not in that
       initial: hasValue ? (convert?.call(value) ?? value as S) : null,

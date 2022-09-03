@@ -126,48 +126,6 @@ abstract class Emitting {
   void emit();
 }
 
-// This mixin is used to provide Actions to call
-mixin Actionable<T> on Reactive<T> implements Emitting {
-  T? call([T? v]) {
-    if (v != null) {
-      value = v;
-    }
-    return value;
-  }
-
-  /// Trigger update with a new value
-  /// Update the value, force notify listeners and update Widgets
-  void trigger(T v) {
-    static = v;
-    notify();
-  }
-
-  /// Trigger update with current value
-  /// Force notify listeners and update Widgets
-  @override
-  void emit() {
-    if (hasValue) {
-      trigger(static);
-    }
-  }
-
-  /// Silent update
-  /// Update value without updating widgets and listeners
-  /// This means that piped object won't recieve the update
-  void silent(T v) {
-    static = v;
-  }
-
-  /// Called without a value it will refesh the ui
-  /// Called with a value it will refresh the ui and update value
-  void refresh([T? v]) {
-    if (v != null) {
-      static = v;
-    }
-    notify();
-  }
-}
-
 mixin StreamCapable<T> on DisposersTrackable<T> {
   StreamController<T>? _controller;
 
@@ -181,6 +139,8 @@ mixin StreamCapable<T> on DisposersTrackable<T> {
     }
     return _stream!;
   }
+
+  get static => null;
 
   /// This method allow to remove all incoming subs
   /// This will detatched this obs from stream listenable other piped obs
@@ -215,9 +175,7 @@ mixin StreamCapable<T> on DisposersTrackable<T> {
     StreamFilter<T>? filter,
     bool? cancelOnError,
   }) {
-    if (hasValue) {
-      onData.call(static);
-    }
+    onData.call(static);
     return listen(
       onData,
       onError: onError,
@@ -376,4 +334,28 @@ mixin StreamBindable<T> on StreamCapable<T> {
 /// This is used to pass private fields to other files
 extension StreamCapableProtectedAccess<T> on BroadCastStreamCapable<T> {
   StreamController<T> get subject => _subject;
+}
+
+/// This allow [ever] to run properly even when the user input the wrong data
+/// In debug mode assert check will advert the developper
+class EmptyStreamSubscription<T> extends StreamSubscription<T> {
+  @override
+  Future<E> asFuture<E>([E? futureValue]) => throw FlutterError(
+      '''You tried to call asFuture on an EmptyStreamSubscription
+This should never append, make sure you respect contract when calling [ever]''');
+
+  @override
+  Future<void> cancel() async {}
+  @override
+  bool get isPaused => true;
+  @override
+  void onData(void Function(T data)? handleData) {}
+  @override
+  void onDone(void Function()? handleDone) {}
+  @override
+  void onError(Function? handleError) {}
+  @override
+  void pause([Future<void>? resumeSignal]) {}
+  @override
+  void resume() {}
 }
