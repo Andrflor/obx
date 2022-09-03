@@ -125,9 +125,24 @@ void main() {
     });
     group('equal', () {
       equals(
-        "empty list",
+        "boolean",
+        Rx(false),
+        Rx(false),
+      );
+      equals(
+        "list empty",
         Rx([]),
         Rx([]),
+      );
+      equals(
+        "list int",
+        Rx([1]),
+        Rx([1]),
+      );
+      equals(
+        "list int?",
+        Rx(<int?>[1]),
+        Rx(<int?>[1]),
       );
       equals(
         "equatable",
@@ -135,11 +150,21 @@ void main() {
         Rx(Person("bill")),
       );
     });
-    group('inequals', () {
+    group('inequal', () {
+      inequals(
+        "boolean",
+        Rx(false),
+        Rx(true),
+      );
       inequals(
         "list int",
         Rx([1]),
         Rx([2]),
+      );
+      inequals(
+        "list int?",
+        Rx(<int?>[1]),
+        Rx(<int?>[2]),
       );
       inequals(
         "equatable",
@@ -207,11 +232,11 @@ void boolRefreshListen(String name, Rx<bool?> rxBool) {
     });
     rxBool.refresh(rxBool());
     await Future.delayed(Duration.zero);
-    expect(fired, !rxBool.isDistinct, reason: "same failed");
+    expect(fired, false, reason: "same failed");
     fired = false;
     rxBool.refresh(!rxBool()!);
     await Future.delayed(Duration.zero);
-    expect(fired, true, reason: "diff failed");
+    expect(fired, false, reason: "diff failed");
   });
 }
 

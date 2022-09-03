@@ -21,13 +21,15 @@ class RxImpl<T> extends RxBase<T>
     }
   }
 
+  @override
+  bool get isDistinct => _distinct;
+  final bool _distinct;
+
   // This value will only be set if it matches
   @override
   set value(T newValue) {
-    if (!isDistinct || _equals(newValue)) {
-      _value = newValue;
-      notify();
-    }
+    if (isDistinct && _equals(newValue)) return;
+    super.trigger(newValue);
   }
 
   /// Called without a value it will refesh the ui
@@ -35,10 +37,19 @@ class RxImpl<T> extends RxBase<T>
   @override
   void refresh([T? v]) {
     if (v != null) {
-      _hashCode = _equalizer.hash(v);
+      if (isDistinct) _hashCode = _equalizer.hash(v);
       _value = v;
     }
-    notify();
+    _notify();
+  }
+
+  /// Silent update
+  /// Update value without updating widgets and listeners
+  /// This means that piped object won't recieve the update
+  @override
+  void silent(T v) {
+    if (isDistinct) _hashCode = _equalizer.hash(v);
+    _value = v;
   }
 
   /// Trigger update with a new value
@@ -46,13 +57,8 @@ class RxImpl<T> extends RxBase<T>
   @override
   void trigger(T v) {
     _hashCode = _equalizer.hash(v);
-    _value = v;
-    notify();
+    super.trigger(v);
   }
-
-  @override
-  bool get isDistinct => _distinct;
-  final bool _distinct;
 }
 
 mixin Equalizable<T> on Reactive<T> {
@@ -94,7 +100,7 @@ mixin Actionable<T> on Reactive<T> implements Emitting {
   /// Update the value, force notify listeners and update Widgets
   void trigger(T v) {
     _value = v;
-    notify();
+    _notify();
   }
 
   /// Trigger update with current value
@@ -117,7 +123,7 @@ mixin Actionable<T> on Reactive<T> implements Emitting {
     if (v != null) {
       _value = v;
     }
-    notify();
+    _notify();
   }
 }
 
