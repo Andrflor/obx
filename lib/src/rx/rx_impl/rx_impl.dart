@@ -17,11 +17,7 @@ class RxImpl<T> extends RxBase<T>
         Equalizable<T> {
   RxImpl(super.val, {bool distinct = true})
       : _distinct = distinct,
-        _equalizer = equalizing(val) {
-    if (_distinct) {
-      _hashCode = _equalizer.hash(_value);
-    }
-  }
+        _equalizer = equalizing<T?>(val);
 
   @override
   // ignore: overridden_fields
@@ -34,36 +30,8 @@ class RxImpl<T> extends RxBase<T>
   // This value will only be set if it matches
   @override
   set value(T newValue) {
-    if (isDistinct && _equals(newValue)) return;
+    if (isDistinct && _equalizer.equals(_value, newValue)) return;
     super.trigger(newValue);
-  }
-
-  /// Called without a value it will refesh the ui
-  /// Called with a value it will refresh the ui and update value
-  @override
-  void refresh([T? v]) {
-    if (v != null) {
-      if (isDistinct) _hashCode = _equalizer.hash(v);
-      _value = v;
-    }
-    _notify();
-  }
-
-  /// Silent update
-  /// Update value without updating widgets and listeners
-  /// This means that piped object won't recieve the update
-  @override
-  void silent(T v) {
-    if (isDistinct) _hashCode = _equalizer.hash(v);
-    _value = v;
-  }
-
-  /// Trigger update with a new value
-  /// Update the value, force notify listeners and update Widgets
-  @override
-  void trigger(T v) {
-    _hashCode = _equalizer.hash(v);
-    super.trigger(v);
   }
 }
 
@@ -73,24 +41,6 @@ mixin Equalizable<T> on Reactive<T> {
   /// Since Equality are all const constructor there will only be
   /// One instance of each, so this is just a pointer in memory
   late final Equality _equalizer;
-
-  @override
-  bool operator ==(Object other) {
-    if (other is Iterable || other is Map) {
-      return other.runtimeType == T && hashCode == _equalizer.hash(other);
-    }
-    return hashCode == other.hashCode;
-  }
-
-  bool _equals(T val) {
-    final hash = _hashCode;
-    _hashCode = _equalizer.hash(val);
-    return hash == _equalizer.hash(val);
-  }
-
-  @override
-  int get hashCode => _hashCode ?? value.hashCode;
-  int? _hashCode;
 }
 
 // This mixin is used to provide Actions to call
@@ -175,14 +125,6 @@ class RxBase<T> extends Reactive<T>
 /// So it really has a "single shot"
 class SingleShot<T> extends Shot<T> {
   @override
-  set value(T newValue) {
-    if (_hashCode == _equalizer.hash(newValue)) {
-      return;
-    }
-    _notify();
-  }
-
-  @override
   void _notify() {
     super._notify();
     for (final disposer in _disposers!) {
@@ -196,15 +138,7 @@ class SingleShot<T> extends Shot<T> {
 
 /// This is an internal class
 /// It's the basic class for the [ever] function
-class MultiShot<T> extends Shot<T> with StreamCapable<T> {
-  @override
-  set value(T newValue) {
-    if (_equals(newValue)) {
-      return;
-    }
-    _value = newValue;
-  }
-}
+class MultiShot<T> = Shot<T> with StreamCapable<T>;
 
 /// This is an internal class
 /// It's the basic class for [observe] and [ever]
@@ -214,7 +148,7 @@ class Shot<T> extends Reactive<T> with DisposersTrackable<T>, Equalizable<T> {
 
   @override
   set value(T newValue) {
-    if (_equals(newValue)) {
+    if (_equalizer.equals(_value, newValue)) {
       return;
     }
     _value = newValue;
@@ -223,7 +157,7 @@ class Shot<T> extends Reactive<T> with DisposersTrackable<T>, Equalizable<T> {
 
   void init(T value) {
     _equalizer = equalizing(value);
-    _hashCode = _equalizer.hash(value);
+    _value = value;
   }
 }
 
@@ -238,6 +172,7 @@ class Reactive<T> extends ListNotifier implements ValueListenable<T> {
 
   T? _value;
 
+  /// You should make sure to not call this if there is no value
   @override
   T get value {
     if (!Notifier.notInBuild) reportRead();
@@ -259,13 +194,13 @@ class ListNotifier = Listenable with ListNotifiable;
 /// This mixin add to Listenable the addListener, removerListener and
 /// containsListener implementation
 mixin ListNotifiable on Listenable {
-  Set<StateUpdate>? _updaters = <StateUpdate>{};
+  List<StateUpdate>? _updaters = <StateUpdate>[];
 
   @override
   Disposer addListener(StateUpdate listener) {
     assert(_debugAssertNotDisposed());
-    _updaters!.add(listener);
-    return () => _updaters!.remove(listener);
+    _updaters?.add(listener);
+    return () => _updaters?.remove(listener);
   }
 
   bool containsListener(StateUpdate listener) {
@@ -285,22 +220,12 @@ mixin ListNotifiable on Listenable {
   }
 
   @protected
-  void reportRead() {
-    Notifier.read(this);
-  }
+  void reportRead() => Notifier.read(this);
 
   @protected
-  void reportAdd(VoidCallback disposer) {
-    Notifier.add(disposer);
-  }
+  void reportAdd(VoidCallback disposer) => Notifier.add(disposer);
 
-  void _notifyUpdate() {
-    final list = _updaters?.toList() ?? [];
-
-    for (var element in list) {
-      element();
-    }
-  }
+  void _notifyUpdate() => _updaters?.forEach((e) => e());
 
   bool get isDisposed => _updaters == null;
 

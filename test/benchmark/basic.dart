@@ -1,13 +1,53 @@
 import 'package:equatable/equatable.dart';
+import 'package:get/get_utils/src/equality/equality.dart';
 import 'package:obx/obx.dart';
 import 'package:get/get.dart' as getx;
 
 main() async {
-  print("Getx vs Obx benchmark");
+  print(<List<String>>[] is List<Iterable>);
+  print({} is Set);
+  // const setEq = SetEquality();
+  // const setEq2 = SetEquality<int>();
+  // final set1 = {22, 33, 265};
+  // final set2 = {22, 33, 2633, 232};
+  // final map2 = Map.unmodifiable(map);
+  final List<Function>? _updaters = [() {}, () {}];
+  final va = List<Iterable>;
+  await delay(() => <List<String>>[] is List<Iterable>);
+  await delay(() => <List<String>>[] is List<Iterable>);
+  // await delay(() => setEq.equals(set1, set2));
+  // await delay(() => setEq2.equals(set1, set2));
+  // await delay(() => {''} is Map || {''} is Set);
+  // await delay(() => map2['2']);
+  // await delay(() => equalizing(true));
+  // await delay(() => equalizing(3));
+  // await delay(() => equalizing(''));
+  // await delay(() => equalizing(3.2));
+  await delay(() => equalizing(Set<String>()));
+  await delay(() => equalizer<Set<String>>());
+  // await delay(() => equalizer<int>());
+  // await delay(() => {''} is Object);
+  // await delay(() => 1 == 2);
+  // print(equalizing<Set<String>?>(null));
+  // await getxBench();
+  await delay(() {
+    final list = _updaters?.toList() ?? [];
 
-  // await bench(false, true);
-  // await bench(<String>[], [""]);
-  // await bench(<String>{}, {""});
+    for (var element in list) {
+      element();
+    }
+  });
+  await delay(() => _updaters?.forEach((e) => e()));
+  await delay(() {
+    _updaters?.contains(() {});
+  });
+}
+
+getxBench() async {
+  print("Getx vs Obx benchmark");
+  await bench(false, true);
+  await bench(<String>[], [""]);
+  await bench(<String>{}, {""});
   await bench({
     "my second key2": Foo(1, "second"),
     "my second key3": Foo(1, "second"),
@@ -47,19 +87,23 @@ main() async {
     "my key": Foo(2, "first"),
     "my second key": Foo(1, "second"),
   });
-  // await bench(3, 4);
-  // await bench(1.3, 2.6);
-  // await bench(Foo(1, "first"), Foo(2, "second"));
+  await bench(3, 4);
+  await bench(1.3, 2.6);
+  await bench(Foo(1, "first"), Foo(2, "second"));
 }
 
-// ignore: must_be_immutable
 class Foo extends Equatable {
-  Foo(this.val, this.otherVal);
   int val;
   String otherVal;
 
+  Foo(this.val, this.otherVal);
+
   @override
   List<Object?> get props => [val, otherVal];
+}
+
+void rx<T>(T value) {
+  print(value.obs.runtimeType);
 }
 
 Future<void> bench<S extends Object>(S value, S diff) async {
@@ -70,7 +114,7 @@ Future<void> bench<S extends Object>(S value, S diff) async {
   print("");
   print("Instantiation");
   await delay(() => value.obs);
-  await delay(() => Rx(value));
+  await delay(() => SingleShot()..init(value));
   print("");
   print("Accesss");
   await delay(() => boolx.value);

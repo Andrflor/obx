@@ -14,9 +14,8 @@ abstract class Notifier {
   static bool get notInBuild => _notifyData == null;
   static NotifyData? _notifyData;
 
-  static void add(VoidCallback listener) {
-    _notifyData?.disposers.add(listener);
-  }
+  static void add(VoidCallback listener) =>
+      _notifyData?.disposers.add(listener);
 
   static void read(ListNotifiable updaters) {
     final listener = _notifyData!.updater;
@@ -28,10 +27,9 @@ abstract class Notifier {
   static T append<T>(NotifyData data, T Function() builder) {
     _notifyData = data;
     final result = builder();
-    // TODO: add back this
-    // if (data.disposers.isEmpty && data.throwException) {
-    //   throw const ObxError();
-    // }
+    if (data.disposers.isEmpty && data.throwException) {
+      throw const ObxError();
+    }
     _notifyData = null;
     return result;
   }
@@ -116,20 +114,18 @@ Equality equalizer<T>() {
 
 /// Defines the equalizer depending on T
 Equality equalizing<T>(T? val) {
-  if (val != null) {
-    if (val is Iterable) {
-      if (val is List) {
-        return const ListEquality();
-      }
-      if (val is Set) {
-        return const SetEquality();
-      }
-      return const IterableEquality();
+  if (val == null) return equalizer<T>();
+  if (val is Iterable) {
+    if (val is List) {
+      return const ListEquality();
     }
-    if (val is Map) {
-      return const MapEquality();
+    if (val is Set) {
+      return const SetEquality();
     }
-    return const DefaultEquality();
+    return const IterableEquality();
   }
-  return equalizer<T>();
+  if (val is Map) {
+    return const MapEquality();
+  }
+  return const DefaultEquality();
 }
