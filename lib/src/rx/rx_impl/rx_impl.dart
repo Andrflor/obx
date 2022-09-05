@@ -17,7 +17,7 @@ class RxImpl<T> extends RxBase<T>
         Equalizable<T> {
   RxImpl(super.val, {bool distinct = true})
       : _distinct = distinct,
-        _equalizer = equalizing<T?>(val);
+        _equalizer = distinct ? equalizing<T?>(val) : const DefaultEquality();
 
   @override
   // ignore: overridden_fields
@@ -41,6 +41,16 @@ mixin Equalizable<T> on Reactive<T> {
   /// Since Equality are all const constructor there will only be
   /// One instance of each, so this is just a pointer in memory
   late final Equality _equalizer;
+
+  @override
+  bool operator ==(Object other) => other is T
+      ? _equalizer.equals(value, other)
+      : other is ValueListenable<T?>
+          ? _equalizer.equals(value, other.value)
+          : false;
+
+  @override
+  int get hashCode => value.hashCode;
 }
 
 // This mixin is used to provide Actions to call
