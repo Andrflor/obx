@@ -1,12 +1,12 @@
 import 'dart:async';
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:obx/obx.dart';
+import 'package:get/get.dart' as getx;
 
 void main() async {
   Future<void> _notifierTest() async {
-    await Future.delayed(Duration(seconds: 1));
+    await Future.delayed(const Duration(seconds: 1));
     final notifier = ValueNotifier<int?>(null);
     var notifierCounter = 0;
     final date = DateTime.now();
@@ -23,7 +23,7 @@ void main() async {
   }
 
   Future<void> _streamTest() async {
-    await Future.delayed(Duration(seconds: 1));
+    await Future.delayed(const Duration(seconds: 1));
     final streamController = StreamController.broadcast();
     var streamCounter = 0;
     final date = DateTime.now();
@@ -40,8 +40,8 @@ void main() async {
   }
 
   Future<void> _rxTrest() async {
-    await Future.delayed(Duration(seconds: 1));
-    final rx = (null as int?).iobs;
+    await Future.delayed(const Duration(seconds: 1));
+    final rx = RxnInt.indistinct();
     var notifierCounter = 0;
     final date = DateTime.now();
     rx.listen((_) {
@@ -55,18 +55,38 @@ void main() async {
     }
   }
 
+  Future<void> _getxTrest() async {
+    await Future.delayed(const Duration(seconds: 1));
+    final rx = getx.RxnInt();
+    var notifierCounter = 0;
+    final date = DateTime.now();
+    rx.listen((_) {
+      notifierCounter++;
+      if (notifierCounter == 100) {
+        print("getx:${DateTime.now().difference(date).inMicroseconds} us");
+      }
+    });
+    for (var i = 0; i < 100; i++) {
+      rx.trigger(10);
+    }
+  }
+
   await _notifierTest();
   await _streamTest();
   await _rxTrest();
+  await _getxTrest();
   await _notifierTest();
   await _streamTest();
   await _rxTrest();
+  await _getxTrest();
   await _notifierTest();
   await _streamTest();
   await _rxTrest();
+  await _getxTrest();
   await _notifierTest();
   await _streamTest();
   await _rxTrest();
+  await _getxTrest();
 
   await Future.delayed(Duration(seconds: 100));
 }

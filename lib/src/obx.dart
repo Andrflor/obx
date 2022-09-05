@@ -4,9 +4,14 @@ import 'notifier.dart';
 
 class ObxElement = StatelessElement with StatelessObserverComponent;
 
-/// TODO: refacto this doc
-
 /// A StatelessWidget than can listen reactive changes.
+///
+/// The [ObxWidget] is the base for all reactive widgets
+/// See also:
+/// - [Obx]
+/// - [Obc]
+/// - [ObxValue]
+/// - [ObcValue]
 abstract class ObxWidget extends StatelessWidget {
   /// Initializes [key] for subclasses.
   const ObxWidget({Key? key}) : super(key: key);
@@ -41,7 +46,10 @@ mixin StatelessObserverComponent on StatelessElement {
   }
 }
 
-/// The [ObxWidget] is the base for all GetX reactive widgets
+/// The simplest reactive widget
+///
+/// Just pass your [Rx] variable in the root scope of the callback to have it
+/// automatically registered for changes.
 ///
 /// See also:
 /// - [Obx]
@@ -49,13 +57,10 @@ mixin StatelessObserverComponent on StatelessElement {
 /// - [ObxValue]
 /// - [ObcValue]
 ///
-/// The simplest reactive widget
-///
-/// Just pass your [Rx] variable in the root scope of the callback to have it
-/// automatically registered for changes.
-///
-/// final _name = "GetX".obs;
-/// Obx(() => Text( _name.value )),... ;
+/// ```dart
+/// final name = Rx("Say my name");
+/// Obx(() => Text( name() )),... ;
+/// ```
 class Obx extends ObxWidget {
   final Widget Function() builder;
 
@@ -67,17 +72,22 @@ class Obx extends ObxWidget {
   }
 }
 
-/// Similar to Obx, but manages a local state.
+/// Reactive component that manages local state
+///
+/// Similar to [Obx], but manages a local state.
 /// Pass the initial data in constructor.
-/// Useful for simple local states, like toggles, visibility, themes,
+/// This can be used to scrope a controller.
+/// Also useful for simple local states, like toggles, visibility, themes,
 /// button states, etc.
-///  Sample:
+/// Example:
+/// ```dart
 ///    ObxValue((data) => Switch(
 ///      value: data.value,
 ///      onChanged: (flag) => data.value = flag,
 ///    ),
 ///    false.obs,
 ///   ),
+/// ```
 class ObxValue<T extends Object> extends ObxWidget {
   final Widget Function(T) builder;
   final T data;
@@ -88,6 +98,22 @@ class ObxValue<T extends Object> extends ObxWidget {
   Widget build(BuildContext context) => builder(data);
 }
 
+/// The simplest reactive widget that provides context
+///
+/// Similar to [Obx] but provides the context.
+/// See also:
+/// - [Obx]
+/// - [Obc]
+/// - [ObxValue]
+/// - [ObcValue]
+///
+/// Just pass your [Rx] variable in the root scope of the callback to have it
+/// automatically registered for changes.
+///
+/// ```dart
+/// final name = Rx("Say my name");
+/// Obc((BuildContext context) => Text( name() )),... ;
+/// ```
 class Obc extends ObxWidget {
   final WidgetBuilder builder;
 
@@ -97,17 +123,22 @@ class Obc extends ObxWidget {
   Widget build(BuildContext context) => builder(context);
 }
 
-/// Similar to Obc, but manages a local state.
+/// Reactive component that manages local state and provide context
+///
+/// Similar to [Obc], but manages a local state.
 /// Pass the initial data in constructor.
-/// Useful for simple local states, like toggles, visibility, themes,
+/// This can be used to scrope a controller.
+/// Also useful for simple local states, like toggles, visibility, themes,
 /// button states, etc.
-///  Sample:
+/// Example:
+/// ```dart
 ///    ObcValue((context, data) => Switch(
 ///      value: data.value,
 ///      onChanged: (flag) => data.value = flag,
 ///    ),
 ///    false.obs,
 ///   ),
+/// ```
 class ObcValue<T extends Object> extends ObxWidget {
   final Widget Function(BuildContext, T) builder;
   final T data;

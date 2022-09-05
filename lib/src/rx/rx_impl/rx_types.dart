@@ -31,6 +31,3 @@ typedef Worker<T> = StreamSubscription<T> Function(void Function(T)?,
 
 typedef StreamTransformation<S, T> = Stream<S> Function(Stream<T> stream);
 typedef StreamFilter<T> = StreamTransformation<T, T>;
-
-// TODO: check all docuementation to be good
-// TODO: write the README.md

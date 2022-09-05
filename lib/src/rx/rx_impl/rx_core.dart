@@ -78,8 +78,7 @@ class Rx<T> extends RxImpl<T> {
     bindValueListenable(listenable);
   }
 
-  Rx<S> _clone<S>({bool? distinct, S? Function(T e)? convert}) => Rx._(
-      // TODO assert if null is S or not in that
+  Rx<S> _clone<S>({bool? distinct, S Function(T e)? convert}) => Rx._(
       initial: hasValue ? (convert?.call(value) ?? value as S) : null,
       distinct: distinct ?? isDistinct);
   Rx<T> _dupe({bool? distinct}) =>
@@ -99,7 +98,7 @@ class Rx<T> extends RxImpl<T> {
   /// - [pipeWhere]
   /// - [pipeMapWhere]
   Rx<S> pipe<S>(StreamTransformation<S, T> transformer,
-          {S? Function(T e)? init, bool? distinct}) =>
+          {S Function(T e)? init, bool? distinct}) =>
       _clone(
         convert: init,
         distinct: distinct,
