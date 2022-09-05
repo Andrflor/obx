@@ -1,5 +1,4 @@
 import 'package:equatable/equatable.dart';
-import 'package:get/get_utils/src/equality/equality.dart';
 import 'package:obx/obx.dart';
 import 'package:get/get.dart' as getx;
 
@@ -24,24 +23,7 @@ getxBench() async {
     "my second key17": Foo(1, "second"),
     "my second key15": Foo(1, "second"),
     "my second key18": Foo(1, "second"),
-    "my second key18": Foo(1, "second"),
-    "my second key22": Foo(1, "second"),
-    "my second key14": Foo(1, "second"),
-    "my s1econd key3": Foo(1, "second"),
-    "my s2econd key2": Foo(1, "second"),
-    "my s3econd key2": Foo(1, "second"),
-    "my s4econd key2": Foo(1, "second"),
-    "my s5econd key2": Foo(1, "second"),
-    "my s6econd key2": Foo(1, "second"),
-    "my s6econd key2": Foo(1, "second"),
-    "my sec1ond key2": Foo(1, "second"),
-    "my s7ec1ond key2": Foo(1, "second"),
     "my secon1d key2": Foo(1, "second"),
-    "my sec1ond key2": Foo(1, "second"),
-    "my sec1ond key2": Foo(1, "second"),
-    "my second1 key2": Foo(1, "second"),
-    "my second key2": Foo(1, "second"),
-    "my second k1ey2": Foo(1, "second"),
     "my second k1ey2": Foo(1, "second"),
     "my second ke11y2": Foo(1, "second"),
     "my seco1nd key2": Foo(1, "second"),

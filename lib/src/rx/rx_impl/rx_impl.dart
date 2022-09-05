@@ -43,11 +43,13 @@ mixin Equalizable<T> on Reactive<T> {
   late final Equality _equalizer;
 
   @override
-  bool operator ==(Object other) => other is T
-      ? _equalizer.equals(value, other)
-      : other is ValueListenable<T?>
-          ? _equalizer.equals(value, other.value)
-          : false;
+  bool operator ==(Object other) {
+    if (other is T) return _equalizer.equals(value, other);
+    if (other is ValueListenable<T?>) {
+      return _equalizer.equals(value, other.value);
+    }
+    return false;
+  }
 
   @override
   int get hashCode => value.hashCode;
@@ -259,7 +261,7 @@ mixin ListNotifiable on Listenable {
 
 extension ValueOrNull<T> on Reactive<T> {
   T? get valueOrNull {
-    reportRead();
+    if (!Notifier.notInBuild) reportRead();
     return _value;
   }
 }

@@ -74,12 +74,12 @@ class ObxError {
   @override
   String toString() {
     return """
-      [Get] the improper use of a GetX has been detected. 
-      You should only use GetX or Obx for the specific widget that will be updated.
-      If you are seeing this error, you probably did not insert any observable variables into GetX/Obx 
-      or insert them outside the scope that GetX considers suitable for an update 
-      (example: GetX => HeavyWidget => variableObservable).
-      If you need to update a parent widget and a child widget, wrap each one in an Obx/GetX.
+      [Obx] the improper use of a Obx has been detected.
+      You should only use Obx for the specific widget that will be updated.
+      If you are seeing this error, you probably did not insert any observable variables into Obx
+      or insert them outside the scope that Obx considers suitable for an update
+      (example: Obx => HeavyWidget => variableObservable).
+      If you need to update a parent widget and a child widget, wrap each one in an Obx.
       """;
   }
 }
