@@ -10,10 +10,9 @@ class ObxElement = StatelessElement with StatelessObserverComponent;
 /// See also:
 /// - [Obx]
 /// - [Obc]
-/// - [ObxValue]
-/// - [ObcValue]
+/// - [ObxVal]
+/// - [ObcVal]
 abstract class ObxWidget extends StatelessWidget {
-  /// Initializes [key] for subclasses.
   const ObxWidget({Key? key}) : super(key: key);
   @override
   StatelessElement createElement() => ObxElement(this);
@@ -54,8 +53,8 @@ mixin StatelessObserverComponent on StatelessElement {
 /// See also:
 /// - [Obx]
 /// - [Obc]
-/// - [ObxValue]
-/// - [ObcValue]
+/// - [ObxVal]
+/// - [ObcVal]
 ///
 /// ```dart
 /// final name = Rx("Say my name");
@@ -81,18 +80,18 @@ class Obx extends ObxWidget {
 /// button states, etc.
 /// Example:
 /// ```dart
-///    ObxValue((data) => Switch(
+///    ObxVal((data) => Switch(
 ///      value: data.value,
 ///      onChanged: (flag) => data.value = flag,
 ///    ),
 ///    false.obs,
 ///   ),
 /// ```
-class ObxValue<T extends Object> extends ObxWidget {
+class ObxVal<T extends Object> extends ObxWidget {
   final Widget Function(T) builder;
   final T data;
 
-  const ObxValue(this.builder, this.data, {Key? key}) : super(key: key);
+  const ObxVal(this.builder, this.data, {Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) => builder(data);
@@ -104,8 +103,8 @@ class ObxValue<T extends Object> extends ObxWidget {
 /// See also:
 /// - [Obx]
 /// - [Obc]
-/// - [ObxValue]
-/// - [ObcValue]
+/// - [ObxVal]
+/// - [ObcVal]
 ///
 /// Just pass your [Rx] variable in the root scope of the callback to have it
 /// automatically registered for changes.
@@ -132,18 +131,18 @@ class Obc extends ObxWidget {
 /// button states, etc.
 /// Example:
 /// ```dart
-///    ObcValue((context, data) => Switch(
+///    ObcVal((context, data) => Switch(
 ///      value: data.value,
 ///      onChanged: (flag) => data.value = flag,
 ///    ),
 ///    false.obs,
 ///   ),
 /// ```
-class ObcValue<T extends Object> extends ObxWidget {
+class ObcVal<T extends Object> extends ObxWidget {
   final Widget Function(BuildContext, T) builder;
   final T data;
 
-  const ObcValue(this.builder, this.data, {Key? key}) : super(key: key);
+  const ObcVal(this.builder, this.data, {Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) => builder(context, data);
