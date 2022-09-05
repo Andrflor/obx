@@ -21,7 +21,7 @@ abstract class ObxWidget extends StatelessWidget {
 
 /// Component that can track changes in a reactive variable
 mixin StatelessObserverComponent on StatelessElement {
-  Set<Disposer>? disposers = <Disposer>{};
+  List<Disposer>? disposers = <Disposer>[];
 
   void getUpdate() {
     if (disposers != null) {

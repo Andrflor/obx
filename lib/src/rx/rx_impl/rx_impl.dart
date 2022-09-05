@@ -162,7 +162,7 @@ class Shot<T> extends Reactive<T> with DisposersTrackable<T>, Equalizable<T> {
 }
 
 mixin DisposersTrackable<T> on Reactive<T> {
-  Set<Disposer>? _disposers = <Disposer>{};
+  List<Disposer>? _disposers = <Disposer>[];
 }
 
 /// This is the mos basic reactive component
@@ -194,23 +194,18 @@ class ListNotifier = Listenable with ListNotifiable;
 /// This mixin add to Listenable the addListener, removerListener and
 /// containsListener implementation
 mixin ListNotifiable on Listenable {
-  List<StateUpdate>? _updaters = <StateUpdate>[];
+  Set<StateUpdate>? _updaters = <StateUpdate>{};
 
   @override
-  Disposer addListener(StateUpdate listener) {
+  bool addListener(StateUpdate listener) {
     assert(_debugAssertNotDisposed());
-    _updaters?.add(listener);
-    return () => _updaters?.remove(listener);
-  }
-
-  bool containsListener(StateUpdate listener) {
-    return _updaters?.contains(listener) ?? false;
+    return _updaters?.add(listener) ?? false;
   }
 
   @override
   void removeListener(VoidCallback listener) {
     assert(_debugAssertNotDisposed());
-    _updaters!.remove(listener);
+    _updaters?.remove(listener);
   }
 
   @protected
@@ -267,6 +262,6 @@ extension ReactiveProtectedAccess<T> on Reactive<T> {
 
 /// This is used to pass private fields to other files
 extension DisposerTrackableProtectedAccess<T> on DisposersTrackable<T> {
-  Set<Disposer>? get disposers => _disposers;
-  set disposers(Set<Disposer>? newDisposers) => _disposers = newDisposers;
+  List<Disposer>? get disposers => _disposers;
+  set disposers(List<Disposer>? newDisposers) => _disposers = newDisposers;
 }

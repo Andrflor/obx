@@ -15,12 +15,11 @@ abstract class Notifier {
   static NotifyData? _notifyData;
 
   static void add(VoidCallback listener) =>
-      _notifyData?.disposers.add(listener);
+      _notifyData!.disposers.add(listener);
 
   static void read(ListNotifiable updaters) {
-    final listener = _notifyData!.updater;
-    if (!updaters.containsListener(listener)) {
-      _notifyData?.disposers.add(updaters.addListener(listener));
+    if (updaters.addListener(_notifyData!.updater)) {
+      add(() => updaters.removeListener(_notifyData!.updater));
     }
   }
 
@@ -46,7 +45,7 @@ abstract class Notifier {
         delay: const Duration(milliseconds: 5), retries: 4, enabled: false);
     _notifyData = NotifyData(
         updater: () => debouncer(() => base.value = builder()),
-        disposers: {debouncer.cancel});
+        disposers: [debouncer.cancel]);
     base.init(builder());
     debouncer.start();
     base.disposers = _notifyData?.disposers;
@@ -66,7 +65,7 @@ class NotifyData {
       required this.disposers,
       this.throwException = true});
   final StateUpdate updater;
-  final Set<VoidCallback> disposers;
+  final List<VoidCallback> disposers;
   final bool throwException;
 }
 

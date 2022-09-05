@@ -4,43 +4,7 @@ import 'package:obx/obx.dart';
 import 'package:get/get.dart' as getx;
 
 main() async {
-  print(<List<String>>[] is List<Iterable>);
-  print({} is Set);
-  // const setEq = SetEquality();
-  // const setEq2 = SetEquality<int>();
-  // final set1 = {22, 33, 265};
-  // final set2 = {22, 33, 2633, 232};
-  // final map2 = Map.unmodifiable(map);
-  final List<Function>? _updaters = [() {}, () {}];
-  final va = List<Iterable>;
-  await delay(() => <List<String>>[] is List<Iterable>);
-  await delay(() => <List<String>>[] is List<Iterable>);
-  // await delay(() => setEq.equals(set1, set2));
-  // await delay(() => setEq2.equals(set1, set2));
-  // await delay(() => {''} is Map || {''} is Set);
-  // await delay(() => map2['2']);
-  // await delay(() => equalizing(true));
-  // await delay(() => equalizing(3));
-  // await delay(() => equalizing(''));
-  // await delay(() => equalizing(3.2));
-  await delay(() => equalizing(Set<String>()));
-  await delay(() => equalizer<Set<String>>());
-  // await delay(() => equalizer<int>());
-  // await delay(() => {''} is Object);
-  // await delay(() => 1 == 2);
-  // print(equalizing<Set<String>?>(null));
-  // await getxBench();
-  await delay(() {
-    final list = _updaters?.toList() ?? [];
-
-    for (var element in list) {
-      element();
-    }
-  });
-  await delay(() => _updaters?.forEach((e) => e()));
-  await delay(() {
-    _updaters?.contains(() {});
-  });
+  await getxBench();
 }
 
 getxBench() async {
@@ -114,7 +78,7 @@ Future<void> bench<S extends Object>(S value, S diff) async {
   print("");
   print("Instantiation");
   await delay(() => value.obs);
-  await delay(() => SingleShot()..init(value));
+  await delay(() => Rx(value));
   print("");
   print("Accesss");
   await delay(() => boolx.value);
