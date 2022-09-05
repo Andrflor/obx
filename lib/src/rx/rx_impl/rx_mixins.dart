@@ -231,7 +231,6 @@ mixin StreamBindable<T> on StreamCapable<T> {
       value = e;
     }, cancelOnError: false);
     disposers?.add(sub.cancel);
-    // ignore: prefer_function_declarations_over_variables
     final clean = () {
       disposers?.remove(sub.cancel);
       sub.cancel();
@@ -255,7 +254,6 @@ mixin StreamBindable<T> on StreamCapable<T> {
       },
     );
     disposers?.add(sub.cancel);
-    // ignore: prefer_function_declarations_over_variables
     final clean = () {
       disposers?.remove(sub.cancel);
       sub.cancel();
@@ -275,12 +273,10 @@ mixin StreamBindable<T> on StreamCapable<T> {
   Disposer bindValueListenable(
     ValueListenable<T> listenable,
   ) {
-    // ignore: prefer_function_declarations_over_variables
     final closure = () {
       value = listenable.value;
     };
     listenable.addListener(closure);
-    // ignore: prefer_function_declarations_over_variables
     final cancel = () => listenable.removeListener(closure);
     disposers?.add(cancel);
 
@@ -300,10 +296,8 @@ mixin StreamBindable<T> on StreamCapable<T> {
   /// For that you can call the provided [Disposer]
   Disposer bindListenable(Listenable listenable,
       {required T Function() onEvent}) {
-    // ignore: prefer_function_declarations_over_variables
     final closure = () => value = onEvent();
     listenable.addListener(closure);
-    // ignore: prefer_function_declarations_over_variables
     final cancel = () => listenable.removeListener(closure);
     disposers?.add(cancel);
 

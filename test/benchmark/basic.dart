@@ -6,6 +6,16 @@ main() async {
   await getxBench();
 }
 
+double getxDouble() => doubleX.abs();
+double obxDouble() => observe(abs);
+
+double abs() => doubleRx.value.abs();
+
+final doubleX = 32.3.obs;
+final doubleRx = Rx(32.3);
+
+void fun() {}
+
 getxBench() async {
   print("Getx vs Obx benchmark");
   await bench(false, true);

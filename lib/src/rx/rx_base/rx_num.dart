@@ -1,3 +1,4 @@
+import '../../../obx.dart';
 import '../../functions.dart';
 import '../rx_impl/rx_core.dart';
 
@@ -80,7 +81,7 @@ extension RxNumExt<T extends num> on Rx<T> {
   bool get isFinite => observe(() => value.isFinite);
 
   /// Returns the absolute value of this [num].
-  num abs() => observe(() => value.abs());
+  num abs() => observe(value.abs);
 
   /// Returns minus one, zero or plus one depending on the sign and
   /// numerical value of the number.
@@ -106,23 +107,23 @@ extension RxNumExt<T extends num> on Rx<T> {
   ///  `(3.5).round() == 4` and `(-3.5).round() == -4`.
   ///
   /// If `this` is not finite (`NaN` or infinity), throws an [UnsupportedError].
-  int round() => observe(() => value.round());
+  int round() => observe(value.round);
 
   /// Returns the greatest integer no greater than `this`.
   ///
   /// If `this` is not finite (`NaN` or infinity), throws an [UnsupportedError].
-  int floor() => observe(() => value.floor());
+  int floor() => observe(value.floor);
 
   /// Returns the least integer no smaller than `this`.
   ///
   /// If `this` is not finite (`NaN` or infinity), throws an [UnsupportedError].
-  int ceil() => observe(() => value.ceil());
+  int ceil() => observe(value.ceil);
 
   /// Returns the integer obtained by discarding any fractional
   /// digits from `this`.
   ///
   /// If `this` is not finite (`NaN` or infinity), throws an [UnsupportedError].
-  int truncate() => observe(() => value.truncate());
+  int truncate() => observe(value.truncate);
 
   /// Returns the double integer value closest to `this`.
   ///
@@ -140,7 +141,7 @@ extension RxNumExt<T extends num> on Rx<T> {
   /// The result is always a double.
   /// If this is a numerically large integer, the result may be an infinite
   /// double.
-  double roundToDouble() => observe(() => value.roundToDouble());
+  double roundToDouble() => observe(value.roundToDouble);
 
   /// Returns the greatest double integer value no greater than `this`.
   ///
@@ -153,7 +154,7 @@ extension RxNumExt<T extends num> on Rx<T> {
   /// The result is always a double.
   /// If this is a numerically large integer, the result may be an infinite
   /// double.
-  double floorToDouble() => observe(() => value.floorToDouble());
+  double floorToDouble() => observe(value.floorToDouble);
 
   /// Returns the least double integer value no smaller than `this`.
   ///
@@ -166,7 +167,7 @@ extension RxNumExt<T extends num> on Rx<T> {
   /// The result is always a double.
   /// If this is a numerically large integer, the result may be an infinite
   /// double.
-  double ceilToDouble() => observe(() => value.ceilToDouble());
+  double ceilToDouble() => observe(value.ceilToDouble);
 
   /// Returns the double integer value obtained by discarding any fractional
   /// digits from the double value of `this`.
@@ -181,7 +182,7 @@ extension RxNumExt<T extends num> on Rx<T> {
   /// The result is always a double.
   /// If this is a numerically large integer, the result may be an infinite
   /// double.
-  double truncateToDouble() => observe(() => value.truncateToDouble());
+  double truncateToDouble() => observe(value.truncateToDouble);
 
   /// Returns this [num] clamped to be in the range [lowerLimit]-[upperLimit].
   ///
@@ -195,14 +196,14 @@ extension RxNumExt<T extends num> on Rx<T> {
       observe(() => value.clamp(lowerLimit, upperLimit));
 
   /// Truncates this [num] to an integer and returns the result as an [int]. */
-  int toInt() => observe(() => value.toInt());
+  int toInt() => observe(value.toInt);
 
   /// Return this [num] as a [double].
   ///
   /// If the number is not representable as a [double], an
   /// approximation is returned. For numerically large integers, the
   /// approximation may be infinite.
-  double toDouble() => observe(() => value.toDouble());
+  double toDouble() => observe(value.toDouble);
 
   /// Returns a decimal-point string-representation of `this`.
   ///
@@ -726,7 +727,7 @@ extension RxIntExt on Rx<int> {
   /// Returns the absolute value of this integer.
   ///
   /// For any integer `x`, the result is the same as `x < 0 ? -x : x`.
-  int abs() => observe(() => value.abs());
+  int abs() => Notifier.notInBuild ? value.abs() : Notifier.observe(value.abs);
 
   /// Returns the sign of this integer.
   ///
@@ -735,28 +736,28 @@ extension RxIntExt on Rx<int> {
   int get sign => observe(() => value.sign);
 
   /// Returns `this`.
-  int round() => observe(() => value.round());
+  int round() => observe(value.round);
 
   /// Returns `this`.
-  int floor() => observe(() => value.floor());
+  int floor() => observe(value.floor);
 
   /// Returns `this`.
-  int ceil() => observe(() => value.ceil());
+  int ceil() => observe(value.ceil);
 
   /// Returns `this`.
-  int truncate() => observe(() => value.truncate());
+  int truncate() => observe(value.truncate);
 
   /// Returns `this.toDouble()`.
-  double roundToDouble() => observe(() => value.roundToDouble());
+  double roundToDouble() => observe(value.roundToDouble);
 
   /// Returns `this.toDouble()`.
-  double floorToDouble() => observe(() => value.floorToDouble());
+  double floorToDouble() => observe(value.floorToDouble);
 
   /// Returns `this.toDouble()`.
-  double ceilToDouble() => observe(() => value.ceilToDouble());
+  double ceilToDouble() => observe(value.ceilToDouble);
 
   /// Returns `this.toDouble()`.
-  double truncateToDouble() => observe(() => value.truncateToDouble());
+  double truncateToDouble() => observe(value.truncateToDouble);
 }
 
 extension RxnIntExt on Rx<int?> {
@@ -999,7 +1000,8 @@ extension RxDoubleExt on Rx<double> {
   double operator -() => -value;
 
   /// Returns the absolute value of this [double].
-  double abs() => observe(() => value.abs());
+  double abs() =>
+      Notifier.notInBuild ? value.abs() : Notifier.observe(value.abs);
 
   /// Returns the sign of the double's numerical value.
   ///
@@ -1014,23 +1016,23 @@ extension RxDoubleExt on Rx<double> {
   ///  `(3.5).round() == 4` and `(-3.5).round() == -4`.
   ///
   /// If `this` is not finite (`NaN` or infinity), throws an [UnsupportedError].
-  int round() => observe(() => value.round());
+  int round() => observe(value.round);
 
   /// Returns the greatest integer no greater than `this`.
   ///
   /// If `this` is not finite (`NaN` or infinity), throws an [UnsupportedError].
-  int floor() => observe(() => value.floor());
+  int floor() => observe(value.floor);
 
   /// Returns the least integer no smaller than `this`.
   ///
   /// If `this` is not finite (`NaN` or infinity), throws an [UnsupportedError].
-  int ceil() => observe(() => value.ceil());
+  int ceil() => observe(value.ceil);
 
   /// Returns the integer obtained by discarding any fractional
   /// digits from `this`.
   ///
   /// If `this` is not finite (`NaN` or infinity), throws an [UnsupportedError].
-  int truncate() => observe(() => value.truncate());
+  int truncate() => observe(value.truncate);
 
   /// Returns the integer double value closest to `this`.
   ///
@@ -1044,7 +1046,7 @@ extension RxDoubleExt on Rx<double> {
   /// and `-0.0` is therefore considered closer to negative numbers than `0.0`.
   /// This means that for a value, `d` in the range `-0.5 < d < 0.0`,
   /// the result is `-0.0`.
-  double roundToDouble() => observe(() => value.roundToDouble());
+  double roundToDouble() => observe(value.roundToDouble);
 
   /// Returns the greatest integer double value no greater than `this`.
   ///
@@ -1053,7 +1055,7 @@ extension RxDoubleExt on Rx<double> {
   ///
   /// For the purpose of rounding, `-0.0` is considered to be below `0.0`.
   /// A number `d` in the range `0.0 < d < 1.0` will return `0.0`.
-  double floorToDouble() => observe(() => value.floorToDouble());
+  double floorToDouble() => observe(value.floorToDouble);
 
   /// Returns the least integer double value no smaller than `this`.
   ///
@@ -1062,7 +1064,7 @@ extension RxDoubleExt on Rx<double> {
   ///
   /// For the purpose of rounding, `-0.0` is considered to be below `0.0`.
   /// A number `d` in the range `-1.0 < d < 0.0` will return `-0.0`.
-  double ceilToDouble() => observe(() => value.ceilToDouble());
+  double ceilToDouble() => observe(value.ceilToDouble);
 
   /// Returns the integer double value obtained by discarding any fractional
   /// digits from `this`.
@@ -1073,7 +1075,7 @@ extension RxDoubleExt on Rx<double> {
   /// For the purpose of rounding, `-0.0` is considered to be below `0.0`.
   /// A number `d` in the range `-1.0 < d < 0.0` will return `-0.0`, and
   /// in the range `0.0 < d < 1.0` it will return 0.0.
-  double truncateToDouble() => observe(() => value.truncateToDouble());
+  double truncateToDouble() => observe(value.truncateToDouble);
 }
 
 extension RxnDoubleExt on Rx<double?> {
