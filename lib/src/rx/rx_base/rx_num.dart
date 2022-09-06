@@ -1,5 +1,5 @@
-import '../../../obx.dart';
 import '../../functions.dart';
+import '../../notifier.dart';
 import '../rx_impl/rx_core.dart';
 
 extension RxNumExt<T extends num> on Rx<T> {
