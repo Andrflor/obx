@@ -11,13 +11,17 @@ class Test extends StatelessWidget {
 
   @override
   Widget build(context) {
-    ever(() => "$rxString", print);
+    ever(() {
+      print("Called closure");
+      return rxString.value;
+    }, print);
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       mainAxisSize: MainAxisSize.min,
       children: [
         ElevatedButton(
-          child: Obx(() => Text(observe(() => rxString.length.toString()))),
+          // child: Obx(() => Text(observe(() => rxString.length.toString()))),
+          child: Obx(() => Text(rxString.value)),
           onPressed: () => rxString("${rxString()}!"),
         ),
         const SizedBox(height: 10),
