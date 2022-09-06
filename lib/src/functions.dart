@@ -42,7 +42,7 @@ import 'notifier.dart';
 /// So you may end up with those changes done twice
 /// This is the reason why i wouldn't recommend it
 T observe<T>(T Function() builder) {
-  return Notifier.notInBuild ? builder() : Notifier.observe(builder);
+  return Notifier.notObserving ? builder() : Notifier.observe(builder);
 }
 
 /// Run a calback each time the observable [Object] changes

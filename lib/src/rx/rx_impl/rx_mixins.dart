@@ -80,7 +80,7 @@ class Emitter extends RxBase<Null> implements Emitting {
 /// This mixin allow to observe object descriptions
 mixin Descriptible<T> on ValueListenable<T> {
   @override
-  String toString() => observe(() => value.toString());
+  String toString() => observe(value.toString);
 
   /// Returns the json representation of `value`.
   dynamic toJson() => observe(() {

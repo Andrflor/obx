@@ -12,14 +12,17 @@ typedef StateUpdate = void Function();
 
 abstract class Notifier {
   static bool get notInBuild => _notifyData == null;
+  static bool get notObserving => notInBuild || _working;
+  static bool _working = false;
   static NotifyData? _notifyData;
 
   static void add(VoidCallback listener) =>
       _notifyData!.disposers.add(listener);
 
   static void read(ListNotifiable updaters) {
-    if (updaters.addListener(_notifyData!.updater)) {
-      add(() => updaters.removeListener(_notifyData!.updater));
+    final updater = _notifyData!.updater;
+    if (updaters.addListener(updater)) {
+      add(() => updaters.removeListener(updater));
     }
   }
 
@@ -40,6 +43,7 @@ abstract class Notifier {
   }
 
   static void _internal<T, S extends Shot<T>>(T Function() builder, S base) {
+    _working = true;
     final previousData = _notifyData;
     final debouncer = EveryDebouncer(
         delay: const Duration(milliseconds: 5), retries: 4, enabled: false);
@@ -50,6 +54,7 @@ abstract class Notifier {
     debouncer.start();
     base.disposers = _notifyData?.disposers;
     _notifyData = previousData;
+    _working = false;
   }
 
   static MultiShot<T> listen<T>(T Function() builder) {

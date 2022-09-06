@@ -727,7 +727,8 @@ extension RxIntExt on Rx<int> {
   /// Returns the absolute value of this integer.
   ///
   /// For any integer `x`, the result is the same as `x < 0 ? -x : x`.
-  int abs() => Notifier.notInBuild ? value.abs() : Notifier.observe(value.abs);
+  int abs() =>
+      Notifier.notObserving ? value.abs() : Notifier.observe(value.abs);
 
   /// Returns the sign of this integer.
   ///
@@ -1001,7 +1002,7 @@ extension RxDoubleExt on Rx<double> {
 
   /// Returns the absolute value of this [double].
   double abs() =>
-      Notifier.notInBuild ? value.abs() : Notifier.observe(value.abs);
+      Notifier.notObserving ? value.abs() : Notifier.observe(value.abs);
 
   /// Returns the sign of the double's numerical value.
   ///
