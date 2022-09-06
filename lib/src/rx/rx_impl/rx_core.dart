@@ -4,7 +4,26 @@ import 'rx_mixins.dart';
 import 'rx_types.dart';
 import 'rx_impl.dart';
 
-// TODO: add doc here
+/// Rx is the class for all your reactive need
+///
+/// [Rx<T>] implements [ValueListenable<T>] to dispatch event to the view
+/// [Rx<T>] has a lazy loaded stream to suit your listen needs
+/// To use it just wrap it around your data:
+/// ```dart
+/// final rxBool = Rx(false);
+/// final rxUser = Rx(User());
+/// final rxList = Rx(List<int>.generate(10, (i) => i + 1));
+/// ```
+/// To register callbacks use the [ever] funtion:
+/// ```dart
+/// ever(rxList, (List<int> value) => _validateList(rxList));
+/// ever(() => rxUser.isValid, (bool value)=> rxBool(value));
+/// ```
+/// To use it wrap any in your view inside an Obx widget (it's sateless)
+/// ``` dart
+/// Obx(() => Text(rxUser.name));
+/// ```
+/// To implement extensions on you custom classes see README.md
 class Rx<T> extends RxImpl<T> {
   Rx._({T? initial, bool distinct = true}) : super(initial, distinct: distinct);
 
