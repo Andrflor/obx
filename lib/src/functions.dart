@@ -11,7 +11,7 @@ import 'notifier.dart';
 /// Observes the results of any combinaison of [Rx] variables
 ///
 /// This function is the refined state(less) control by excellence
-/// You can call it with any closure containing any combinaison of [Rx]
+/// You can call it with any [T Function()] containing any combinaison of [Rx]
 /// The UI will rebuild only if the value of the result changes
 ///  Example with [RxDouble] data1 and [RxDouble] data2:
 ///     Obx(
@@ -24,23 +24,32 @@ import 'notifier.dart';
 ///
 /// [observe] is smart, it knows where it's called
 /// In fact, you can call it anywhere
-/// Furthermore calling it outside of a reactive widget has zero cost**
-/// This especially pratical to make getters
-/// **The exact cost is just a boolean check
+/// Furthermore calling it outside of a reactive widget has almost zero cost**
+/// **The exact cost is a boolean check and an assignation
+///
+/// This is especially pratical to make getters
+/// ```dart
+/// String get equal => observe(() => data2.toStringAsFixed(0) == data2.toStringAsFixed(0)
+///                                        ? "Equals"
+///                                        : "Different"));
+/// Obx(() => Text(equals));
+/// ever(() => equals, print);
+/// ```
 ///
 /// With complex structures you may endup with [observe] inside [observe]
-/// Again, it has zero cost and you should feel free to do so
+/// Again, it has almost zero cost and you should feel free to do so
 ///
-/// You may have a lot of [Rx] updating at the same time
-/// Or even [Rx] updating way more often that once a frame
-/// [observe] will make sure that your closure is evaluated only when needed
+/// More than one [Rx] from the combinaison may update at the same time
+/// Or some or all [Rx] may update way more often that once a frame
+/// [observe] will make sure that your function is evaluated only when needed
 ///
-/// Since you give a closure, you may want to update [Rx] values inside it
-/// This is generaly a bad practice but you can still try it
-/// [obsreve] will prevent most infinite loop sceniarios
+/// Since you give a combining fonction, you may want to update [Rx] values inside it
+/// This is generaly a bad practice and you should not do it
+/// [obsreve] will try to prevent most infinite loop sceniarios
 /// Be aware that re-building an [Obx] requires to call [obsreve] again
 /// So you may end up with those changes done twice
-/// This is the reason why i wouldn't recommend it
+/// In some senarios you may even end up with uncatched inifite loops
+/// That's why I would avoid it...
 T observe<T>(T Function() builder) {
   return Notifier.notObserving ? builder() : Notifier.observe(builder);
 }
