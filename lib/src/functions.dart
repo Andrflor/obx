@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart';
 import './rx/rx_impl/rx_types.dart';
 import './rx/rx_impl/rx_core.dart';
 import 'debouncer.dart';
-import 'notifier.dart';
+import 'orchestrator.dart';
 
 /// Observes the results of any combinaison of [Rx] variables
 ///
@@ -53,7 +53,7 @@ import 'notifier.dart';
 /// Under the hood is a simple [ValueListenable<T>] implementation
 /// In fact all [Rx<T>] are [ValueListenable<T>]
 T observe<T>(T Function() builder) {
-  return Notifier.notObserving ? builder() : Notifier.observe(builder);
+  return Orchestrator.notObserving ? builder() : Orchestrator.observe(builder);
 }
 
 /// Run a calback each time the observable [Object] changes
@@ -114,7 +114,7 @@ Disposer ever<T>(
   bool forceDistinct = false,
 }) {
   if (observable is T Function()) {
-    return Notifier.listen(observable).listen(
+    return Orchestrator.listen(observable).listen(
       onData,
       filter: filter,
     );
@@ -177,7 +177,7 @@ Disposer everNow<T>(
   bool forceDistinct = false,
 }) {
   if (observable is T Function()) {
-    return Notifier.listen(observable).listenNow(
+    return Orchestrator.listen(observable).listenNow(
       onData,
       filter: filter,
     );

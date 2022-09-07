@@ -10,7 +10,7 @@ typedef Disposer = void Function();
 // if it brings overhead the extra call,
 typedef StateUpdate = void Function();
 
-abstract class Notifier {
+abstract class Orchestrator {
   static bool get notInBuild => _notifyData == null;
   static bool get notObserving => notInBuild || _working;
   static bool _working = false;

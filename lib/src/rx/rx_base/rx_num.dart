@@ -1,5 +1,5 @@
 import '../../functions.dart';
-import '../../notifier.dart';
+import '../../orchestrator.dart';
 import '../rx_impl/rx_core.dart';
 
 extension RxNumExt<T extends num> on Rx<T> {
@@ -728,7 +728,7 @@ extension RxIntExt on Rx<int> {
   ///
   /// For any integer `x`, the result is the same as `x < 0 ? -x : x`.
   int abs() =>
-      Notifier.notObserving ? value.abs() : Notifier.observe(value.abs);
+      Orchestrator.notObserving ? value.abs() : Orchestrator.observe(value.abs);
 
   /// Returns the sign of this integer.
   ///
@@ -1002,7 +1002,7 @@ extension RxDoubleExt on Rx<double> {
 
   /// Returns the absolute value of this [double].
   double abs() =>
-      Notifier.notObserving ? value.abs() : Notifier.observe(value.abs);
+      Orchestrator.notObserving ? value.abs() : Orchestrator.observe(value.abs);
 
   /// Returns the sign of the double's numerical value.
   ///

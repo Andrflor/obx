@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import '../../notifier.dart';
+import '../../orchestrator.dart';
 import 'rx_types.dart';
 import 'rx_impl.dart';
 
@@ -114,7 +114,7 @@ class Rx<T> extends RxImpl<T> {
   /// - [ever]
   /// - [observe]
   /// - [Rx]
-  factory Rx.fuse(T Function() callback) => Notifier.fuse(callback);
+  factory Rx.fuse(T Function() callback) => Orchestrator.fuse(callback);
 
   Rx<S> _clone<S>({bool? distinct, S Function(T e)? convert}) => Rx._(
       initial: hasValue ? (convert?.call(value) ?? value as S) : null,

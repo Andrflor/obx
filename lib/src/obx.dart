@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/widgets.dart';
-import 'notifier.dart';
+import 'orchestrator.dart';
 
 class ObxElement = StatelessElement with StatelessObserverComponent;
 
@@ -30,7 +30,7 @@ mixin StatelessObserverComponent on StatelessElement {
 
   @override
   Widget build() {
-    return Notifier.append(
+    return Orchestrator.append(
         NotifyData(disposers: disposers!, updater: getUpdate), super.build);
   }
 

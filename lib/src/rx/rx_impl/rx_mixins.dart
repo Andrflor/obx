@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 
-import '../../notifier.dart';
+import '../../orchestrator.dart';
 import 'rx_impl.dart';
 import 'rx_types.dart';
 

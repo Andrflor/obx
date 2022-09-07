@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
-import '../../notifier.dart';
+import '../../orchestrator.dart';
 import '../../equality.dart';
 import 'rx_types.dart';
 import 'rx_mixins.dart';
@@ -175,7 +175,7 @@ class Emitter extends RxBase<Null> implements Emitting {
 
   @override
   Null get value {
-    if (!Notifier.notInBuild) _reportRead();
+    if (!Orchestrator.notInBuild) _reportRead();
     return null;
   }
 
@@ -194,7 +194,7 @@ class Emitter extends RxBase<Null> implements Emitting {
   /// Obx(() => Text(emiter.bundle(myVariable)));
   /// ```
   T bundle<T>(T value) {
-    if (!Notifier.notInBuild) _reportRead();
+    if (!Orchestrator.notInBuild) _reportRead();
     return value;
   }
 }
@@ -266,7 +266,7 @@ class Reactive<T> extends ListNotifier implements ValueListenable<T> {
   /// You should make sure to not call this if there is no value
   @override
   T get value {
-    if (!Notifier.notInBuild) _reportRead();
+    if (!Orchestrator.notInBuild) _reportRead();
     return _value as T;
   }
 
@@ -306,10 +306,10 @@ mixin ListNotifiable on Listenable {
   }
 
   @protected
-  void _reportRead() => Notifier.read(this);
+  void _reportRead() => Orchestrator.read(this);
 
   @protected
-  void reportAdd(VoidCallback disposer) => Notifier.add(disposer);
+  void reportAdd(VoidCallback disposer) => Orchestrator.add(disposer);
 
   void _notifyUpdate() => _updaters?.forEach((e) => e());
 
@@ -340,7 +340,7 @@ mixin ListNotifiable on Listenable {
 
 extension ValueOrNull<T> on Reactive<T> {
   T? get valueOrNull {
-    if (!Notifier.notInBuild) _reportRead();
+    if (!Orchestrator.notInBuild) _reportRead();
     return _value;
   }
 }
