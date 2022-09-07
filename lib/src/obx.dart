@@ -6,14 +6,14 @@ class ObxElement = StatelessElement with StatelessObserverComponent;
 
 /// A StatelessWidget than can listen reactive changes.
 ///
-/// The [ObxWidget] is the base for all reactive widgets
+/// The [RxWidget] is the base for all reactive widgets
 /// See also:
 /// - [Obx]
 /// - [Obc]
 /// - [ObxVal]
 /// - [ObcVal]
-abstract class ObxWidget extends StatelessWidget {
-  const ObxWidget({Key? key}) : super(key: key);
+abstract class RxWidget extends StatelessWidget {
+  const RxWidget({Key? key}) : super(key: key);
   @override
   StatelessElement createElement() => ObxElement(this);
 }
@@ -45,6 +45,21 @@ mixin StatelessObserverComponent on StatelessElement {
   }
 }
 
+/// A StatelessWidget that can rebuild and dispose it's data
+///
+/// The [RxValWidget] is the base for `Val` widgets
+/// See also:
+/// - [ObxVal]
+/// - [ObcVal]
+abstract class RxValWidget extends RxWidget {
+  const RxValWidget({Key? key, this.disposer}) : super(key: key);
+  final Disposer? disposer;
+  @override
+  StatelessElement createElement() =>
+      disposer == null ? ObxElement(this) : ObxElement(this)
+        ..disposers!.add(disposer!);
+}
+
 /// The simplest reactive widget
 ///
 /// Just pass your [Rx] variable in the root scope of the callback to have it
@@ -60,7 +75,7 @@ mixin StatelessObserverComponent on StatelessElement {
 /// final name = Rx("Say my name");
 /// Obx(() => Text( name() )),... ;
 /// ```
-class Obx extends ObxWidget {
+class Obx extends RxWidget {
   final Widget Function() builder;
 
   const Obx(this.builder, {super.key});
@@ -87,11 +102,12 @@ class Obx extends ObxWidget {
 ///    false.obs,
 ///   ),
 /// ```
-class ObxVal<T extends Object> extends ObxWidget {
+class ObxVal<T extends Object> extends RxValWidget {
   final Widget Function(T) builder;
   final T data;
 
-  const ObxVal(this.builder, this.data, {Key? key}) : super(key: key);
+  const ObxVal(this.builder, this.data, {super.disposer, Key? key})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) => builder(data);
@@ -113,7 +129,7 @@ class ObxVal<T extends Object> extends ObxWidget {
 /// final name = Rx("Say my name");
 /// Obc((BuildContext context) => Text( name() )),... ;
 /// ```
-class Obc extends ObxWidget {
+class Obc extends RxWidget {
   final WidgetBuilder builder;
 
   const Obc(this.builder, {Key? key}) : super(key: key);
@@ -138,11 +154,12 @@ class Obc extends ObxWidget {
 ///    false.obs,
 ///   ),
 /// ```
-class ObcVal<T extends Object> extends ObxWidget {
+class ObcVal<T extends Object> extends RxValWidget {
   final Widget Function(BuildContext, T) builder;
   final T data;
 
-  const ObcVal(this.builder, this.data, {Key? key}) : super(key: key);
+  const ObcVal(this.builder, this.data, {super.disposer, Key? key})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) => builder(context, data);
