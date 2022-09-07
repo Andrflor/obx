@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import 'rx_mixins.dart';
+import '../../notifier.dart';
 import 'rx_types.dart';
 import 'rx_impl.dart';
 
@@ -53,7 +53,7 @@ class Rx<T> extends RxImpl<T> {
   /// [Stream<T>] do not hold a value but you may still want to init your [Rx<T>]
   /// If you want a starting value you can provide the `init` parameter
   ///
-  /// Finally, by default the [rx<t>] will be distinct if you want it indistinct
+  /// Finally, by default the [Rx<T>] will be distinct if you want it indistinct
   /// you can set `distinct` to false.
   Rx.fromStream(Stream<T> stream, {T? init, super.distinct}) : super(init) {
     bindStream(stream);
@@ -70,7 +70,7 @@ class Rx<T> extends RxImpl<T> {
   /// You can also generate the first value with the callback by setting
   /// `callbackInit` parameter to true
   ///
-  /// Finally, by default the [rx<t>] will be distinct if you want it indistinct
+  /// Finally, by default the [Rx<T>] will be distinct if you want it indistinct
   /// you can set `distinct` to false.
   Rx.fromListenable(Listenable listenable,
       {required T Function() onEvent,
@@ -89,13 +89,31 @@ class Rx<T> extends RxImpl<T> {
   /// This function is practicaly usefull to create [Rx<T>] from
   /// a [ValueNotifier<T>] since it implements [ValueListenable<T>]
   ///
-  /// Finally, by default the [rx<t>] will be distinct if you want it indistinct
+  /// Finally, by default the [Rx<T>] will be distinct if you want it indistinct
   /// you can set `distinct` to false.
   Rx.fromValueListenable(ValueListenable<T> listenable,
       {T? init, super.distinct})
       : super(init ?? listenable.value) {
     bindValueListenable(listenable);
   }
+
+  /// Creates a [Rx<T>] from the result of any combinaison of [Rx]
+  ///
+  /// Pass a `callback` as [T Function()] containing your [Rx] transforms
+  /// Example:
+  /// ```dart
+  /// // Creating average .2f RxString from two RxDouble
+  /// final rxDouble = Rx(10.222222);
+  /// final rxDouble2 = Rx(12.449382);
+  /// final rxFuse = Rx.fuse(() => ((rxDouble() + rxDouble2())/2).toStringAsFixed(2));
+  /// ```
+  /// You should only use fuse for long lived Rx combinaisons
+  /// Most of the time you sould favor using functions for [Rx] combinaisons
+  /// See also:
+  /// - [ever]
+  /// - [observe]
+  /// - [Rx]
+  factory Rx.fuse(T Function() callback) => Notifier.fuse(callback);
 
   Rx<S> _clone<S>({bool? distinct, S Function(T e)? convert}) => Rx._(
       initial: hasValue ? (convert?.call(value) ?? value as S) : null,

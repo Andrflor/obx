@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'rx/rx_impl/rx_impl.dart';
+import 'rx/rx_impl/rx_core.dart';
 import 'debouncer.dart';
 import 'package:collection/collection.dart';
 
@@ -62,6 +63,23 @@ abstract class Notifier {
     _internal(builder, base);
     return base;
   }
+
+  static Rx<T> fuse<T>(T Function() builder) {
+    _working = true;
+    final base = Rx<T>();
+    final previousData = _notifyData;
+    final debouncer = EveryDebouncer(
+        delay: const Duration(milliseconds: 5), retries: 4, enabled: false);
+    _notifyData = NotifyData(
+        updater: () => debouncer(() => base.value = builder()),
+        disposers: [debouncer.cancel]);
+    base.value = builder();
+    debouncer.start();
+    base.disposers = _notifyData?.disposers;
+    _notifyData = previousData;
+    _working = false;
+    return base;
+  }
 }
 
 class NotifyData {
@@ -92,7 +110,7 @@ class ObxError {
 /// Little helper for type checks
 bool isSubtype<S, T>() => <S>[] is List<T>;
 
-/// Little helper to check if a type is a collection
+/// Little helpers to check if a type is a collection
 bool isList<T>() => isSubtype<T, List?>();
 bool isMap<T>() => isSubtype<T, Map?>();
 bool isSet<T>() => isSubtype<T, Set?>();

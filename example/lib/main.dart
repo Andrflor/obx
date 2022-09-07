@@ -9,25 +9,30 @@ class Test extends StatelessWidget {
   final rxString = Rx("Some String");
   final rxString2 = Rx("Another String");
 
+  final rxInt = Rx(10);
+  final rxInt2 = Rx(10);
+
+  late final rxMult = Rx.fuse(multChanged);
+  int get mult => observe(multChanged);
+
+  int multChanged() => rxInt() * rxInt2();
+
   @override
   Widget build(context) {
-    ever(() {
-      print("Called closure");
-      return rxString.value;
-    }, print);
+    ever(multChanged, print);
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       mainAxisSize: MainAxisSize.min,
       children: [
         ElevatedButton(
           // child: Obx(() => Text(observe(() => rxString.length.toString()))),
-          child: Obx(() => Text(rxString.value)),
-          onPressed: () => rxString("${rxString()}!"),
+          child: Obx(() => Text("$rxMult")),
+          onPressed: () => rxInt(0),
         ),
         const SizedBox(height: 10),
         ElevatedButton(
           child: Obx(() => Text(rxString.value)),
-          onPressed: () => rxString2("${rxString2()}!"),
+          onPressed: () => rxInt(10),
         ),
       ],
     );

@@ -6,77 +6,6 @@ import '../../notifier.dart';
 import 'rx_impl.dart';
 import 'rx_types.dart';
 
-/// Simple emitter for when you don't care about the value
-///
-/// Example:
-/// ```dart
-/// final emitter = Emitter();
-/// emitter.emit(); \\ Will emit a null value
-/// ```
-///
-/// This null emit will be forwareded to Listeners
-//ignore: prefer_void_to_null
-class Emitter extends RxBase<Null> implements Emitting {
-  Emitter() : super(null);
-
-  /// Creates an emitter that emits from an Interval
-  factory Emitter.fromInterval(
-    Duration delay,
-  ) =>
-      Emitter()..emitEvery(delay);
-
-  /// Cancel the emitter from auto emitting
-  void cancel() {
-    for (Disposer disposer in disposers!) {
-      disposer();
-    }
-    disposers!.clear();
-  }
-
-  /// Will emit after `delay`
-  void emitIn(Duration delay) {
-    disposers!.add(Timer.periodic(delay, (_) {
-      emit();
-    }).cancel);
-  }
-
-  /// Will emit every `delay`
-  void emitEvery(Duration delay) {
-    disposers!.add(Timer(delay, () {
-      emit();
-    }).cancel);
-  }
-
-  @override
-  //ignore: prefer_void_to_null
-  set value(Null value) => emit();
-
-  @override
-  Null get value {
-    reportRead();
-    return null;
-  }
-
-  /// Emit a change to update UI/Listeners
-  @override
-  emit() {
-    _controller?.add(null);
-    notify();
-  }
-
-  /// Bundle a [T] with this emitter
-  ///
-  /// This allow to pass the emitter inside the UI
-  /// Example:
-  /// ```dart
-  /// Obx(() => Text(emiter.bundle(myVariable)));
-  /// ```
-  T bundle<T>(T value) {
-    reportRead();
-    return value;
-  }
-}
-
 /// This mixin allow to observe object descriptions
 mixin Descriptible<T> on ValueListenable<T> {
   @override
@@ -138,6 +67,16 @@ mixin StreamCapable<T> on DisposersTrackable<T> {
       disposer();
     }
     disposers?.clear();
+  }
+
+  @override
+  @mustCallSuper
+  void dispose() {
+    detatch();
+    if (_controller != null) {
+      _controller?.close();
+    }
+    super.dispose();
   }
 
   /// Allow to listen to the observable
@@ -202,16 +141,6 @@ mixin BroadCastStreamCapable<T> on StreamCapable<T> {
       _initController();
     }
     return _controller!;
-  }
-
-  @override
-  @mustCallSuper
-  void dispose() {
-    detatch();
-    if (_controller != null) {
-      _controller?.close();
-    }
-    super.dispose();
   }
 
   /// This can be used if you want to add an error to the stream
@@ -309,8 +238,15 @@ mixin StreamBindable<T> on StreamCapable<T> {
 }
 
 /// This is used to pass private fields to other files
-extension StreamCapableProtectedAccess<T> on BroadCastStreamCapable<T> {
+extension StreamCapableProtectedAccess<T> on StreamCapable<T> {
+  StreamController<T>? get streamController => _controller;
+}
+
+/// This is used to pass private fields to other files
+extension BroadCastStreamCapableProtectedAccess<T>
+    on BroadCastStreamCapable<T> {
   StreamController<T> get subject => _subject;
+  StreamController<T>? get streamController => _controller;
 }
 
 /// This allow [ever] to run properly even when the user input the wrong data

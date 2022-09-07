@@ -57,7 +57,7 @@ mixin Equalizable<T> on Reactive<T> {
 
 // This mixin is used to provide Actions to call
 mixin Actionable<T> on Reactive<T> implements Emitting {
-  T? call([T? v]) {
+  T call([T? v]) {
     if (v != null) {
       value = v;
     }
@@ -130,6 +130,77 @@ class RxBase<T> extends Reactive<T>
   RxBase(super.val);
 }
 
+/// Simple emitter for when you don't care about the value
+///
+/// Example:
+/// ```dart
+/// final emitter = Emitter();
+/// emitter.emit(); \\ Will emit a null value
+/// ```
+///
+/// This null emit will be forwareded to Listeners
+//ignore: prefer_void_to_null
+class Emitter extends RxBase<Null> implements Emitting {
+  Emitter() : super(null);
+
+  /// Creates an emitter that emits from an Interval
+  factory Emitter.fromInterval(
+    Duration delay,
+  ) =>
+      Emitter()..emitEvery(delay);
+
+  /// Cancel the emitter from auto emitting
+  void cancel() {
+    for (Disposer disposer in disposers!) {
+      disposer();
+    }
+    disposers!.clear();
+  }
+
+  /// Will emit after `delay`
+  void emitIn(Duration delay) {
+    disposers!.add(Timer.periodic(delay, (_) {
+      emit();
+    }).cancel);
+  }
+
+  /// Will emit every `delay`
+  void emitEvery(Duration delay) {
+    disposers!.add(Timer(delay, () {
+      emit();
+    }).cancel);
+  }
+
+  @override
+  //ignore: prefer_void_to_null
+  set value(Null value) => emit();
+
+  @override
+  Null get value {
+    if (!Notifier.notInBuild) _reportRead();
+    return null;
+  }
+
+  /// Emit a change to update UI/Listeners
+  @override
+  emit() {
+    streamController?.add(null);
+    notify();
+  }
+
+  /// Bundle a [T] with this emitter
+  ///
+  /// This allow to pass the emitter inside the UI
+  /// Example:
+  /// ```dart
+  /// Obx(() => Text(emiter.bundle(myVariable)));
+  /// ```
+  T bundle<T>(T value) {
+    if (!Notifier.notInBuild) _reportRead();
+    return value;
+  }
+}
+
 /// This is an internal class
 /// It's the basic class for the [observe] function
 /// It's name comes from the fact that it is set up
@@ -150,7 +221,16 @@ class SingleShot<T> extends Shot<T> {
 
 /// This is an internal class
 /// It's the basic class for the [ever] function
-class MultiShot<T> = Shot<T> with StreamCapable<T>;
+class MultiShot<T> extends Shot<T> with StreamCapable<T> {
+  @override
+  set value(T newValue) {
+    if (_equalizer.equals(_value, newValue)) {
+      return;
+    }
+    _value = newValue;
+    streamController?.add(newValue);
+  }
+}
 
 /// This is an internal class
 /// It's the basic class for [observe] and [ever]
@@ -165,6 +245,7 @@ class Shot<T> extends Reactive<T> with DisposersTrackable<T>, Equalizable<T> {
     }
     _value = newValue;
     _notify();
+    super.value = newValue;
   }
 
   void init(T value) {
@@ -187,7 +268,7 @@ class Reactive<T> extends ListNotifier implements ValueListenable<T> {
   /// You should make sure to not call this if there is no value
   @override
   T get value {
-    if (!Notifier.notInBuild) reportRead();
+    if (!Notifier.notInBuild) _reportRead();
     return _value as T;
   }
 
@@ -227,7 +308,7 @@ mixin ListNotifiable on Listenable {
   }
 
   @protected
-  void reportRead() => Notifier.read(this);
+  void _reportRead() => Notifier.read(this);
 
   @protected
   void reportAdd(VoidCallback disposer) => Notifier.add(disposer);
@@ -261,7 +342,7 @@ mixin ListNotifiable on Listenable {
 
 extension ValueOrNull<T> on Reactive<T> {
   T? get valueOrNull {
-    if (!Notifier.notInBuild) reportRead();
+    if (!Notifier.notInBuild) _reportRead();
     return _value;
   }
 }
