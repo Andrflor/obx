@@ -31,7 +31,5 @@ typedef StreamFilter<T> = StreamTransformation<T, T>;
 
 // TODO: write README.md
 // TODO: write CHANGELOG.md
-// TODO: refacto pipe, pipeMap, ever, everNow, to use stream only on need
-// TODO: make sure that pipes are properly cleaned
-// TODO: refacto ever and listen to only give a disposer ref
+// TODO: add everDiff variations and interval family
 // TODO: add back iterables extensions
