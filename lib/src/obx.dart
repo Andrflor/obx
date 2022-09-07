@@ -51,7 +51,7 @@ mixin StatelessObserverComponent on StatelessElement {
 /// See also:
 /// - [ObxVal]
 /// - [ObcVal]
-abstract class RxValWidget extends RxWidget {
+abstract class RxValWidget<T extends Object> extends RxWidget {
   const RxValWidget({Key? key, this.disposer}) : super(key: key);
   final Disposer? disposer;
   @override
