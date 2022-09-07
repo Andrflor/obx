@@ -3,8 +3,19 @@ import 'package:obx/obx.dart';
 import 'package:get/get.dart' as getx;
 
 main() async {
-  await getxBench();
+  access(<String>[]);
+  // await getxBench();
 }
+
+extension ListExtenion<T extends List> on T {
+  int get equalizer => 3;
+}
+
+extension SetExtenion<T extends Object> on T {
+  int get equalizer => 5;
+}
+
+void access<T extends Object>(T val) => print((val).equalizer);
 
 getxBench() async {
   print("Getx vs Obx benchmark");

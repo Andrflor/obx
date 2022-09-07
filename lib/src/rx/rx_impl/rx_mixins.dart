@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 
-import '../../functions.dart';
 import '../../notifier.dart';
 import 'rx_impl.dart';
 import 'rx_types.dart';
@@ -80,35 +79,31 @@ mixin StreamCapable<T> on DisposersTrackable<T> {
   }
 
   /// Allow to listen to the observable
-  StreamSubscription<T> listen(
+  Disposer listen(
     void Function(T e) onData, {
-    Function? onError,
-    void Function()? onDone,
     StreamFilter<T>? filter,
-    bool? cancelOnError,
   }) {
-    return (filter == null ? stream : filter(stream)).listen(
-      onData,
-      onError: onError,
-      onDone: onDone,
-      cancelOnError: cancelOnError ?? false,
-    );
+    if (filter == null) {
+      listener() => onData(staticOrNull as T);
+      addListener(listener);
+      return () => removeListener(listener);
+    }
+    return filter(stream)
+        .listen(
+          onData,
+          cancelOnError: false,
+        )
+        .cancel;
   }
 
   /// Same as listen but is also called now
-  StreamSubscription<T> listenNow(
+  Disposer listenNow(
     void Function(T e) onData, {
-    Function? onError,
-    void Function()? onDone,
     StreamFilter<T>? filter,
-    bool? cancelOnError,
   }) {
-    onData(value);
+    onData(staticOrNull as T);
     return listen(
       onData,
-      onError: onError,
-      onDone: onDone,
-      cancelOnError: cancelOnError,
       filter: filter,
     );
   }
@@ -142,11 +137,6 @@ mixin BroadCastStreamCapable<T> on StreamCapable<T> {
     }
     return _controller!;
   }
-
-  /// This can be used if you want to add an error to the stream
-  void addError(Object error, [StackTrace? stackTrace]) {
-    _subject.addError(error, stackTrace);
-  }
 }
 
 mixin StreamBindable<T> on StreamCapable<T> {
@@ -160,10 +150,11 @@ mixin StreamBindable<T> on StreamCapable<T> {
       value = e;
     }, cancelOnError: false);
     disposers?.add(sub.cancel);
-    final clean = () {
+    clean() {
       disposers?.remove(sub.cancel);
       sub.cancel();
-    };
+    }
+
     sub.onDone(clean);
     return clean;
   }
@@ -181,13 +172,14 @@ mixin StreamBindable<T> on StreamCapable<T> {
       (e) {
         value = e;
       },
+      filter: filter,
     );
-    disposers?.add(sub.cancel);
-    final clean = () {
-      disposers?.remove(sub.cancel);
-      sub.cancel();
-    };
-    sub.onDone(clean);
+    disposers?.add(sub);
+    clean() {
+      disposers?.remove(sub);
+      sub();
+    }
+
     return clean;
   }
 
@@ -202,11 +194,12 @@ mixin StreamBindable<T> on StreamCapable<T> {
   Disposer bindValueListenable(
     ValueListenable<T> listenable,
   ) {
-    final closure = () {
+    closure() {
       value = listenable.value;
-    };
+    }
+
     listenable.addListener(closure);
-    final cancel = () => listenable.removeListener(closure);
+    cancel() => listenable.removeListener(closure);
     disposers?.add(cancel);
 
     return () {
@@ -225,9 +218,9 @@ mixin StreamBindable<T> on StreamCapable<T> {
   /// For that you can call the provided [Disposer]
   Disposer bindListenable(Listenable listenable,
       {required T Function() onEvent}) {
-    final closure = () => value = onEvent();
+    closure() => value = onEvent();
     listenable.addListener(closure);
-    final cancel = () => listenable.removeListener(closure);
+    cancel() => listenable.removeListener(closure);
     disposers?.add(cancel);
 
     return () {
@@ -247,28 +240,4 @@ extension BroadCastStreamCapableProtectedAccess<T>
     on BroadCastStreamCapable<T> {
   StreamController<T> get subject => _subject;
   StreamController<T>? get streamController => _controller;
-}
-
-/// This allow [ever] to run properly even when the user input the wrong data
-/// In debug mode assert check will advert the developper
-class EmptyStreamSubscription<T> extends StreamSubscription<T> {
-  @override
-  Future<Never> asFuture<Never>([Never? futureValue]) => throw FlutterError(
-      '''You tried to call asFuture on an EmptyStreamSubscription
-This should never append, make sure you respect contract when calling [ever]''');
-
-  @override
-  Future<void> cancel() async {}
-  @override
-  bool get isPaused => true;
-  @override
-  void onData(void Function(T data)? handleData) {}
-  @override
-  void onDone(void Function()? handleDone) {}
-  @override
-  void onError(Function? handleError) {}
-  @override
-  void pause([Future<void>? resumeSignal]) {}
-  @override
-  void resume() {}
 }

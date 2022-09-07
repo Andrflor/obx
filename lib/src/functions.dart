@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
-import './rx/rx_impl/rx_mixins.dart';
 import './rx/rx_impl/rx_types.dart';
 import './rx/rx_impl/rx_core.dart';
 import 'debouncer.dart';
@@ -50,6 +49,9 @@ import 'notifier.dart';
 /// So you may end up with those changes done twice
 /// In some senarios you may even end up with uncatched inifite loops
 /// That's why I would avoid it...
+///
+/// Under the hood is a simple [ValueListenable<T>] implementation
+/// In fact all [Rx<T>] are [ValueListenable<T>]
 T observe<T>(T Function() builder) {
   return Notifier.notObserving ? builder() : Notifier.observe(builder);
 }
@@ -61,8 +63,8 @@ T observe<T>(T Function() builder) {
 /// [ever] provides an harmonized interface for all of those types
 /// onData is the [Function(T value)] callback to apply
 /// You can also specify standard stream subscription parameters
-/// onError, onDone, cancelOnError
-/// It will return a [StreamSubscription<T>]
+/// onError, onDone, cancelOnError, if giving [Stream<T>] input
+/// It will return a [Disposer]
 ///
 /// By default [ever] will respect the distinct rule of the incoming observable
 /// To enforce [ever] to be distinct you can use the enforceDistinct parameter
@@ -90,14 +92,19 @@ T observe<T>(T Function() builder) {
 ///
 /// [ever] is a reactive callback handler
 /// Like [observe] it will only evaluate your closure when really needed
-/// Used with [Rx<T>], [Stream<T>] or [ValueListenable<T>]
+/// Used with [Stream<T>]
 /// It simply acts as a stream listener
 ///
+/// When you use it with [Rx<T>] or [ValueListenable<T>]
+/// It will not use stream but a lightweight listener implementation
+/// It means that it's very fast and ressource efficient
+///
 /// The filter parameter is intended for advanced users
+/// Used on [Rx] or [ValueListenable] it will lazy load a [StreamController]
 /// It takes a [StreamFilter<T>] aka [Stream<T> Function(Stream<T>)]
 /// It allows you to make any stream filtering operation
 /// Example: (stream) => stream.skip(1).skipWhile(//someCondition).take(5)
-StreamSubscription<T> ever<T>(
+Disposer ever<T>(
   Object observable,
   Function(T value) onData, {
   StreamFilter<T>? filter,
@@ -109,9 +116,6 @@ StreamSubscription<T> ever<T>(
   if (observable is T Function()) {
     return Notifier.listen(observable).listen(
       onData,
-      onDone: onDone,
-      cancelOnError: cancelOnError,
-      onError: onError,
       filter: filter,
     );
   }
@@ -121,35 +125,37 @@ StreamSubscription<T> ever<T>(
             : observable)
         .listen(
       onData,
-      onDone: onDone,
-      cancelOnError: cancelOnError,
-      onError: onError,
       filter: filter,
     );
   }
   if (observable is Stream<T>) {
     observable = forceDistinct ? observable.distinct() : observable;
-    return (filter == null ? observable : filter(observable)).listen(
-      onData,
-      onDone: onDone,
-      cancelOnError: cancelOnError ?? false,
-      onError: onError,
-    );
+    return (filter == null ? observable : filter(observable))
+        .listen(
+          onData,
+          onDone: onDone,
+          cancelOnError: cancelOnError ?? false,
+          onError: onError,
+        )
+        .cancel;
   }
   if (observable is ValueListenable<T>) {
-    final obs = Rx.fromValueListenable(observable, distinct: forceDistinct);
-    obs.subject.onCancel = obs.dispose;
-    return obs.listen(
-      onData,
-      onDone: onDone,
-      cancelOnError: cancelOnError ?? false,
-      onError: onError,
-      filter: filter,
-    );
+    if (forceDistinct || filter != null) {
+      return Rx.fromValueListenable(observable, distinct: forceDistinct).listen(
+        onData,
+        filter: filter,
+      );
+    }
+    listener() {
+      onData((observable as ValueListenable<T>).value);
+    }
+
+    observable.addListener(listener);
+    return () => (observable as ValueListenable<T>).removeListener(listener);
   }
 
   _debugAssertObservableType(observable, T, 'ever');
-  return EmptyStreamSubscription<T>();
+  return () {};
 }
 
 /// Runs a calback each time the observable [Object] changes and now
@@ -161,7 +167,7 @@ StreamSubscription<T> ever<T>(
 /// - [onceNow]
 /// - [debounceNow]
 /// - [ever]
-StreamSubscription<T> everNow<T>(
+Disposer everNow<T>(
   Object observable,
   Function(T value) onData, {
   StreamFilter<T>? filter,
@@ -173,9 +179,6 @@ StreamSubscription<T> everNow<T>(
   if (observable is T Function()) {
     return Notifier.listen(observable).listenNow(
       onData,
-      onDone: onDone,
-      cancelOnError: cancelOnError,
-      onError: onError,
       filter: filter,
     );
   }
@@ -185,34 +188,39 @@ StreamSubscription<T> everNow<T>(
             : observable)
         .listenNow(
       onData,
-      onDone: onDone,
-      cancelOnError: cancelOnError,
-      onError: onError,
       filter: filter,
     );
   }
   if (observable is Stream<T>) {
     observable = forceDistinct ? observable.distinct() : observable;
-    return (filter == null ? observable : filter(observable)).listen(
-      onData,
-      onDone: onDone,
-      cancelOnError: cancelOnError ?? false,
-      onError: onError,
-    );
+    return (filter == null ? observable : filter(observable))
+        .listen(
+          onData,
+          onDone: onDone,
+          cancelOnError: cancelOnError ?? false,
+          onError: onError,
+        )
+        .cancel;
   }
   if (observable is ValueListenable<T>) {
-    final obs = Rx.fromValueListenable(observable, distinct: forceDistinct);
-    obs.subject.onCancel = obs.dispose;
-    return obs.listenNow(
-      onData,
-      onDone: onDone,
-      cancelOnError: cancelOnError ?? false,
-      onError: onError,
-      filter: filter,
-    );
+    if (forceDistinct || filter != null) {
+      return Rx.fromValueListenable(observable, distinct: forceDistinct)
+          .listenNow(
+        onData,
+        filter: filter,
+      );
+    }
+    onData(observable.value);
+    listener() {
+      onData((observable as ValueListenable<T>).value);
+    }
+
+    observable.addListener(listener);
+    return () => (observable as ValueListenable<T>).removeListener(listener);
   }
+
   _debugAssertObservableType(observable, T, 'everNow');
-  return EmptyStreamSubscription<T>();
+  return () {};
 }
 
 void _debugAssertObservableType<S>(S value, Type inner, String name) {
@@ -233,9 +241,10 @@ or you may have wrongly typed $inner in the onData [Function($inner value)] func
 /// - [ever]
 /// - [debounce]
 /// - [onceNow]
-StreamSubscription<T> once<T>(
+Disposer once<T>(
   Object observable,
   Function(T value) onData, {
+  StreamFilter<T>? filter,
   Function? onError,
   void Function()? onDone,
   bool? cancelOnError,
@@ -243,7 +252,7 @@ StreamSubscription<T> once<T>(
     ever(
       observable,
       onData,
-      filter: (stream) => stream.take(1),
+      filter: filter,
       onError: onError,
       onDone: onDone,
       cancelOnError: cancelOnError,
@@ -259,9 +268,10 @@ StreamSubscription<T> once<T>(
 /// - [once]
 /// - [everNow]
 /// - [debounceNow]
-StreamSubscription<T> onceNow<T>(
+Disposer onceNow<T>(
   Object observable,
   Function(T value) onData, {
+  StreamFilter<T>? filter,
   Function? onError,
   void Function()? onDone,
   bool? cancelOnError,
@@ -270,7 +280,7 @@ StreamSubscription<T> onceNow<T>(
     everNow(
       observable,
       onData,
-      filter: (stream) => stream.take(1),
+      filter: filter,
       onError: onError,
       onDone: onDone,
       cancelOnError: cancelOnError,
@@ -283,14 +293,11 @@ StreamSubscription<T> onceNow<T>(
 /// This is convenient to prevent the user from blasting an API
 /// For complete docuementation see [ever]
 ///
-/// Be aware, since it returns a StreamSubscription<T> you could change the
-/// onData callback, but then you would loose the debounce property
-///
 /// See also:
 /// - [ever]
 /// - [once]
 /// - [debounceNow]
-StreamSubscription<T> debounce<T>(
+Disposer debounce<T>(
   Object observable,
   Function(T value) onData, {
   StreamFilter<T>? filter,
@@ -303,7 +310,7 @@ StreamSubscription<T> debounce<T>(
   final debouncer = Debouncer(delay: delay);
   return ever(
     observable,
-    (value) {
+    (T value) {
       debouncer(() {
         onData(value);
       });
@@ -323,14 +330,11 @@ StreamSubscription<T> debounce<T>(
 /// This is convenient to prevent the user from blasting an API
 /// For complete docuementation see [ever]
 ///
-/// Be aware, since it returns a StreamSubscription<T> you could change the
-/// onData callback, but then you would loose the debounce property
-///
 /// See also:
 /// - [everNow]
 /// - [onceNow]
 /// - [debounce]
-StreamSubscription<T> debounceNow<T>(
+Disposer debounceNow<T>(
   Object observable,
   Function(T value) onData, {
   StreamFilter<T>? filter,
@@ -343,7 +347,7 @@ StreamSubscription<T> debounceNow<T>(
   final debouncer = Debouncer(delay: delay);
   return everNow(
     observable,
-    (value) {
+    (T value) {
       debouncer(() {
         onData(value);
       });

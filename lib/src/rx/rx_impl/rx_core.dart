@@ -8,7 +8,8 @@ import 'rx_impl.dart';
 ///
 /// [Rx<T>] implements [ValueListenable<T>] to dispatch event to the view
 /// [Rx<T>] has a lazy loaded stream to suit your listen needs
-/// To use it just wrap it around your data:
+/// Don't use any [StreamFilter<T>] when you listen and NO stream will be created
+/// To use a [Rx<T>] just wrap data with Rx():
 /// ```dart
 /// final rxBool = Rx(false);
 /// final rxUser = Rx(User());
@@ -120,11 +121,11 @@ class Rx<T> extends RxImpl<T> {
       distinct: distinct ?? isDistinct);
   Rx<T> _dupe({bool? distinct}) =>
       Rx._(initial: staticOrNull, distinct: distinct ?? isDistinct)
-        ..bindStream(stream);
+        ..bindRx(this);
 
   /// Creates a new [Rx<S>] based on [StreamTransformation<S,T>] of this [Rx<T>]
   ///
-  /// The provided `transformer` will be used to
+  /// The provided `transformer` will be used to tranform the incoming stream
   /// If you want to change the `distinct` property on the result [Rx<S>]
   /// Provide the [bool] paramterer `distinct`
   ///
@@ -146,11 +147,15 @@ class Rx<T> extends RxImpl<T> {
   /// The provided `transfrom` parameter will be applied to each element
   /// If you want to change the `distinct` property on the result [Rx<S>]
   /// Provide the [bool] paramterer `distinct`
+  /// [pipeMap] is a lightWeight operator since it does not need stream
   ///
   /// Avoid chaining this operator
   /// If you have more complex operation to do, use [pipe] instead
-  Rx<S> pipeMap<S>(S Function(T e) transform, {bool? distinct}) =>
-      pipe((e) => e.map(transform), init: transform, distinct: distinct);
+  Rx<S> pipeMap<S>(S Function(T e) transform, {bool? distinct}) {
+    final res = _clone(distinct: distinct, convert: transform);
+    res.disposers?.add(listen((T data) => res.value = transform(data)));
+    return res;
+  }
 
   /// Create a [Rx<T>] from this [Rx<T>] discarding elements based on a `test`
   ///

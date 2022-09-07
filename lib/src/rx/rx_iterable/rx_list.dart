@@ -2,7 +2,6 @@ import '../../functions.dart';
 import '../rx_impl/rx_core.dart';
 import '../rx_impl/rx_types.dart';
 
-// TODO: write the extension for Rx<List<E>?>
 extension RxListExt<E> on Rx<List<E>> {
   Iterator<E> get iterator => value.iterator;
 

@@ -1,7 +1,6 @@
 import '../../functions.dart';
 import '../rx_impl/rx_core.dart';
 
-// TODO: write the extension for Rx<Set<E>?>
 extension RxSetExt<E> on Rx<Set<E>> {
   /// Provides a view of this set as a set of [S] instances.
   ///

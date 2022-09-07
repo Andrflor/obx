@@ -26,8 +26,12 @@ typedef RxnSet<T> = Rxn<Set>;
 typedef RxnMap<K, V> = Rxn<Map<K, V>>;
 typedef RxnMapEntry<K, V> = Rxn<MapEntry<K, V>>;
 
-typedef Worker<T> = StreamSubscription<T> Function(void Function(T)?,
-    {bool? cancelOnError, void Function()? onDone, Function? onError});
-
 typedef StreamTransformation<S, T> = Stream<S> Function(Stream<T> stream);
 typedef StreamFilter<T> = StreamTransformation<T, T>;
+
+// TODO: write README.md
+// TODO: write CHANGELOG.md
+// TODO: refacto pipe, pipeMap, ever, everNow, to use stream only on need
+// TODO: make sure that pipes are properly cleaned
+// TODO: refacto ever and listen to only give a disposer ref
+// TODO: add back iterables extensions

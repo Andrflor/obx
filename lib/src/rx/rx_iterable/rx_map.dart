@@ -1,7 +1,6 @@
 import '../../functions.dart';
 import '../rx_impl/rx_core.dart';
 
-// TODO: write the extension for Rx<Map<K,V>?>
 extension RxMapExt<K, V> on Rx<Map<K, V>> {
   /// Provides a view of this map as having [RK] keys and [RV] instances,
   /// if necessary.

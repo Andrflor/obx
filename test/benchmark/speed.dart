@@ -6,14 +6,14 @@ import 'package:get/get.dart' as getx;
 
 void main() async {
   Future<void> _notifierTest() async {
-    await Future.delayed(const Duration(seconds: 1));
+    await Future.delayed(const Duration(seconds: 3));
     final notifier = ValueNotifier<int?>(null);
     var notifierCounter = 0;
     final date = DateTime.now();
     notifier.addListener(() {
       notifierCounter++;
       if (notifierCounter == 100) {
-        print("notifier:${DateTime.now().difference(date).inMicroseconds} us");
+        print("notifier: ${DateTime.now().difference(date).inMicroseconds} us");
       }
     });
     for (var i = 0; i < 100; i++) {
@@ -23,14 +23,14 @@ void main() async {
   }
 
   Future<void> _streamTest() async {
-    await Future.delayed(const Duration(seconds: 1));
+    await Future.delayed(const Duration(seconds: 3));
     final streamController = StreamController.broadcast();
     var streamCounter = 0;
     final date = DateTime.now();
     streamController.stream.listen((value) {
       streamCounter++;
       if (streamCounter == 100) {
-        print("stream:${DateTime.now().difference(date).inMicroseconds} us");
+        print("stream:   ${DateTime.now().difference(date).inMicroseconds} us");
         streamController.close();
       }
     });
@@ -40,14 +40,14 @@ void main() async {
   }
 
   Future<void> _rxTrest() async {
-    await Future.delayed(const Duration(seconds: 1));
+    await Future.delayed(const Duration(seconds: 3));
     final rx = RxnInt.indistinct();
     var notifierCounter = 0;
     final date = DateTime.now();
     rx.listen((_) {
       notifierCounter++;
       if (notifierCounter == 100) {
-        print("rx:${DateTime.now().difference(date).inMicroseconds} us");
+        print("obx:      ${DateTime.now().difference(date).inMicroseconds} us");
       }
     });
     for (var i = 0; i < 100; i++) {
@@ -56,14 +56,15 @@ void main() async {
   }
 
   Future<void> _getxTrest() async {
-    await Future.delayed(const Duration(seconds: 1));
+    await Future.delayed(const Duration(seconds: 3));
     final rx = getx.RxnInt();
     var notifierCounter = 0;
     final date = DateTime.now();
     rx.listen((_) {
       notifierCounter++;
       if (notifierCounter == 100) {
-        print("getx:${DateTime.now().difference(date).inMicroseconds} us");
+        print("getx:     ${DateTime.now().difference(date).inMicroseconds} us");
+        print("");
       }
     });
     for (var i = 0; i < 100; i++) {
@@ -72,20 +73,20 @@ void main() async {
   }
 
   await _notifierTest();
-  await _streamTest();
   await _rxTrest();
+  await _streamTest();
   await _getxTrest();
   await _notifierTest();
-  await _streamTest();
   await _rxTrest();
+  await _streamTest();
   await _getxTrest();
   await _notifierTest();
-  await _streamTest();
   await _rxTrest();
+  await _streamTest();
   await _getxTrest();
   await _notifierTest();
-  await _streamTest();
   await _rxTrest();
+  await _streamTest();
   await _getxTrest();
 
   await Future.delayed(Duration(seconds: 100));

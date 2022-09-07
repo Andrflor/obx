@@ -100,7 +100,7 @@ mixin EmptyAble<T> on RxBase<T> {
   bool get hasValue => _value != null || null is T;
 
   @override
-  StreamSubscription<T> listenNow(
+  Disposer listenNow(
     void Function(T e) onData, {
     Function? onError,
     void Function()? onDone,
@@ -112,9 +112,6 @@ mixin EmptyAble<T> on RxBase<T> {
     }
     return listen(
       onData,
-      onError: onError,
-      onDone: onDone,
-      cancelOnError: cancelOnError,
       filter: filter,
     );
   }
