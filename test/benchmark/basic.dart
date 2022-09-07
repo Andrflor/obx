@@ -6,21 +6,22 @@ main() async {
   await getxBench();
 }
 
-double getxDouble() => doubleX.abs();
-double obxDouble() => observe(abs);
-
-double abs() => doubleRx.value.abs();
-
-final doubleX = 32.3.obs;
-final doubleRx = Rx(32.3);
-
-void fun() {}
-
 getxBench() async {
   print("Getx vs Obx benchmark");
   await bench(false, true);
-  await bench(<String>[], [""]);
-  await bench(<String>{}, {""});
+  await bench(3, 4);
+  await bench(3 as num, 4 as num);
+  await bench(1.3, 2.6);
+  await bench("Some string", "Another string");
+  await bench(Foo(1, "first"), Foo(2, "second"));
+
+  print("");
+  print("Testing for collections:");
+  print("GetX identityEquality | Obx collectionEquality");
+
+  await bench(<String>["some string", "another", "another", "again"],
+      ["some string", "another", "no more"]);
+  await bench({"lol", "lil"}, {"", "a", "d"});
   await bench({
     "my second key2": Foo(1, "second"),
     "my second key3": Foo(1, "second"),
@@ -42,10 +43,8 @@ getxBench() async {
   }, {
     "my key": Foo(2, "first"),
     "my second key": Foo(1, "second"),
+    "my second key14": Foo(1, "second"),
   });
-  await bench(3, 4);
-  await bench(1.3, 2.6);
-  await bench(Foo(1, "first"), Foo(2, "second"));
 }
 
 class Foo extends Equatable {
@@ -56,10 +55,6 @@ class Foo extends Equatable {
 
   @override
   List<Object?> get props => [val, otherVal];
-}
-
-void rx<T>(T value) {
-  print(value.obs.runtimeType);
 }
 
 Future<void> bench<S extends Object>(S value, S diff) async {
@@ -81,19 +76,43 @@ Future<void> bench<S extends Object>(S value, S diff) async {
   await delay(() => rxbool.value = value);
   print("");
   print("Different value assign");
-  await delay(() => boolx.value = diff);
-  await delay(() => rxbool.value = diff);
+  await delay(() {
+    boolx.value = diff;
+    boolx.value = value;
+  }, 2);
+  await delay(() {
+    rxbool.value = diff;
+    rxbool.value = value;
+  }, 2);
   print("");
-  print("Equality");
+  print("Foreign Equality");
   await delay(() => boolx == 1);
   await delay(() => rxbool == 1);
+  print("");
+  print("Member Equality");
+  await delay(() => boolx == diff);
+  await delay(() => rxbool == diff);
+  print("");
+  print("Minimal use case");
+  await delay(() {
+    final val = value.obs;
+    final data = val.value;
+    val.value = val.value;
+    val.value = diff;
+  });
+  await delay(() {
+    final val = Rx(value);
+    final data = val.value;
+    val.value = val.value;
+    val.value = diff;
+  });
 }
 
 int index = 0;
 const loops = 10000000;
 const div = loops / 1000;
 
-Future<void> delay(Function() callback) async {
+Future<void> delay(Function() callback, [int divider = 1]) async {
   final lib = index % 2 == 0 ? "Getx" : "Obx";
   index += 1;
   final start = DateTime.now();
@@ -102,5 +121,5 @@ Future<void> delay(Function() callback) async {
   }
   final end = DateTime.now();
   print(
-      "$lib: ${(end.difference(start).inMicroseconds / div).toStringAsFixed(2)} ns");
+      "$lib: ${(end.difference(start).inMicroseconds / (div * divider)).toStringAsFixed(2)} ns");
 }

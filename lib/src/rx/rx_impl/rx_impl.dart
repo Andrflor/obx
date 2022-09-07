@@ -1,9 +1,9 @@
 import 'dart:async';
 
-import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../notifier.dart';
+import '../../equality.dart';
 import 'rx_types.dart';
 import 'rx_mixins.dart';
 
@@ -17,7 +17,9 @@ class RxImpl<T> extends RxBase<T>
         Equalizable<T> {
   RxImpl(super.val, {bool distinct = true})
       : _distinct = distinct,
-        _equalizer = distinct ? equalizing<T?>(val) : const DefaultEquality();
+        _equalizer = distinct && (val is Iterable || val is Map)
+            ? equalizing<T>(val)
+            : const DefaultEquality();
 
   @override
   // ignore: overridden_fields
@@ -44,11 +46,10 @@ mixin Equalizable<T> on Reactive<T> {
 
   @override
   bool operator ==(Object other) {
-    if (other is T) return _equalizer.equals(value, other);
     if (other is ValueListenable<T?>) {
       return _equalizer.equals(value, other.value);
     }
-    return false;
+    return _equalizer.foreignEquals(value, other);
   }
 
   @override
@@ -151,7 +152,7 @@ class Emitter extends RxBase<Null> implements Emitting {
 
   /// Cancel the emitter from auto emitting
   void cancel() {
-    for (Disposer disposer in disposers!) {
+    for (Disposer disposer in _disposers!) {
       disposer();
     }
     disposers!.clear();
@@ -159,14 +160,14 @@ class Emitter extends RxBase<Null> implements Emitting {
 
   /// Will emit after `delay`
   void emitIn(Duration delay) {
-    disposers!.add(Timer.periodic(delay, (_) {
+    _disposers!.add(Timer.periodic(delay, (_) {
       emit();
     }).cancel);
   }
 
   /// Will emit every `delay`
   void emitEvery(Duration delay) {
-    disposers!.add(Timer(delay, () {
+    _disposers!.add(Timer(delay, () {
       emit();
     }).cancel);
   }
@@ -185,7 +186,7 @@ class Emitter extends RxBase<Null> implements Emitting {
   @override
   emit() {
     streamController?.add(null);
-    notify();
+    _notify();
   }
 
   /// Bundle a [T] with this emitter
@@ -249,7 +250,7 @@ class Shot<T> extends Reactive<T> with DisposersTrackable<T>, Equalizable<T> {
   }
 
   void init(T value) {
-    _equalizer = equalizing(value);
+    _equalizer = equalizing<T>(value);
     _value = value;
   }
 }
