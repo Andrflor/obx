@@ -219,16 +219,7 @@ class SingleShot<T> extends Shot<T> {
 
 /// This is an internal class
 /// It's the basic class for the [ever] function
-class MultiShot<T> extends Shot<T> with StreamCapable<T> {
-  @override
-  set value(T newValue) {
-    if (_equalizer.equals(_value, newValue)) {
-      return;
-    }
-    _value = newValue;
-    streamController?.add(newValue);
-  }
-}
+class MultiShot<T> = Shot<T> with StreamCapable<T>;
 
 /// This is an internal class
 /// It's the basic class for [observe] and [ever]
@@ -243,7 +234,6 @@ class Shot<T> extends Reactive<T> with DisposersTrackable<T>, Equalizable<T> {
     }
     _value = newValue;
     _notify();
-    super.value = newValue;
   }
 
   void init(T value) {
@@ -285,18 +275,23 @@ class ListNotifier = Listenable with ListNotifiable;
 /// This mixin add to Listenable the addListener, removerListener and
 /// containsListener implementation
 mixin ListNotifiable on Listenable {
-  Set<StateUpdate>? _updaters = <StateUpdate>{};
+  List<VoidCallback>? _listeners = <VoidCallback>[];
 
   @override
-  bool addListener(StateUpdate listener) {
+  void addListener(VoidCallback listener) {
     assert(_debugAssertNotDisposed());
-    return _updaters?.add(listener) ?? false;
+    _listeners!.add(listener);
+  }
+
+  bool containsListener(VoidCallback listener) {
+    assert(_debugAssertNotDisposed());
+    return _listeners!.contains(listener);
   }
 
   @override
   void removeListener(VoidCallback listener) {
     assert(_debugAssertNotDisposed());
-    _updaters?.remove(listener);
+    _listeners!.remove(listener);
   }
 
   @protected
@@ -311,9 +306,13 @@ mixin ListNotifiable on Listenable {
   @protected
   void reportAdd(VoidCallback disposer) => Orchestrator.add(disposer);
 
-  void _notifyUpdate() => _updaters?.forEach((e) => e());
+  void _notifyUpdate() {
+    for (int i = 0; i < _listeners!.length; i++) {
+      _listeners![i]();
+    }
+  }
 
-  bool get isDisposed => _updaters == null;
+  bool get isDisposed => _listeners == null;
 
   bool _debugAssertNotDisposed() {
     assert(() {
@@ -328,13 +327,13 @@ mixin ListNotifiable on Listenable {
 
   int get listenersLength {
     assert(_debugAssertNotDisposed());
-    return _updaters!.length;
+    return _listeners!.length;
   }
 
   @mustCallSuper
   void dispose() {
     assert(_debugAssertNotDisposed());
-    _updaters = null;
+    _listeners = null;
   }
 }
 

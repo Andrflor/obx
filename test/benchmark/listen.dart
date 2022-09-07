@@ -5,15 +5,16 @@ import 'package:obx/obx.dart';
 import 'package:get/get.dart' as getx;
 
 void main() async {
-  for (int i = 0; i < 6; i++) {
+  for (int i = 0; i < 10; i++) {
     await notifierTest();
     await rxTrest();
     await streamTest();
     await getxTrest();
   }
+  await Future.delayed(const Duration(milliseconds: 100));
 }
 
-const loops = 1000;
+const loops = 1000000;
 
 void show(String name, DateTime start, int notifierCount,
     [bool carriageReturn = false]) {
@@ -28,7 +29,7 @@ void show(String name, DateTime start, int notifierCount,
 }
 
 Future<void> notifierTest() async {
-  await Future.delayed(const Duration(seconds: 3));
+  await Future.delayed(const Duration(milliseconds: 10));
   final notifier = ValueNotifier<int?>(null);
   var notifierCounter = 0;
   final start = DateTime.now();
@@ -43,7 +44,7 @@ Future<void> notifierTest() async {
 }
 
 Future<void> streamTest() async {
-  await Future.delayed(const Duration(seconds: 3));
+  await Future.delayed(const Duration(milliseconds: 10));
   final streamController = StreamController.broadcast();
   var streamCounter = 0;
   final start = DateTime.now();
@@ -57,7 +58,7 @@ Future<void> streamTest() async {
 }
 
 Future<void> rxTrest() async {
-  await Future.delayed(const Duration(seconds: 3));
+  await Future.delayed(const Duration(milliseconds: 10));
   final rx = RxnInt.indistinct();
   var notifierCounter = 0;
   final start = DateTime.now();
@@ -71,7 +72,7 @@ Future<void> rxTrest() async {
 }
 
 Future<void> getxTrest() async {
-  await Future.delayed(const Duration(seconds: 3));
+  await Future.delayed(const Duration(milliseconds: 10));
   final rx = getx.RxnInt();
   var notifierCounter = 0;
   final start = DateTime.now();

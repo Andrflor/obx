@@ -7,7 +7,6 @@ import 'debouncer.dart';
 typedef Disposer = void Function();
 
 // Replacing StateSetter, returns if the Widget is mounted for extra validation.
-// if it brings overhead the extra call,
 typedef StateUpdate = void Function();
 
 abstract class Orchestrator {
@@ -21,7 +20,7 @@ abstract class Orchestrator {
 
   static void read(ListNotifiable updaters) {
     final updater = _notifyData!.updater;
-    if (updaters.addListener(updater)) {
+    if (!updaters.containsListener(updater)) {
       add(() => updaters.removeListener(updater));
     }
   }
@@ -96,12 +95,12 @@ class ObxError {
   @override
   String toString() {
     return """
-      [Obx] the improper use of a Obx has been detected.
-      You should only use Obx for the specific widget that will be updated.
-      If you are seeing this error, you probably did not insert any observable variables into Obx
-      or insert them outside the scope that Obx considers suitable for an update
+      Improper use of a [Obx] has been detected.
+      You should only use [Obx] for the specific widget that will be updated.
+      If you are seeing this error, you probably did not insert any observable variables into [Obx]
+      or insert them outside the scope that [Obx] considers suitable for an update
       (example: Obx => HeavyWidget => variableObservable).
-      If you need to update a parent widget and a child widget, wrap each one in an Obx.
+      If you need to update a parent widget and a child widget, wrap each one in an [Obx].
       """;
   }
 }
