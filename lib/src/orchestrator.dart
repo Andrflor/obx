@@ -18,11 +18,11 @@ abstract class Orchestrator {
   static void add(VoidCallback listener) =>
       _notifyData!.disposers.add(listener);
 
-  static void read(ListNotifiable updaters) {
+  static void read(Reactive updaters) {
     final updater = _notifyData!.updater;
-    if (!updaters.containsListener(updater)) {
-      add(() => updaters.removeListener(updater));
-    }
+    // if (!updaters.containsListener(updater)) {
+    // add(() => updaters.removeListener(updater));
+    // }
   }
 
   static T append<T>(NotifyData data, T Function() builder) {
@@ -41,7 +41,8 @@ abstract class Orchestrator {
     return base.value;
   }
 
-  static void _internal<T, S extends Shot<T>>(T Function() builder, S base) {
+  static void _internal<T, S extends Reactive<T>>(
+      T Function() builder, S base) {
     _working = true;
     final previousData = _notifyData;
     final debouncer = EveryDebouncer(
@@ -51,7 +52,7 @@ abstract class Orchestrator {
         disposers: [debouncer.cancel]);
     base.init(builder());
     debouncer.start();
-    base.disposers = _notifyData?.disposers;
+    // base.disposers = _notifyData?.disposers;
     _notifyData = previousData;
     _working = false;
   }
@@ -73,7 +74,7 @@ abstract class Orchestrator {
         disposers: [debouncer.cancel]);
     base.value = builder();
     debouncer.start();
-    base.disposers = _notifyData?.disposers;
+    // base.disposers = _notifyData?.disposers;
     _notifyData = previousData;
     _working = false;
     return base;

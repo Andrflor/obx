@@ -20,27 +20,6 @@ mixin Descriptible<T> on ValueListenable<T> {
   }
 }
 
-/// This is used to maked RxImpl distinctive or Not on need
-mixin Distinguishable<T> on Actionable<T>, StreamCapable<T> {
-  bool get isDistinct => false;
-
-  /// Trigger update with a new value
-  /// Update the value, force notify listeners and update Widgets
-  @override
-  void trigger(T v) {
-    _controller?.add(v);
-    super.trigger(v);
-  }
-
-  // This value will only be set if it matches
-  @override
-  set value(T newValue) {
-    if (!isDistinct || this != newValue) {
-      trigger(newValue);
-    }
-  }
-}
-
 abstract class Emitting {
   void emit();
 }

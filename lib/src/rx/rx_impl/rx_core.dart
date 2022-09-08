@@ -120,8 +120,8 @@ class Rx<T> extends RxImpl<T> {
       initial: hasValue ? (convert?.call(value) ?? value as S) : null,
       distinct: distinct ?? isDistinct);
   Rx<T> _dupe({bool? distinct}) =>
-      Rx._(initial: staticOrNull, distinct: distinct ?? isDistinct)
-        ..bindRx(this);
+      Rx._(initial: staticOrNull, distinct: distinct ?? isDistinct);
+  // ..bindRx(this);
 
   /// Creates a new [Rx<S>] based on [StreamTransformation<S,T>] of this [Rx<T>]
   ///
