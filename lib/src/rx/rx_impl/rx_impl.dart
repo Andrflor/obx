@@ -276,5 +276,6 @@ extension ValueOrNull<T> on Reactive<T> {
 /// This is used to pass private fields to other files
 extension RxTrackableProtectedAccess<T> on Reactive<T> {
   List<Disposer> get disposers => _disposers;
+  set disposers(List<Disposer> value) => _disposers = value;
   T? get staticOrNull => _value;
 }

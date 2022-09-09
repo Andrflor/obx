@@ -19,6 +19,7 @@ abstract class Orchestrator {
       _notifyData!.disposers.add(listener);
 
   static void read(Reactive updaters) {
+    // TODO: implement that back
     final updater = _notifyData!.updater;
     // if (!updaters.containsListener(updater)) {
     // add(() => updaters.removeListener(updater));
@@ -50,15 +51,15 @@ abstract class Orchestrator {
     _notifyData = NotifyData(
         updater: () => debouncer(() => base.value = builder()),
         disposers: [debouncer.cancel]);
-    base.init(builder());
+    base.value = builder();
     debouncer.start();
-    // base.disposers = _notifyData?.disposers;
+    base.disposers = _notifyData!.disposers;
     _notifyData = previousData;
     _working = false;
   }
 
-  static MultiShot<T> listen<T>(T Function() builder) {
-    final base = MultiShot<T>();
+  static Rx<T> listen<T>(T Function() builder) {
+    final base = Rx<T>();
     _internal(builder, base);
     return base;
   }

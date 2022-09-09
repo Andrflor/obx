@@ -30,6 +30,15 @@ import 'rx_impl.dart';
 class Rx<T> extends Reactive<T> {
   Rx._({super.initial, super.equalizer});
 
+  /// Creates and Instance of the [Rx<T>] class with specified Equality
+  ///
+  /// This is usefull if you want to override the equality behavior
+  /// For example you could pass `const SetEquality()` to have set equality
+  /// You can use any Equality from the 'collection' package.
+  /// If you want you can also create you own custom equality
+  /// Either by extending any [Equality] class or implementing [Equality]
+  Rx.withEq({super.equalizer, T? init}) : super(initial: init);
+
   /// Creates and Instance of the [Rx<T>] class
   ///
   /// Type [T] will be infered from the initial parameter
