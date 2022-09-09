@@ -106,261 +106,1003 @@ T observe<T>(T Function() builder) {
 /// It takes a [StreamFilter<T>] aka [Stream<T> Function(Stream<T>)]
 /// It allows you to make any stream filtering operation
 /// Example: (stream) => stream.skip(1).skipWhile(//someCondition).take(5)
-Disposer ever<T>(
-  Object observable,
-  Function(T value) onData, {
-  StreamFilter<T>? filter,
-  void Function()? onDone,
-  Function? onError,
-  bool? cancelOnError,
-  bool forceDistinct = false,
-}) {
-  if (observable is T Function()) {
-    return Orchestrator.fuse(observable).subscribe(
-      onData,
-      filter: filter,
-    );
-  }
-  if (observable is Rx<T>) {
-    return (forceDistinct && !observable.isDistinct
-            ? observable.distinct()
-            : observable)
-        .subscribe(
-      onData,
-      filter: filter,
-    );
-  }
-  if (observable is Stream<T>) {
-    observable = forceDistinct ? observable.distinct() : observable;
-    return (filter == null ? observable : filter(observable))
-        .listen(
-          onData,
-          onDone: onDone,
-          cancelOnError: cancelOnError ?? false,
-          onError: onError,
-        )
-        .cancel;
-  }
-  if (observable is ValueListenable<T>) {
-    if (forceDistinct || filter != null) {
-      return Rx.fromValueListenable(observable, distinct: forceDistinct)
-          .subscribe(
-        onData,
-        filter: filter,
-      );
-    }
-    listener() {
-      onData((observable as ValueListenable<T>).value);
-    }
-
-    observable.addListener(listener);
-    return () => (observable as ValueListenable<T>).removeListener(listener);
-  }
-
-  _debugAssertObservableType(observable, T, 'ever');
-  return () {};
-}
-
-/// Runs a calback each time the observable [Object] changes and now
-///
-/// Like the [ever] function but the callback will also fire now
-/// For complete docuementation see [ever]
-///
-/// See also:
-/// - [onceNow]
-/// - [debounceNow]
-/// - [ever]
-Disposer everNow<T>(
-  Object observable,
-  Function(T value) onData, {
-  StreamFilter<T>? filter,
-  Function? onError,
-  void Function()? onDone,
-  bool? cancelOnError,
-  bool forceDistinct = false,
-}) {
-  if (observable is T Function()) {
-    return Orchestrator.fuse(observable).subNow(
-      onData,
-      filter: filter,
-    );
-  }
-  if (observable is Rx<T>) {
-    return (forceDistinct && !observable.isDistinct
-            ? observable.distinct()
-            : observable)
-        .subNow(
-      onData,
-      filter: filter,
-    );
-  }
-  if (observable is Stream<T>) {
-    observable = forceDistinct ? observable.distinct() : observable;
-    return (filter == null ? observable : filter(observable))
-        .listen(
-          onData,
-          onDone: onDone,
-          cancelOnError: cancelOnError ?? false,
-          onError: onError,
-        )
-        .cancel;
-  }
-  if (observable is ValueListenable<T>) {
-    if (forceDistinct || filter != null) {
-      return Rx.fromValueListenable(observable, distinct: forceDistinct).subNow(
-        onData,
-        filter: filter,
-      );
-    }
-    onData(observable.value);
-    listener() {
-      onData((observable as ValueListenable<T>).value);
-    }
-
-    observable.addListener(listener);
-    return () => (observable as ValueListenable<T>).removeListener(listener);
-  }
-
-  _debugAssertObservableType(observable, T, 'everNow');
-  return () {};
-}
-
-// TODO: implem [everDiff] [onceDiff] [debounceDiff]
-// TODO: MAYBE implem [interval] [intervalNow] [intervalDiff]
-
-void _debugAssertObservableType<S>(S value, Type inner, String name) {
-  assert(() {
-    throw FlutterError(
-        '''The type ${value.runtimeType} is not respecting the type constraints in [$name]
-it should [Rx<$inner>], [Stream<$inner>] or [ValueListenable<$inner>] or [$inner Function()]
-or you may have wrongly typed $inner in the onData [Function($inner value)] function''');
-  }());
-}
-
-/// Runs a calback once the observable [Object] changes
-///
-/// Like the [ever] function but the callback is only run once
-/// For complete docuementation see [ever]
-///
-/// See also:
-/// - [ever]
-/// - [debounce]
-/// - [onceNow]
-Disposer once<T>(
-  Object observable,
-  Function(T value) onData, {
-  StreamFilter<T>? filter,
-  Function? onError,
-  void Function()? onDone,
-  bool? cancelOnError,
-}) =>
-    ever(
-      observable,
-      onData,
-      filter: filter,
-      onError: onError,
-      onDone: onDone,
-      cancelOnError: cancelOnError,
-    );
-
-/// Runs a calback once the observable [Object] changes and now
-///
-/// Like the [ever] function but the callback runs only once and now
-/// Like the [once] function but the callback also fires now
-/// For complete docuementation see [ever]
-///
-/// See also:
-/// - [once]
-/// - [everNow]
-/// - [debounceNow]
-Disposer onceNow<T>(
-  Object observable,
-  Function(T value) onData, {
-  StreamFilter<T>? filter,
-  Function? onError,
-  void Function()? onDone,
-  bool? cancelOnError,
-  bool forceDistinct = false,
-}) =>
-    everNow(
-      observable,
-      onData,
-      filter: filter,
-      onError: onError,
-      onDone: onDone,
-      cancelOnError: cancelOnError,
-      forceDistinct: forceDistinct,
-    );
-
-/// Runs a calback with debounce dalay when the observable [Object] changes
-///
-/// Like the [ever] function but the callback has a debouncer
-/// This is convenient to prevent the user from blasting an API
-/// For complete docuementation see [ever]
-///
-/// See also:
-/// - [ever]
-/// - [once]
-/// - [debounceNow]
-Disposer debounce<T>(
-  Object observable,
-  Function(T value) onData, {
-  StreamFilter<T>? filter,
-  Duration delay = const Duration(milliseconds: 800),
-  Function? onError,
-  void Function()? onDone,
-  bool? cancelOnError,
-  bool forceDistinct = false,
-}) {
-  final debouncer = Debouncer(delay: delay);
-  return ever(
-    observable,
-    (T value) {
-      debouncer(() {
-        onData(value);
-      });
-    },
-    filter: filter,
-    onError: onError,
-    onDone: onDone,
-    cancelOnError: cancelOnError,
-    forceDistinct: forceDistinct,
-  );
-}
-
-/// Runs a calback with debounce dalay when observable [Object] changes and now
-///
-/// Like the [ever] function but the callback has a debouncer
-/// Like the [debounce] function but the callback also fires now
-/// This is convenient to prevent the user from blasting an API
-/// For complete docuementation see [ever]
-///
-/// See also:
-/// - [everNow]
-/// - [onceNow]
-/// - [debounce]
-Disposer debounceNow<T>(
-  Object observable,
-  Function(T value) onData, {
-  StreamFilter<T>? filter,
-  Duration delay = const Duration(milliseconds: 800),
-  Function? onError,
-  void Function()? onDone,
-  bool? cancelOnError,
-  bool forceDistinct = false,
-}) {
-  final debouncer = Debouncer(delay: delay);
-  return everNow(
-    observable,
-    (T value) {
-      debouncer(() {
-        onData(value);
-      });
-    },
-    filter: filter,
-    onError: onError,
-    onDone: onDone,
-    cancelOnError: cancelOnError,
-    forceDistinct: forceDistinct,
-  );
-}
+// Disposer ever<T>(
+//   Object observable,
+//   Function(T value) onData, {
+//   StreamFilter<T>? filter,
+//   void Function()? onDone,
+//   Function? onError,
+//   bool? cancelOnError,
+//   bool forceDistinct = false,
+// }) {
+//   if (observable is T Function()) {
+//     return Orchestrator.fuse(observable).subscribe(
+//       onData,
+//       filter: filter,
+//     );
+//   }
+//   if (observable is Rx<T>) {
+//     return (forceDistinct && !observable.isDistinct
+//             ? observable.distinct()
+//             : observable)
+//         .subscribe(
+//       onData,
+//       filter: filter,
+//     );
+//   }
+//   if (observable is Stream<T>) {
+//     observable = forceDistinct ? observable.distinct() : observable;
+//     return (filter == null ? observable : filter(observable))
+//         .listen(
+//           onData,
+//           onDone: onDone,
+//           cancelOnError: cancelOnError ?? false,
+//           onError: onError,
+//         )
+//         .cancel;
+//   }
+//   if (observable is ValueListenable<T>) {
+//     if (forceDistinct || filter != null) {
+//       return Rx.fromValueListenable(observable, distinct: forceDistinct)
+//           .subscribe(
+//         onData,
+//         filter: filter,
+//       );
+//     }
+//     listener() {
+//       onData((observable as ValueListenable<T>).value);
+//     }
+// 
+//     observable.addListener(listener);
+//     return () => (observable as ValueListenable<T>).removeListener(listener);
+//   }
+// 
+//   _debugAssertObservableType(observable, T, 'ever');
+//   return () {};
+// }
+// 
+// /// Runs a calback each time the observable [Object] changes and now
+// ///
+// /// Like the [ever] function but the callback will also fire now
+// /// For complete docuementation see [ever]
+// ///
+// /// See also:
+// /// - [onceNow]
+// /// - [debounceNow]
+// /// - [ever]
+// Disposer everNow<T>(
+//   Object observable,
+//   Function(T value) onData, {
+//   StreamFilter<T>? filter,
+//   Function? onError,
+//   void Function()? onDone,
+//   bool? cancelOnError,
+//   bool forceDistinct = false,
+// }) {
+//   if (observable is T Function()) {
+//     return Orchestrator.fuse(observable).subNow(
+//       onData,
+//       filter: filter,
+//     );
+//   }
+//   if (observable is Rx<T>) {
+//     return (forceDistinct && !observable.isDistinct
+//             ? observable.distinct()
+//             : observable)
+//         .subNow(
+//       onData,
+//       filter: filter,
+//     );
+//   }
+//   if (observable is Stream<T>) {
+//     observable = forceDistinct ? observable.distinct() : observable;
+//     return (filter == null ? observable : filter(observable))
+//         .listen(
+//           onData,
+//           onDone: onDone,
+//           cancelOnError: cancelOnError ?? false,
+//           onError: onError,
+//         )
+//         .cancel;
+//   }
+//   if (observable is ValueListenable<T>) {
+//     if (forceDistinct || filter != null) {
+//       return Rx.fromValueListenable(observable, distinct: forceDistinct).subNow(
+//         onData,
+//         filter: filter,
+//       );
+//     }
+//     onData(observable.value);
+//     listener() {
+//       onData((observable as ValueListenable<T>).value);
+//     }
+// 
+//     observable.addListener(listener);
+//     return () => (observable as ValueListenable<T>).removeListener(listener);
+//   }
+// 
+//   _debugAssertObservableType(observable, T, 'everNow');
+//   return () {};
+// }
+// 
+// // TODO: implem [everDiff] [onceDiff] [debounceDiff]
+// // TODO: MAYBE implem [interval] [intervalNow] [intervalDiff]
+// 
+// void _debugAssertObservableType<S>(S value, Type inner, String name) {
+//   assert(() {
+//     throw FlutterError(
+//         '''The type ${value.runtimeType} is not respecting the type constraints in [$name]
+// it should [Rx<$inner>], [Stream<$inner>] or [ValueListenable<$inner>] or [$inner Function()]
+// or you may have wrongly typed $inner in the onData [Function($inner value)] function''');
+//   }());
+// }
+// 
+// /// Runs a calback once the observable [Object] changes
+// ///
+// /// Like the [ever] function but the callback is only run once
+// /// For complete docuementation see [ever]
+// ///
+// /// See also:
+// /// - [ever]
+// /// - [debounce]
+// /// - [onceNow]
+// Disposer once<T>(
+//   Object observable,
+//   Function(T value) onData, {
+//   StreamFilter<T>? filter,
+//   Function? onError,
+//   void Function()? onDone,
+//   bool? cancelOnError,
+// }) =>
+//     ever(
+//       observable,
+//       onData,
+//       filter: filter,
+//       onError: onError,
+//       onDone: onDone,
+//       cancelOnError: cancelOnError,
+//     );
+// 
+// /// Runs a calback once the observable [Object] changes and now
+// ///
+// /// Like the [ever] function but the callback runs only once and now
+// /// Like the [once] function but the callback also fires now
+// /// For complete docuementation see [ever]
+// ///
+// /// See also:
+// /// - [once]
+// /// - [everNow]
+// /// - [debounceNow]
+// Disposer onceNow<T>(
+//   Object observable,
+//   Function(T value) onData, {
+//   StreamFilter<T>? filter,
+//   Function? onError,
+//   void Function()? onDone,
+//   bool? cancelOnError,
+//   bool forceDistinct = false,
+// }) =>
+//     everNow(
+//       observable,
+//       onData,
+//       filter: filter,
+//       onError: onError,
+//       onDone: onDone,
+//       cancelOnError: cancelOnError,
+//       forceDistinct: forceDistinct,
+//     );
+// 
+// /// Runs a calback with debounce dalay when the observable [Object] changes
+// ///
+// /// Like the [ever] function but the callback has a debouncer
+// /// This is convenient to prevent the user from blasting an API
+// /// For complete docuementation see [ever]
+// ///
+// /// See also:
+// /// - [ever]
+// /// - [once]
+// /// - [debounceNow]
+// Disposer debounce<T>(
+//   Object observable,
+//   Function(T value) onData, {
+//   StreamFilter<T>? filter,
+//   Duration delay = const Duration(milliseconds: 800),
+//   Function? onError,
+//   void Function()? onDone,
+//   bool? cancelOnError,
+//   bool forceDistinct = false,
+// }) {
+//   final debouncer = Debouncer(delay: delay);
+//   return ever(
+//     observable,
+//     (T value) {
+//       debouncer(() {
+//         onData(value);
+//       });
+//     },
+//     filter: filter,
+//     onError: onError,
+//     onDone: onDone,
+//     cancelOnError: cancelOnError,
+//     forceDistinct: forceDistinct,
+//   );
+// }
+// 
+// /// Runs a calback with debounce dalay when observable [Object] changes and now
+// ///
+// /// Like the [ever] function but the callback has a debouncer
+// /// Like the [debounce] function but the callback also fires now
+// /// This is convenient to prevent the user from blasting an API
+// /// For complete docuementation see [ever]
+// ///
+// /// See also:
+// /// - [everNow]
+// /// - [onceNow]
+// /// - [debounce]
+// Disposer debounceNow<T>(
+//   Object observable,
+//   Function(T value) onData, {
+//   StreamFilter<T>? filter,
+//   Duration delay = const Duration(milliseconds: 800),
+//   Function? onError,
+//   void Function()? onDone,
+//   bool? cancelOnError,
+//   bool forceDistinct = false,
+// }) {
+//   final debouncer = Debouncer(delay: delay);
+//   return everNow(
+//     observable,
+//     (T value) {
+//       debouncer(() {
+//         onData(value);
+//       });
+//     },
+//     filter: filter,
+//     onError: onError,
+//     onDone: onDone,
+//     cancelOnError: cancelOnError,
+//     forceDistinct: forceDistinct,
+//   );
+// }
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 
+// 

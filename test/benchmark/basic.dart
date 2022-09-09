@@ -5,7 +5,8 @@ import 'package:get/get.dart' as getx;
 import 'package:obx/obx.dart';
 
 main() async {
-  await getxBench();
+  // await getxBench();
+  Rx("My little string");
 }
 
 Future<void> getxBench() async {
@@ -16,11 +17,6 @@ Future<void> getxBench() async {
   await bench(1.3, 2.6);
   await bench("Some string", "Another string");
   await bench(Foo(1, "first"), Foo(2, "second"));
-
-  print("");
-  print("Testing for collections:");
-  print("GetX identityEquality | Obx collectionEquality");
-
   await bench(<String>["some string", "another", "another", "again"],
       ["some string", "another", "no more"]);
   await bench({"lol", "lil"}, {"", "a", "d"});
@@ -87,14 +83,6 @@ Future<void> bench<S extends Object>(S value, S diff) async {
     rxbool.value = diff;
     rxbool.value = value;
   }, 2);
-  print("");
-  print("Foreign Equality");
-  await delay(() => boolx == 1);
-  await delay(() => rxbool.value == 1);
-  print("");
-  print("Member Equality");
-  await delay(() => boolx == diff);
-  await delay(() => rxbool == diff);
   print("");
   print("Minimal use case");
   await delay(() {

@@ -107,14 +107,6 @@ void main() {
         boolTriggerListen('inobs', inobs);
       });
 
-      group('refresh', () {
-        init();
-        boolRefreshListen('obs', obs);
-        boolRefreshListen('nobs', nobs);
-        boolRefreshListen('iobs', iobs);
-        boolRefreshListen('inobs', inobs);
-      });
-
       group('silent', () {
         init();
         boolSilentListen('obs', obs);
@@ -195,7 +187,7 @@ void boolListen(String name, Rx<bool?> rxBool, bool shouldFire,
     [Rx? child, bool? shouldSecondFire]) {
   return test(name, () async {
     bool fired = false;
-    (child ?? rxBool).stream.listen((e) {
+    (child ?? rxBool).subscribe((e) {
       fired = true;
     });
     rxBool(rxBool());
@@ -211,7 +203,7 @@ void boolListen(String name, Rx<bool?> rxBool, bool shouldFire,
 void nullListen(String name, Emitter emitter) {
   return test(name, () async {
     bool fired = false;
-    emitter.stream.listen((e) {
+    emitter.subscribe((e) {
       fired = true;
     });
     emitter.emit();
@@ -224,26 +216,10 @@ void nullListen(String name, Emitter emitter) {
   });
 }
 
-void boolRefreshListen(String name, Rx<bool?> rxBool) {
-  return test(name, () async {
-    bool fired = false;
-    rxBool.stream.listen((e) {
-      fired = true;
-    });
-    rxBool.refresh(rxBool());
-    await Future.delayed(Duration.zero);
-    expect(fired, false, reason: "same failed");
-    fired = false;
-    rxBool.refresh(!rxBool()!);
-    await Future.delayed(Duration.zero);
-    expect(fired, false, reason: "diff failed");
-  });
-}
-
 void boolTriggerListen(String name, Rx<bool?> rxBool) {
   return test(name, () async {
     bool fired = false;
-    rxBool.stream.listen((e) {
+    rxBool.subscribe((e) {
       fired = true;
     });
     rxBool.trigger(rxBool());
@@ -259,7 +235,7 @@ void boolTriggerListen(String name, Rx<bool?> rxBool) {
 void boolSilentListen(String name, Rx<bool?> rxBool) {
   return test(name, () async {
     bool fired = false;
-    rxBool.stream.listen((e) {
+    rxBool.subscribe((e) {
       fired = true;
     });
     rxBool.silent(rxBool());
