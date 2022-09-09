@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import '../../equality.dart';
 import '../../orchestrator.dart';
+import 'package:collection/collection.dart';
 import 'rx_types.dart';
 import 'rx_impl.dart';
 
@@ -25,8 +27,8 @@ import 'rx_impl.dart';
 /// Obx(() => Text(rxUser.name));
 /// ```
 /// To implement extensions on you custom classes see README.md
-class Rx<T> extends RxImpl<T> {
-  Rx._({T? initial, bool distinct = true}) : super(initial, distinct: distinct);
+class Rx<T> extends Reactive<T> {
+  Rx._({super.initial, super.equalizer});
 
   /// Creates and Instance of the [Rx<T>] class
   ///
@@ -40,14 +42,15 @@ class Rx<T> extends RxImpl<T> {
   /// See also:
   /// - [Rx]
   /// - [Emmiter]
-  Rx([T? initial]) : super(initial, distinct: true);
+  Rx([T? initial]) : super(initial: initial);
 
   /// Creates an indistinct [Rx<T>]
   ///
   /// The contructed [Rx] will emit change everytime it's value changes
   /// Even if the value is the same as last time
   /// This is particuliry usefull in some scenarios
-  Rx.indistinct([T? initial]) : super(initial, distinct: false);
+  Rx.indistinct([T? initial])
+      : super(initial: initial, equalizer: const NeverEquality());
 
   /// Creates a [Rx<T>] from any [Stream<T>]
   ///
@@ -56,7 +59,19 @@ class Rx<T> extends RxImpl<T> {
   ///
   /// Finally, by default the [Rx<T>] will be distinct if you want it indistinct
   /// you can set `distinct` to false.
-  Rx.fromStream(Stream<T> stream, {T? init, super.distinct}) : super(init) {
+  Rx.fromStream(
+    Stream<T> stream, {
+    T? init,
+    Equality? equalizer,
+    bool? distinct,
+  }) : super(
+            initial: init,
+            equalizer: equalizer ??
+                (distinct == null
+                    ? const BaseEquality()
+                    : distinct
+                        ? const BaseEquality()
+                        : const NeverEquality())) {
     bindStream(stream);
   }
 
@@ -76,9 +91,17 @@ class Rx<T> extends RxImpl<T> {
   Rx.fromListenable(Listenable listenable,
       {required T Function() onEvent,
       T? init,
-      super.distinct,
+      bool? distinct,
+      Equality? equalizer,
       bool callbackInit = false})
-      : super(callbackInit ? onEvent() : init) {
+      : super(
+            initial: callbackInit ? onEvent() : init,
+            equalizer: equalizer ??
+                (distinct == null
+                    ? const BaseEquality()
+                    : distinct
+                        ? const BaseEquality()
+                        : const NeverEquality())) {
     bindListenable(listenable, onEvent: onEvent);
   }
 
@@ -93,8 +116,15 @@ class Rx<T> extends RxImpl<T> {
   /// Finally, by default the [Rx<T>] will be distinct if you want it indistinct
   /// you can set `distinct` to false.
   Rx.fromValueListenable(ValueListenable<T> listenable,
-      {T? init, super.distinct})
-      : super(init ?? listenable.value) {
+      {T? init, bool? distinct, Equality? equalizer})
+      : super(
+            initial: init ?? listenable.value,
+            equalizer: equalizer ??
+                (distinct == null
+                    ? const BaseEquality()
+                    : distinct
+                        ? const BaseEquality()
+                        : const NeverEquality())) {
     bindValueListenable(listenable);
   }
 
@@ -116,12 +146,18 @@ class Rx<T> extends RxImpl<T> {
   /// - [Rx]
   factory Rx.fuse(T Function() callback) => Orchestrator.fuse(callback);
 
-  Rx<S> _clone<S>({bool? distinct, S Function(T e)? convert}) => Rx._(
-      initial: hasValue ? (convert?.call(value) ?? value as S) : null,
-      distinct: distinct ?? isDistinct);
-  Rx<T> _dupe({bool? distinct}) =>
-      Rx._(initial: staticOrNull, distinct: distinct ?? isDistinct);
-  // ..bindRx(this);
+  Rx<S> _clone<S>(
+          {bool? distinct, S Function(T e)? convert, Equality? equalizer}) =>
+      Rx._(
+          initial: hasValue
+              ? (convert?.call(staticOrNull as T) ?? staticOrNull as S)
+              : null,
+          equalizer: equalizer ??
+              (distinct == null
+                  ? this.equalizer
+                  : distinct
+                      ? const BaseEquality()
+                      : const NeverEquality()));
 
   /// Creates a new [Rx<S>] based on [StreamTransformation<S,T>] of this [Rx<T>]
   ///
@@ -149,11 +185,12 @@ class Rx<T> extends RxImpl<T> {
   /// Provide the [bool] paramterer `distinct`
   /// [pipeMap] is a lightWeight operator since it does not need stream
   ///
-  /// Avoid chaining this operator
   /// If you have more complex operation to do, use [pipe] instead
-  Rx<S> pipeMap<S>(S Function(T e) transform, {bool? distinct}) {
-    final res = _clone(distinct: distinct, convert: transform);
-    res.disposers?.add(listen((T data) => res.value = transform(data)));
+  Rx<S> pipeMap<S>(S Function(T e) transform,
+      {bool? distinct, Equality? equalizer}) {
+    final res =
+        _clone(distinct: distinct, convert: transform, equalizer: equalizer);
+    res.disposers.add(subscribe((T data) => res.value = transform(data)));
     return res;
   }
 
@@ -163,10 +200,17 @@ class Rx<T> extends RxImpl<T> {
   /// If you want to change the `distinct` property on the result [Rx<T>]
   /// Provide the [bool] paramterer `distinct`
   ///
-  /// Avoid chaining this operator
   /// If you have more complex operation to do, use [pipe] instead
-  Rx<T> pipeWhere(bool Function(T e) test, {bool? distinct}) =>
-      pipe((e) => e.where(test), distinct: distinct);
+  Rx<T> pipeWhere(bool Function(T e) test,
+      {bool? distinct, Equality? equalizer}) {
+    final res = _clone<T>(distinct: distinct, equalizer: equalizer);
+    res.disposers.add(subscribe((T data) {
+      if (test(data)) {
+        res.value = data;
+      }
+    }));
+    return res;
+  }
 
   /// Maps this [Rx<T>] into [Rx<T>] discarding elements based on a `test`
   ///
@@ -175,30 +219,38 @@ class Rx<T> extends RxImpl<T> {
   /// If you want to change the `distinct` property on the result [Rx<S>]
   /// Provide the [bool] paramterer `distinct`
   ///
-  /// Avoid chaining this operator
   /// If you have more complex operation to do, use [pipe] instead
   Rx<S> pipeMapWhere<S>(S Function(T e) transform, bool Function(T e) test,
-          {bool? distinct}) =>
-      pipe((e) => e.where(test).map(transform),
-          init: transform, distinct: distinct);
+      {bool? distinct, Equality? equalizer}) {
+    final res =
+        _clone(distinct: distinct, equalizer: equalizer, convert: transform);
+    res.disposers.add(subscribe((T data) {
+      if (test(data)) {
+        res.value = transform(data);
+      }
+    }));
+    return res;
+  }
 
   /// Create an exact copy of the [Rx<T>]
   ///
   /// The copy will receive all events comming from the original
-  Rx<T> dupe() => _dupe();
+  Rx<T> dupe({Equality? equalizer}) =>
+      Rx._(initial: staticOrNull, equalizer: equalizer ?? this.equalizer)
+        ..bindRx(this);
 
   /// Create an exact copy of the [Rx<T>] but distinct enforced
   ///
   /// The copy will receive all events comming from the original
   /// Events that are indistinct will be skipped
-  Rx<T> distinct() => _dupe(distinct: true);
+  Rx<T> distinct() => dupe(equalizer: const BaseEquality());
 
   /// Create an exact copy of the [Rx<T>] but indistinct enforced
   ///
   /// The copy will receive all events comming from the original
   /// Be aware that even if this observable is indistinct
   /// The value it recieves from the parent will match parent policy
-  Rx<T> indistinct() => _dupe(distinct: false);
+  Rx<T> indistinct() => dupe(equalizer: const NeverEquality());
 
   StreamController<T>? _controller;
 
@@ -228,13 +280,13 @@ class Rx<T> extends RxImpl<T> {
   /// You can bind multiple sources to update the value.
   /// Once a stream closes the subscription will cancel itself
   /// You can also cancel the sub with the provided callback
-  Disposer bindStream(Stream<T> stream) {
-    final sub = stream.listen((e) {
+  Disposer bindStream(Stream<T> stream, [StreamFilter<T>? filter]) {
+    final sub = (filter?.call(stream) ?? stream).listen((e) {
       value = e;
     }, cancelOnError: false);
-    _disposers.add(sub.cancel);
+    disposers.add(sub.cancel);
     clean() {
-      _disposers.remove(sub.cancel);
+      disposers.remove(sub.cancel);
       sub.cancel();
     }
 
@@ -251,15 +303,17 @@ class Rx<T> extends RxImpl<T> {
   /// You will have to clean it up yourself
   /// For that you can call the provided [Disposer]
   Disposer bindRx(Reactive<T> rx, [StreamFilter<T>? filter]) {
-    final sub = rx.listen(
+    final sub = rx.subscribe(
       (e) {
         value = e;
       },
-      filter: filter,
+      // TODO: add back filter on subscribe
+      // TODO: add back stream on need
+      // filter: filter,
     );
-    _disposers.add(sub);
+    disposers.add(sub);
     clean() {
-      _disposers.remove(sub);
+      disposers.remove(sub);
       sub();
     }
 
@@ -283,10 +337,10 @@ class Rx<T> extends RxImpl<T> {
 
     listenable.addListener(closure);
     cancel() => listenable.removeListener(closure);
-    _disposers.add(cancel);
+    disposers.add(cancel);
 
     return () {
-      _disposers.remove(cancel);
+      disposers.remove(cancel);
       cancel();
     };
   }
@@ -304,10 +358,10 @@ class Rx<T> extends RxImpl<T> {
     closure() => value = onEvent();
     listenable.addListener(closure);
     cancel() => listenable.removeListener(closure);
-    _disposers.add(cancel);
+    disposers.add(cancel);
 
     return () {
-      _disposers.remove(cancel);
+      disposers.remove(cancel);
       cancel();
     };
   }

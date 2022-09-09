@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
+import 'package:collection/collection.dart';
 import '../../orchestrator.dart';
 import '../../equality.dart';
 
@@ -11,7 +12,7 @@ import '../../equality.dart';
 /// Then it fire once, and then it dies
 /// So it really has a "single shot"
 class SingleShot<T> extends Reactive<T> {
-  SingleShot() : super(null);
+  SingleShot() : super();
 
   @override
   void emit() {
@@ -31,8 +32,7 @@ class SingleShot<T> extends Reactive<T> {
 /// This null emit will be forwareded to Listeners
 //ignore: prefer_void_to_null
 class Emitter extends Reactive<Null> {
-  // TODO: implement neverEquals
-  Emitter() : super(null, const NeverEquals());
+  Emitter() : super(equalizer: const NeverEquality());
 
   /// Creates an emitter that emits from an Interval
   factory Emitter.fromInterval(
@@ -105,7 +105,7 @@ class Reactive<T> {
 
   bool get hasValue => _value != null || null is T;
 
-  Reactive([T? initial, Equality equalizer = const DefaultEquality()])
+  Reactive({T? initial, Equality equalizer = const BaseEquality()})
       : _value = initial,
         _equalizer = equalizer;
 
@@ -274,6 +274,7 @@ extension ValueOrNull<T> on Reactive<T> {
 }
 
 /// This is used to pass private fields to other files
-extension RxTrackableProtectedAccess<T> on RxImpl<T> {
-  List<Disposer>? get disposers => _disposers;
+extension RxTrackableProtectedAccess<T> on Reactive<T> {
+  List<Disposer> get disposers => _disposers;
+  T? get staticOrNull => _value;
 }
