@@ -45,23 +45,15 @@ class Reactive<T> {
       }
       _listeners = newListeners;
     }
+
     _listeners[_count++] = listener;
-  }
-
-  void _removeAt(int index) {
-    _count -= 1;
-
-    for (int i = index; i < _count; i++) {
-      _listeners[i] = _listeners[i + 1];
-    }
-    _listeners[_count] = null;
   }
 
   void _removeListener(Function(T e) listener) {
     for (int i = 0; i < _count; i++) {
       if (_listeners[i] == listener) {
         _listeners[i] = null;
-        _nullIdx.add(i - _nullIdx.length);
+        _nullIdx.add(i);
         scheduleMicrotask(() => _shift());
         break;
       }
@@ -70,11 +62,11 @@ class Reactive<T> {
 
   void _shift() {
     if (_nullIdx.isEmpty) return;
-    for (int i = 0; i < _nullIdx.length; i++) {
-      if (_listeners[i] == null) {
-        _removeAt(i);
-      }
-    }
+    final List<Function(T e)?> newListeners =
+        List<Function(T e)?>.filled(_listeners.length, null);
+    // TODO: shift this
+    _listeners = newListeners;
+    _count -= _nullIdx.length;
     _nullIdx = [];
   }
 
@@ -122,7 +114,7 @@ class Reactive<T> {
 
 func(dynamic e) => true;
 
-const loops = 1000000;
+const loops = 1;
 
 void show(
   String name,
@@ -144,11 +136,10 @@ Future<void> notifierTest(int i) async {
   var notifierCounter = 0;
   final start = DateTime.now();
 
-  VoidCallback listener = () {};
   for (int j = 0; j < i; j++) {
+    late final VoidCallback listener;
     listener = () => notifier.removeListener(listener);
     notifier.addListener(listener);
-    listener = () {};
   }
   notifier.addListener(() {
     notifierCounter++;
@@ -184,8 +175,8 @@ Future<void> rxTrest(int i) async {
   final rx = Reactive<int>(0);
   var notifierCounter = 0;
   final start = DateTime.now();
-  VoidCallback callback = () {};
   for (int j = 0; j < i; j++) {
+    late final VoidCallback callback;
     callback = rx.listen((_) {
       callback();
     });
