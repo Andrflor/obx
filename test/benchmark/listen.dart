@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'dart:math';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart' as getx;
@@ -62,11 +64,37 @@ class Reactive<T> {
 
   void _shift() {
     if (_nullIdx.isEmpty) return;
-    final List<Function(T e)?> newListeners =
-        List<Function(T e)?>.filled(_listeners.length, null);
-    // TODO: shift this
-    _listeners = newListeners;
-    _count -= _nullIdx.length;
+    final length = _nullIdx.length;
+    if (length == 1) {
+      _count -= length;
+      for (int i = _nullIdx.first; i < _count; i++) {
+        _listeners[i] = _listeners[i + 1];
+      }
+      _listeners[_count] = null;
+    } else {
+      _nullIdx.sort();
+      int shift = 1;
+      for (int i = 0; i < length; i++) {
+        if (i + 1 == length) {
+          for (int j = _nullIdx[i] + 1; j < _count; j++) {
+            _listeners[j - shift] = _listeners[j];
+          }
+          for (int j = _count - shift; j < _count; j++) {
+            _listeners[j] = null;
+          }
+          break;
+        }
+        if (_nullIdx[i] + 1 == _nullIdx[i + 1]) {
+          shift++;
+          continue;
+        }
+        for (int j = _nullIdx[i] + 1; j < _nullIdx[i + 1]; j++) {
+          _listeners[j - shift] = _listeners[j];
+        }
+        shift++;
+      }
+      _count -= length;
+    }
     _nullIdx = [];
   }
 
@@ -106,7 +134,24 @@ class Reactive<T> {
     emit();
   }
 
-  VoidCallback listen(Function(T e) callback) {
+  VoidCallback subscribe(Function(T value) callback) {
+    _addListener(callback);
+    return () => _removeListener(callback);
+  }
+
+  VoidCallback subDiff(Function(T last, T current) callback) {
+    T oldVal = _value as T;
+    listener(T value) {
+      callback(oldVal, value);
+      oldVal = _value as T;
+    }
+
+    _addListener(listener);
+    return () => _removeListener(listener);
+  }
+
+  VoidCallback subNow(Function(T value) callback) {
+    callback(_value as T);
     _addListener(callback);
     return () => _removeListener(callback);
   }
@@ -114,7 +159,7 @@ class Reactive<T> {
 
 func(dynamic e) => true;
 
-const loops = 1;
+const loops = 2;
 
 void show(
   String name,
@@ -175,17 +220,25 @@ Future<void> rxTrest(int i) async {
   final rx = Reactive<int>(0);
   var notifierCounter = 0;
   final start = DateTime.now();
+  final rand =
+      List.generate(Random().nextInt(i + 1), (_) => Random().nextInt(i + 1))
+          .toSet();
   for (int j = 0; j < i; j++) {
     late final VoidCallback callback;
-    callback = rx.listen((_) {
-      callback();
+    callback = rx.subscribe((_) {
+      if (rand.contains(j)) {
+        callback();
+      } else {
+        print(j);
+      }
     });
   }
-  rx.listen((_) {
+  rx.subscribe((_) {
     notifierCounter++;
     show("obx:      ", start, notifierCounter, _completer);
   });
   for (int i = 0; i < loops; i++) {
+    await Future.delayed(Duration(milliseconds: 100));
     rx.value = 10;
   }
   return _completer.future;
