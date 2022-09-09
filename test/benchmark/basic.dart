@@ -1,12 +1,9 @@
-import 'package:collection/collection.dart';
 import 'package:equatable/equatable.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart' as getx;
 import 'package:obx/obx.dart';
 
 main() async {
-  // await getxBench();
-  Rx("My little string");
+  await getxBench();
 }
 
 Future<void> getxBench() async {

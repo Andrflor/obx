@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:obx/obx.dart';
@@ -123,18 +124,18 @@ void main() {
       );
       equals(
         "list empty",
-        Rx([]),
-        Rx([]),
+        Rx.withEq(equalizer: const ListEquality(), init: []),
+        Rx.withEq(equalizer: const ListEquality(), init: []),
       );
       equals(
         "list int",
-        Rx([1]),
-        Rx([1]),
+        Rx.withEq(equalizer: const ListEquality(), init: [1]),
+        Rx.withEq(equalizer: const ListEquality(), init: [1]),
       );
       equals(
         "list int?",
-        Rx(<int?>[1]),
-        Rx(<int?>[1]),
+        Rx.withEq(equalizer: const ListEquality(), init: <int?>[1]),
+        Rx.withEq(equalizer: const ListEquality(), init: <int?>[1]),
       );
       equals(
         "equatable",
@@ -150,8 +151,8 @@ void main() {
       );
       inequals(
         "list int",
-        Rx([1]),
-        Rx([2]),
+        Rx.withEq(equalizer: const ListEquality(), init: [1]),
+        Rx.withEq(equalizer: const ListEquality(), init: [2]),
       );
       inequals(
         "list int?",
@@ -169,9 +170,8 @@ void main() {
 
 void isEqual<S, T>(String name, Rx<T> t, Rx<S> s, bool isEqual) {
   return test(name, () {
-    expect(t == s, isEqual, reason: 'Rx failed');
-    expect(t == s.value, isEqual, reason: 'Left failed');
-    expect(s == t.value, isEqual, reason: 'Right failed');
+    expect(t.equalizer.equals(t.value, s.value), isEqual);
+    expect(s.equalizer.equals(t.value, s.value), isEqual);
   });
 }
 

@@ -365,10 +365,8 @@ class Reactive<T> {
       : _value = initial,
         _equalizer = equalizer;
 
-  static const _emptyDisposers = [null];
-
   List<Function(T e)?> _listeners = List<Function(T e)?>.filled(5, null);
-  List<Function()?> _disposers = _emptyDisposers;
+  List<Function()?> _disposers = <Function()?>[null];
 
   static bool debugAssertNotDisposed(Reactive notifier) {
     assert(() {
