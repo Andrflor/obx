@@ -1,19 +1,17 @@
 import 'dart:async';
 
-import 'dart:math';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart' as getx;
 
 void main() async {
-  for (int i = 0; i < 25; i++) {
+  for (int i = 0; i < 13; i++) {
     print("");
     print("With ${i + 1} listeners");
-    // await streamTest(i);
-    // await getxTrest(i);
     await notifierTest(i);
     await rxTrest(i);
+    await streamTest(i);
+    await getxTrest(i);
   }
 }
 
@@ -56,14 +54,12 @@ class Reactive<T> {
       if (_listeners[i] == listener) {
         _listeners[i] = null;
         _nullIdx.add(i);
-        scheduleMicrotask(() => _shift());
         break;
       }
     }
   }
 
   void _shift() {
-    if (_nullIdx.isEmpty) return;
     final length = _nullIdx.length;
     if (length == 1) {
       _count -= length;
@@ -73,6 +69,7 @@ class Reactive<T> {
       _listeners[_count] = null;
     } else {
       _nullIdx.sort();
+      // TODO: reallocate smaller if needed
       int shift = 1;
       for (int i = 0; i < length; i++) {
         if (i + 1 == length) {
@@ -112,9 +109,7 @@ class Reactive<T> {
   @pragma('vm:notify-debugger-on-exception')
   void emit() {
     assert(Reactive.debugAssertNotDisposed(this));
-    if (_count == 0) {
-      return;
-    }
+    if (_nullIdx.isNotEmpty) _shift();
     for (int i = 0; i < _count; i++) {
       _listeners[i]?.call(_value as T);
     }
@@ -159,7 +154,7 @@ class Reactive<T> {
 
 func(dynamic e) => true;
 
-const loops = 2;
+const loops = 1000000;
 
 void show(
   String name,
@@ -182,8 +177,8 @@ Future<void> notifierTest(int i) async {
   final start = DateTime.now();
 
   for (int j = 0; j < i; j++) {
-    late final VoidCallback listener;
-    listener = () => notifier.removeListener(listener);
+    late final VoidCallback listener = () {};
+    // listener = () => notifier.removeListener(listener);
     notifier.addListener(listener);
   }
   notifier.addListener(() {
@@ -220,17 +215,17 @@ Future<void> rxTrest(int i) async {
   final rx = Reactive<int>(0);
   var notifierCounter = 0;
   final start = DateTime.now();
-  final rand =
-      List.generate(Random().nextInt(i + 1), (_) => Random().nextInt(i + 1))
-          .toSet();
+  // final rand =
+  //     List.generate(Random().nextInt(i + 1), (_) => Random().nextInt(i + 1))
+  //         .toSet();
   for (int j = 0; j < i; j++) {
     late final VoidCallback callback;
     callback = rx.subscribe((_) {
-      if (rand.contains(j)) {
-        callback();
-      } else {
-        print(j);
-      }
+      // if (rand.contains(j)) {
+      // callback();
+      // } else {
+      // print(j);
+      // }
     });
   }
   rx.subscribe((_) {
@@ -238,7 +233,6 @@ Future<void> rxTrest(int i) async {
     show("obx:      ", start, notifierCounter, _completer);
   });
   for (int i = 0; i < loops; i++) {
-    await Future.delayed(Duration(milliseconds: 100));
     rx.value = 10;
   }
   return _completer.future;
