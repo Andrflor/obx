@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
+import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart' as getx;
 
@@ -8,16 +9,25 @@ void main() async {
   for (int i = 0; i < 13; i++) {
     print("");
     print("With ${i + 1} listeners");
-    await notifierTest(i);
-    await rxTrest(i);
-    await streamTest(i);
-    await getxTrest(i);
+    // await notifierTest(i);
+    // await rxTrest(i);
+    // await streamTest(i);
+    // await getxTrest(i);
   }
 }
 
 class Reactive<T> {
   int _count = 0;
   List<int> _nullIdx = [];
+
+  T? _value;
+
+  final Equality _equalizer;
+  Equality get equalizer => _equalizer;
+
+  Reactive([T? initial, Equality equalizer = const DefaultEquality()])
+      : _value = initial,
+        _equalizer = equalizer;
 
   List<Function(T e)?> _listeners = List<Function(T e)?>.filled(5, null);
 
@@ -109,19 +119,17 @@ class Reactive<T> {
   @pragma('vm:notify-debugger-on-exception')
   void emit() {
     assert(Reactive.debugAssertNotDisposed(this));
-    if (_nullIdx.isNotEmpty) _shift();
     for (int i = 0; i < _count; i++) {
       _listeners[i]?.call(_value as T);
     }
+    if (_nullIdx.isNotEmpty) _shift();
   }
 
-  T? _value;
-
-  Reactive([T? initial]) : _value = initial;
-
   set value(T val) {
-    _value = val;
-    emit();
+    if (_equalizer.equals(_value, val)) {
+      _value = val;
+      emit();
+    }
   }
 
   void trigger(T val) {
@@ -234,6 +242,7 @@ Future<void> rxTrest(int i) async {
   });
   for (int i = 0; i < loops; i++) {
     rx.value = 10;
+    rx.emit();
   }
   return _completer.future;
 }
