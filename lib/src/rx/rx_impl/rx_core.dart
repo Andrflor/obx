@@ -185,7 +185,7 @@ class Rx<T> extends Reactive<T> {
       _clone(
         convert: init,
         distinct: distinct,
-      )..bindStream(transformer(stream));
+      )..bindStream(transformer(_autoInitStream));
 
   /// Maps this [Rx<T>] into a new [Rx<S>]
   ///
@@ -264,23 +264,54 @@ class Rx<T> extends Reactive<T> {
   StreamController<T>? _controller;
 
   Stream<T>? _stream;
+  Stream<T> get _autoInitStream {
+    if (_stream != null) return _stream!;
+    _controller = StreamController<T>.broadcast();
+    addListener(_streamSub);
+    _controller!.onCancel = () {
+      if (!_controller!.hasListener) {
+        removeListener(_streamSub);
+        _controller!.close();
+      }
+    };
+    return _controller!.stream;
+  }
 
-  Stream<T> get stream {
-    if (_controller == null) {
-      _controller = StreamController<T>();
-      _controller!.onCancel = dispose;
-      _stream = _controller!.stream;
+  void _streamSub(T e) => _controller?.add(e);
+
+  @override
+  VoidCallback subscribe(Function(T value) callback,
+          {StreamFilter<T>? filter}) =>
+      filter?.call(_autoInitStream).listen(callback).cancel ??
+      super.subscribe(callback);
+
+  @override
+  VoidCallback subNow(Function(T value) callback, {StreamFilter<T>? filter}) {
+    callback(staticOrNull as T);
+    return filter?.call(_autoInitStream).listen(callback).cancel ??
+        super.subscribe(callback);
+  }
+
+  @override
+  VoidCallback subDiff(Function(T last, T current) callback,
+      {StreamFilter<T>? filter}) {
+    if (filter != null) {
+      T oldVal = staticOrNull as T;
+      listener(T value) {
+        callback(oldVal, value);
+        oldVal = staticOrNull as T;
+      }
+
+      return filter(_autoInitStream).listen(listener).cancel;
     }
-    return _stream!;
+    return super.subDiff(callback);
   }
 
   @override
   @mustCallSuper
   void dispose() {
     detatch();
-    if (_controller != null) {
-      _controller?.close();
-    }
+    _controller?.close();
     super.dispose();
   }
 
@@ -311,14 +342,12 @@ class Rx<T> extends Reactive<T> {
   /// It's impossible to know when a [ValueListenable] is done
   /// You will have to clean it up yourself
   /// For that you can call the provided [Disposer]
-  Disposer bindRx(Reactive<T> rx, [StreamFilter<T>? filter]) {
+  Disposer bindRx(Rx<T> rx, [StreamFilter<T>? filter]) {
     final sub = rx.subscribe(
       (e) {
         value = e;
       },
-      // TODO: add back filter on subscribe
-      // TODO: add back stream on need
-      // filter: filter,
+      filter: filter,
     );
     disposers.add(sub);
     clean() {

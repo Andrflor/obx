@@ -13,12 +13,14 @@ import 'orchestrator.dart';
 /// You can call it with any [T Function()] containing any combinaison of [Rx]
 /// The UI will rebuild only if the value of the result changes
 ///  Example with [RxDouble] data1 and [RxDouble] data2:
+/// ```dart
 ///     Obx(
 ///       () => Text(observe(() =>
 ///           data2.toStringAsFixed(0) == data2.toStringAsFixed(0)
 ///               ? "Equals"
 ///               : "Different")),
 ///     ),
+/// ```
 /// Will only rebuild when the result String ("Equals" or "Different") changes
 ///
 /// [observe] is smart, it knows where it's called
@@ -34,7 +36,6 @@ import 'orchestrator.dart';
 /// Obx(() => Text(equals));
 /// ever(() => equals, print);
 /// ```
-///
 /// With complex structures you may endup with [observe] inside [observe]
 /// Again, it has almost zero cost and you should feel free to do so
 ///
@@ -72,6 +73,7 @@ T observe<T>(T Function() builder) {
 /// Passing a [T Function()] is practicaly usefull
 /// Like [observe] the callback will fire only when the result changes
 /// Examples with [RxDouble] data1 and [RxDouble] data2:
+/// ```dart
 /// ever(data1, (bool value) => // Some work here);
 /// ever(data2, someBooleanHandler);
 /// ever(
@@ -89,7 +91,7 @@ T observe<T>(T Function() builder) {
 ///   }
 /// }
 /// ever(() => equals, displayEqual);
-///
+/// ```
 /// [ever] is a reactive callback handler
 /// Like [observe] it will only evaluate your closure when really needed
 /// Used with [Stream<T>]
@@ -114,7 +116,7 @@ Disposer ever<T>(
   bool forceDistinct = false,
 }) {
   if (observable is T Function()) {
-    return Orchestrator.listen(observable).listen(
+    return Orchestrator.fuse(observable).subscribe(
       onData,
       filter: filter,
     );
@@ -123,7 +125,7 @@ Disposer ever<T>(
     return (forceDistinct && !observable.isDistinct
             ? observable.distinct()
             : observable)
-        .listen(
+        .subscribe(
       onData,
       filter: filter,
     );
@@ -141,7 +143,8 @@ Disposer ever<T>(
   }
   if (observable is ValueListenable<T>) {
     if (forceDistinct || filter != null) {
-      return Rx.fromValueListenable(observable, distinct: forceDistinct).listen(
+      return Rx.fromValueListenable(observable, distinct: forceDistinct)
+          .subscribe(
         onData,
         filter: filter,
       );
@@ -177,7 +180,7 @@ Disposer everNow<T>(
   bool forceDistinct = false,
 }) {
   if (observable is T Function()) {
-    return Orchestrator.listen(observable).listenNow(
+    return Orchestrator.fuse(observable).subNow(
       onData,
       filter: filter,
     );
@@ -186,7 +189,7 @@ Disposer everNow<T>(
     return (forceDistinct && !observable.isDistinct
             ? observable.distinct()
             : observable)
-        .listenNow(
+        .subNow(
       onData,
       filter: filter,
     );
@@ -204,8 +207,7 @@ Disposer everNow<T>(
   }
   if (observable is ValueListenable<T>) {
     if (forceDistinct || filter != null) {
-      return Rx.fromValueListenable(observable, distinct: forceDistinct)
-          .listenNow(
+      return Rx.fromValueListenable(observable, distinct: forceDistinct).subNow(
         onData,
         filter: filter,
       );
@@ -222,6 +224,9 @@ Disposer everNow<T>(
   _debugAssertObservableType(observable, T, 'everNow');
   return () {};
 }
+
+// TODO: implem [everDiff] [onceDiff] [debounceDiff]
+// TODO: MAYBE implem [interval] [intervalNow] [intervalDiff]
 
 void _debugAssertObservableType<S>(S value, Type inner, String name) {
   assert(() {

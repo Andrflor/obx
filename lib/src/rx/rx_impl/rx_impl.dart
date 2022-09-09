@@ -237,12 +237,22 @@ class Reactive<T> {
     _value = v;
   }
 
-  VoidCallback subscribe(Function(T value) callback) {
+  VoidCallback subscribe(
+    Function(T value) callback,
+  ) {
     _addListener(callback);
     return () => _removeListener(callback);
   }
 
-  VoidCallback subDiff(Function(T last, T current) callback) {
+  VoidCallback subNow(Function(T value) callback) {
+    callback(_value as T);
+    _addListener(callback);
+    return () => _removeListener(callback);
+  }
+
+  VoidCallback subDiff(
+    Function(T last, T current) callback,
+  ) {
     T oldVal = _value as T;
     listener(T value) {
       callback(oldVal, value);
@@ -251,12 +261,6 @@ class Reactive<T> {
 
     _addListener(listener);
     return () => _removeListener(listener);
-  }
-
-  VoidCallback subNow(Function(T value) callback) {
-    callback(_value as T);
-    _addListener(callback);
-    return () => _removeListener(callback);
   }
 
   @protected
@@ -278,4 +282,6 @@ extension RxTrackableProtectedAccess<T> on Reactive<T> {
   List<Disposer> get disposers => _disposers;
   set disposers(List<Disposer> value) => _disposers = value;
   T? get staticOrNull => _value;
+  void removeListener(Function(T e) listener) => _removeListener(listener);
+  void addListener(Function(T e) listener) => addListener(listener);
 }
