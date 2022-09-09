@@ -58,26 +58,9 @@ abstract class Orchestrator {
     _working = false;
   }
 
-  static Rx<T> listen<T>(T Function() builder) {
+  static Rx<T> fuse<T>(T Function() builder) {
     final base = Rx<T>();
     _internal(builder, base);
-    return base;
-  }
-
-  static Rx<T> fuse<T>(T Function() builder) {
-    _working = true;
-    final base = Rx<T>();
-    final previousData = _notifyData;
-    final debouncer = EveryDebouncer(
-        delay: const Duration(milliseconds: 5), retries: 4, enabled: false);
-    _notifyData = NotifyData(
-        updater: () => debouncer(() => base.value = builder()),
-        disposers: [debouncer.cancel]);
-    base.value = builder();
-    debouncer.start();
-    // base.disposers = _notifyData?.disposers;
-    _notifyData = previousData;
-    _working = false;
     return base;
   }
 }
