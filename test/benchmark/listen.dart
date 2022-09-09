@@ -9,16 +9,16 @@ void main() async {
   for (int i = 0; i < 13; i++) {
     print("");
     print("With ${i + 1} listeners");
-    // await notifierTest(i);
-    // await rxTrest(i);
-    // await streamTest(i);
-    // await getxTrest(i);
+    await notifierTest(i);
+    await rxTrest(i);
+    await streamTest(i);
+    await getxTrest(i);
   }
 }
 
 class Reactive<T> {
   int _count = 0;
-  List<int> _nullIdx = [];
+  List<int> _nullIdx = const [];
 
   T? _value;
 
@@ -29,7 +29,7 @@ class Reactive<T> {
       : _value = initial,
         _equalizer = equalizer;
 
-  List<Function(T e)?> _listeners = List<Function(T e)?>.filled(5, null);
+  List<Function(T e)?> _listeners = const [];
 
   static bool debugAssertNotDisposed(Reactive notifier) {
     assert(() {

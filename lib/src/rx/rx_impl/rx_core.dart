@@ -199,4 +199,116 @@ class Rx<T> extends RxImpl<T> {
   /// Be aware that even if this observable is indistinct
   /// The value it recieves from the parent will match parent policy
   Rx<T> indistinct() => _dupe(distinct: false);
+
+  StreamController<T>? _controller;
+
+  Stream<T>? _stream;
+
+  Stream<T> get stream {
+    if (_controller == null) {
+      _controller = StreamController<T>();
+      _controller!.onCancel = dispose;
+      _stream = _controller!.stream;
+    }
+    return _stream!;
+  }
+
+  @override
+  @mustCallSuper
+  void dispose() {
+    detatch();
+    if (_controller != null) {
+      _controller?.close();
+    }
+    super.dispose();
+  }
+
+  /// Binds an existing `Stream<T>` to this Rx<T> to keep the values in sync.
+  ///
+  /// You can bind multiple sources to update the value.
+  /// Once a stream closes the subscription will cancel itself
+  /// You can also cancel the sub with the provided callback
+  Disposer bindStream(Stream<T> stream) {
+    final sub = stream.listen((e) {
+      value = e;
+    }, cancelOnError: false);
+    _disposers.add(sub.cancel);
+    clean() {
+      _disposers.remove(sub.cancel);
+      sub.cancel();
+    }
+
+    sub.onDone(clean);
+    return clean;
+  }
+
+  /// Binding to this [Rx<T>] to any other [Rx<T>]
+  ///
+  /// Binds an existing [ValueListenable<T>] this might be a [ValueNotifier<T>]
+  /// Keeping this [Rx<T>] values in sync.
+  /// You can bind multiple sources to update the value.
+  /// It's impossible to know when a [ValueListenable] is done
+  /// You will have to clean it up yourself
+  /// For that you can call the provided [Disposer]
+  Disposer bindRx(Reactive<T> rx, [StreamFilter<T>? filter]) {
+    final sub = rx.listen(
+      (e) {
+        value = e;
+      },
+      filter: filter,
+    );
+    _disposers.add(sub);
+    clean() {
+      _disposers.remove(sub);
+      sub();
+    }
+
+    return clean;
+  }
+
+  /// Binding to any listener with callback
+  ///
+  /// Binds an existing [ValueListenable<T>] this might be a [ValueNotifier<T>]
+  /// Keeping this [Rx<T>] values in sync.
+  /// You can bind multiple sources to update the value.
+  /// It's impossible to know when a [ValueListenable] is done
+  /// You will have to clean it up yourself
+  /// For that you can call the provided [Disposer]
+  Disposer bindValueListenable(
+    ValueListenable<T> listenable,
+  ) {
+    closure() {
+      value = listenable.value;
+    }
+
+    listenable.addListener(closure);
+    cancel() => listenable.removeListener(closure);
+    _disposers.add(cancel);
+
+    return () {
+      _disposers.remove(cancel);
+      cancel();
+    };
+  }
+
+  /// Binding to any listener with provided `onEvent` callback
+  ///
+  /// Binds an existing [Listenable]
+  /// Keeping this [Rx<T>] values in sync.
+  /// You can bind multiple sources to update the value.
+  /// It's impossible to know when a [Listenable] is done
+  /// You will have to clean it up yourself
+  /// For that you can call the provided [Disposer]
+  Disposer bindListenable(Listenable listenable,
+      {required T Function() onEvent}) {
+    closure() => value = onEvent();
+    listenable.addListener(closure);
+    cancel() => listenable.removeListener(closure);
+    _disposers.add(cancel);
+
+    return () {
+      _disposers.remove(cancel);
+      cancel();
+    };
+  }
 }

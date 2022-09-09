@@ -1,6 +1,8 @@
+import 'package:collection/collection.dart';
 import 'package:equatable/equatable.dart';
-import 'package:obx/obx.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart' as getx;
+import 'package:obx/obx.dart';
 
 main() async {
   await getxBench();
@@ -88,7 +90,7 @@ Future<void> bench<S extends Object>(S value, S diff) async {
   print("");
   print("Foreign Equality");
   await delay(() => boolx == 1);
-  await delay(() => rxbool == 1);
+  await delay(() => rxbool.value == 1);
   print("");
   print("Member Equality");
   await delay(() => boolx == diff);
