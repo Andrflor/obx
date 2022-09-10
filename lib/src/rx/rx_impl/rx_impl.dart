@@ -8,17 +8,16 @@ import '../../orchestrator.dart';
 import '../../equality.dart';
 
 class RxImpl<T> extends Reactive<T> {
-  RxImpl({super.initial, super.equalizer});
+  RxImpl({super.initial, super.eq});
 
-  Rx<S> _clone<S>(
-          {bool? distinct, S Function(T e)? convert, Equality? equalizer}) =>
+  Rx<S> _clone<S>({bool? distinct, S Function(T e)? convert, Equality? eq}) =>
       Rx.withEq(
           init: hasValue ? (convert?.call(_value as T) ?? _value as S) : null,
-          equalizer: equalizer ??
+          eq: eq ??
               (distinct == null
-                  ? this.equalizer
+                  ? _eq
                   : distinct
-                      ? const BaseEquality()
+                      ? const Equality()
                       : const NeverEquality()));
 
   /// Creates a new [Rx<S>] based on [StreamTransformation<S,T>] of this [Rx<T>]
@@ -48,10 +47,8 @@ class RxImpl<T> extends Reactive<T> {
   /// [pipeMap] is a lightWeight operator since it does not need stream
   ///
   /// If you have more complex operation to do, use [pipe] instead
-  Rx<S> pipeMap<S>(S Function(T e) transform,
-      {bool? distinct, Equality? equalizer}) {
-    final res =
-        _clone(distinct: distinct, convert: transform, equalizer: equalizer);
+  Rx<S> pipeMap<S>(S Function(T e) transform, {bool? distinct, Equality? eq}) {
+    final res = _clone(distinct: distinct, convert: transform, eq: eq);
     res._disposers.add(subscribe((T data) => res.value = transform(data)));
     return res;
   }
@@ -63,9 +60,8 @@ class RxImpl<T> extends Reactive<T> {
   /// Provide the [bool] paramterer `distinct`
   ///
   /// If you have more complex operation to do, use [pipe] instead
-  Rx<T> pipeWhere(bool Function(T e) test,
-      {bool? distinct, Equality? equalizer}) {
-    final res = _clone<T>(distinct: distinct, equalizer: equalizer);
+  Rx<T> pipeWhere(bool Function(T e) test, {bool? distinct, Equality? eq}) {
+    final res = _clone<T>(distinct: distinct, eq: eq);
     res._disposers.add(subscribe((T data) {
       if (test(data)) {
         res.value = data;
@@ -83,9 +79,8 @@ class RxImpl<T> extends Reactive<T> {
   ///
   /// If you have more complex operation to do, use [pipe] instead
   Rx<S> pipeMapWhere<S>(S Function(T e) transform, bool Function(T e) test,
-      {bool? distinct, Equality? equalizer}) {
-    final res =
-        _clone(distinct: distinct, equalizer: equalizer, convert: transform);
+      {bool? distinct, Equality? eq}) {
+    final res = _clone(distinct: distinct, eq: eq, convert: transform);
     res._disposers.add(subscribe((T data) {
       if (test(data)) {
         res.value = transform(data);
@@ -97,23 +92,32 @@ class RxImpl<T> extends Reactive<T> {
   /// Create an exact copy of the [Rx<T>]
   ///
   /// The copy will receive all events comming from the original
-  Rx<T> dupe({Equality? equalizer}) =>
-      Rx.withEq(init: _value, equalizer: equalizer ?? this.equalizer)
-        ..bindRx(this);
+  Rx<T> dupe({Equality? eq}) =>
+      Rx.withEq(init: _value, eq: eq ?? _eq)..bindRx(this);
 
   /// Create an exact copy of the [Rx<T>] but distinct enforced
   ///
   /// The copy will receive all events comming from the original
   /// Events that are indistinct will be skipped
-  Rx<T> distinct() => dupe(equalizer: const BaseEquality());
+  Rx<T> distinct() => dupe(eq: const Equality());
 
   /// Create an exact copy of the [Rx<T>] but indistinct enforced
   ///
   /// The copy will receive all events comming from the original
   /// Be aware that even if this observable is indistinct
   /// The value it recieves from the parent will match parent policy
-  Rx<T> indistinct() => dupe(equalizer: const NeverEquality());
+  Rx<T> indistinct() => dupe(eq: const NeverEquality());
 
+  /// The stream associated with this Rx
+  ///
+  /// Returns a Broadcast [Stream<T>]
+  /// The [StreamController] is lazy loaded
+  ///
+  /// Only use it if you really need it
+  /// Streams are 10 to 100 times slower
+  /// And use more ressources
+  ///
+  /// Furthermore [Rx] is not based on stream
   Stream<T> get stream {
     if (_disposers.first != null) return _disposers.first!().stream;
     final controller = StreamController<T>.broadcast();
@@ -288,7 +292,7 @@ class SingleShot<T> extends Reactive<T> {
 /// This null emit will be forwareded to Listeners
 //ignore: prefer_void_to_null
 class Emitter extends Reactive<Null> {
-  Emitter() : super(equalizer: const NeverEquality());
+  Emitter() : super(eq: const NeverEquality());
 
   /// Creates an emitter that emits from an Interval
   factory Emitter.fromInterval(
@@ -349,8 +353,8 @@ class Reactive<T> {
 
   T? _value;
 
-  final Equality _equalizer;
-  Equality get equalizer => _equalizer;
+  final Equality _eq;
+  Equality get equalizer => _eq;
 
   T call([T? v]) {
     if (v != null) {
@@ -361,9 +365,9 @@ class Reactive<T> {
 
   bool get hasValue => _value != null || null is T;
 
-  Reactive({T? initial, Equality equalizer = const BaseEquality()})
+  Reactive({T? initial, Equality eq = const Equality()})
       : _value = initial,
-        _equalizer = equalizer;
+        _eq = eq;
 
   List<Function(T e)?> _listeners = List<Function(T e)?>.filled(5, null);
   List<Function()?> _disposers = <Function()?>[null];
@@ -483,7 +487,7 @@ class Reactive<T> {
 
   /// Change the value if it matches the equality constraint
   set value(T val) {
-    if (_equalizer.equals(_value, val)) return;
+    if (_eq.equals(_value, val)) return;
     _value = val;
     emit();
   }

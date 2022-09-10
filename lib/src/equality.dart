@@ -7,28 +7,8 @@ class NeverEquality<E> implements Equality<E> {
   equals(E? e1, E? e2) => false;
 
   @override
-  int hash(E e) {
-    throw UnimplementedError();
-  }
+  int hash(E e) => e.hashCode;
 
   @override
-  bool isValidKey(Object? o) {
-    throw UnimplementedError();
-  }
-}
-
-class BaseEquality<E> implements Equality<E> {
-  const BaseEquality();
-  @override
-  equals(E? e1, E? e2) => e1 == e2;
-
-  @override
-  int hash(E e) {
-    throw UnimplementedError();
-  }
-
-  @override
-  bool isValidKey(Object? o) {
-    throw UnimplementedError();
-  }
+  bool isValidKey(Object? o) => o is E;
 }

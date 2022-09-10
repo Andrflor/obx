@@ -34,7 +34,7 @@ class Rx<T> extends RxImpl<T> {
   /// You can use any Equality from the 'collection' package.
   /// If you want you can also create you own custom equality
   /// Either by extending any [Equality] class or implementing [Equality]
-  Rx.withEq({super.equalizer, T? init}) : super(initial: init);
+  Rx.withEq({super.eq, T? init}) : super(initial: init);
 
   /// Creates and Instance of the [Rx<T>] class
   ///
@@ -56,7 +56,7 @@ class Rx<T> extends RxImpl<T> {
   /// Even if the value is the same as last time
   /// This is particuliry usefull in some scenarios
   Rx.indistinct([T? initial])
-      : super(initial: initial, equalizer: const NeverEquality());
+      : super(initial: initial, eq: const NeverEquality());
 
   /// Creates a [Rx<T>] from any [Stream<T>]
   ///
@@ -68,15 +68,15 @@ class Rx<T> extends RxImpl<T> {
   Rx.fromStream(
     Stream<T> stream, {
     T? init,
-    Equality? equalizer,
+    Equality? eq,
     bool? distinct,
   }) : super(
             initial: init,
-            equalizer: equalizer ??
+            eq: eq ??
                 (distinct == null
-                    ? const BaseEquality()
+                    ? const Equality()
                     : distinct
-                        ? const BaseEquality()
+                        ? const Equality()
                         : const NeverEquality())) {
     bindStream(stream);
   }
@@ -98,15 +98,15 @@ class Rx<T> extends RxImpl<T> {
       {required T Function() onEvent,
       T? init,
       bool? distinct,
-      Equality? equalizer,
+      Equality? eq,
       bool callbackInit = false})
       : super(
             initial: callbackInit ? onEvent() : init,
-            equalizer: equalizer ??
+            eq: eq ??
                 (distinct == null
-                    ? const BaseEquality()
+                    ? const Equality()
                     : distinct
-                        ? const BaseEquality()
+                        ? const Equality()
                         : const NeverEquality())) {
     bindListenable(listenable, onEvent: onEvent);
   }
@@ -122,14 +122,14 @@ class Rx<T> extends RxImpl<T> {
   /// Finally, by default the [Rx<T>] will be distinct if you want it indistinct
   /// you can set `distinct` to false.
   Rx.fromValueListenable(ValueListenable<T> listenable,
-      {T? init, bool? distinct, Equality? equalizer})
+      {T? init, bool? distinct, Equality? eq})
       : super(
             initial: init ?? listenable.value,
-            equalizer: equalizer ??
+            eq: eq ??
                 (distinct == null
-                    ? const BaseEquality()
+                    ? const Equality()
                     : distinct
-                        ? const BaseEquality()
+                        ? const Equality()
                         : const NeverEquality())) {
     bindValueListenable(listenable);
   }
