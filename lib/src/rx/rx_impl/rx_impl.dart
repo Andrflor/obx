@@ -50,7 +50,7 @@ class RxImpl<T> extends Reactive<T> {
   /// If you have more complex operation to do, use [pipe] instead
   Rx<S> pipeMap<S>(S Function(T e) transform, {bool? distinct, Equality? eq}) {
     final res = _clone(distinct: distinct, convert: transform, eq: eq);
-    res._disposers.add(subscribe((T data) => res.value = transform(data)));
+    res._addDisposeListener(subscribe((T data) => res.value = transform(data)));
     return res;
   }
 
@@ -64,7 +64,7 @@ class RxImpl<T> extends Reactive<T> {
   /// If you have more complex operation to do, use [pipe] instead
   Rx<T> pipeWhere(bool Function(T e) test, {bool? distinct, Equality? eq}) {
     final res = _clone<T>(distinct: distinct, eq: eq);
-    res._disposers.add(subscribe((T data) {
+    res._addDisposeListener(subscribe((T data) {
       if (test(data)) {
         res.value = data;
       }
@@ -84,7 +84,7 @@ class RxImpl<T> extends Reactive<T> {
   Rx<S> pipeMapWhere<S>(S Function(T e) transform, bool Function(T e) test,
       {bool? distinct, Equality? eq}) {
     final res = _clone(distinct: distinct, eq: eq, convert: transform);
-    res._disposers.add(subscribe((T data) {
+    res._addDisposeListener(subscribe((T data) {
       if (test(data)) {
         res.value = transform(data);
       }
@@ -168,6 +168,51 @@ class RxImpl<T> extends Reactive<T> {
     return super.subDiff(callback);
   }
 
+  /// Add an errorListener to the [Rx]
+  void _addErrorListener(
+      void Function(Object error, [StackTrace? trace]) errorListener) {
+    final errorListeners = _errorListenerExpando[this];
+    if (errorListeners == null) {
+      _errorListenerExpando[this] = [errorListener];
+    } else {
+      errorListeners.add(errorListener);
+    }
+  }
+
+  /// Remove an errorListener to the [Rx]
+  bool _removeErrorListener(
+          void Function(Object error, [StackTrace? trace]) errorListener) =>
+      _errorListenerExpando[this]?.remove(errorListener) ?? false;
+
+  /// Add a disposeListener to the [Rx]
+  void _addDisposeListener(void Function() disposer) {
+    final disposers = _disposersExpando[this];
+    if (disposers == null) {
+      _disposersExpando[this] = [disposer];
+    } else {
+      disposers.add(disposer);
+    }
+  }
+
+  /// Remove a disposer to the [Rx]
+  bool _removeDisposeListener(void Function() disposer) =>
+      _disposersExpando[this]?.remove(disposer) ?? false;
+
+  /// Allow to add an error the the [Rx]
+  ///
+  /// Error will be sent to all existing listeners
+  /// This also mean that the error will be sent to the stream
+  /// If you made one lazy load
+  void addError(Object error, [StackTrace? trace]) {
+    final listeners = _errorListenerExpando[this];
+    if (listeners != null) {
+      for (int i = 0; i < listeners.length; i++) {
+        listeners[i](error, trace);
+      }
+    }
+    _streamControllerExpando[this]?.addError(error, trace);
+  }
+
   void _removeController() {
     final controller = _streamControllerExpando[this];
     if (controller != null) {
@@ -181,6 +226,8 @@ class RxImpl<T> extends Reactive<T> {
   @mustCallSuper
   void dispose() {
     detatch();
+    _errorListenerExpando[this] = null;
+    _disposersExpando[this] = null;
     _removeController();
     super.dispose();
   }
@@ -194,9 +241,9 @@ class RxImpl<T> extends Reactive<T> {
     final sub = (filter?.call(stream) ?? stream).listen((e) {
       value = e;
     }, cancelOnError: false);
-    _disposers.add(sub.cancel);
+    _addDisposeListener(sub.cancel);
     clean() {
-      _disposers.remove(sub.cancel);
+      _removeDisposeListener(sub.cancel);
       sub.cancel();
     }
 
@@ -219,9 +266,9 @@ class RxImpl<T> extends Reactive<T> {
       },
       filter: filter,
     );
-    _disposers.add(sub);
+    _addDisposeListener(sub);
     clean() {
-      _disposers.remove(sub);
+      _removeDisposeListener(sub);
       sub();
     }
 
@@ -245,10 +292,10 @@ class RxImpl<T> extends Reactive<T> {
 
     listenable.addListener(closure);
     cancel() => listenable.removeListener(closure);
-    _disposers.add(cancel);
+    _addDisposeListener(cancel);
 
     return () {
-      _disposers.remove(cancel);
+      _removeDisposeListener(cancel);
       cancel();
     };
   }
@@ -266,10 +313,10 @@ class RxImpl<T> extends Reactive<T> {
     closure() => value = onEvent();
     listenable.addListener(closure);
     cancel() => listenable.removeListener(closure);
-    _disposers.add(cancel);
+    _addDisposeListener(cancel);
 
     return () {
-      _disposers.remove(cancel);
+      _removeDisposeListener(cancel);
       cancel();
     };
   }
@@ -519,32 +566,6 @@ class Reactive<T> {
     emit();
   }
 
-  /// Ca
-  void _addErrorListener(
-      void Function(Object error, [StackTrace? trace]) errorListener) {
-    final errorListeners = _errorListenerExpando[this];
-    if (errorListeners == null) {
-      _errorListenerExpando[this] = [errorListener];
-    } else {
-      errorListeners.add(errorListener);
-    }
-  }
-
-  /// Allow to add an error the the [Rx]
-  ///
-  /// Error will be sent to all existing listeners
-  /// This also mean that the error will be sent to the stream
-  /// If you made one lazy load
-  void addError(Object error, [StackTrace? trace]) {
-    final listeners = _errorListenerExpando[this];
-    if (listeners != null) {
-      for (int i = 0; i < listeners.length; i++) {
-        listeners[i](error, trace);
-      }
-    }
-    _streamControllerExpando[this]?.addError(error, trace);
-  }
-
   VoidCallback subscribe(
     Function(T value) callback,
   ) {
@@ -580,21 +601,24 @@ class Reactive<T> {
 
 class RxSubscription<T> implements StreamSubscription<T> {
   Rx<T>? _parent;
-  Function(T data)? _listener;
-  Function()? _onDone;
+  Function(T data)? _onData;
+  Function(Object error, [StackTrace? trace])? _onError;
+  void Function()? _onDone;
   bool _paused = false;
 
-  RxSubscription(Rx<T> parent, Function(T data) listener, this._onDone)
+  RxSubscription(Rx<T> parent,
+      {Function(T data)? onData,
+      void Function()? onDone,
+      Function(Object error, [StackTrace? trace])? onError})
       : _parent = parent,
-        _listener = listener {
-    parent._addListener(listener);
-    if (_onDone != null) {
-      parent._disposers.add(_onDone);
-    }
+        _onData = onData,
+        _onDone = onDone,
+        _onError = onError {
+    resume();
   }
 
   @override
-  Future<E> asFuture<E>([E? futureValue]) async {
+  Future<E> asFuture<E>([E? futureValue]) {
     final completer = Completer<E>();
     onDone(() => completer.complete(futureValue as E));
     onError((Object error, [StackTrace? trace]) {
@@ -606,11 +630,18 @@ class RxSubscription<T> implements StreamSubscription<T> {
 
   @override
   Future<void> cancel() async {
-    if (_listener != null && !_paused) {
-      _parent?._removeListener(_listener!);
+    if (!_paused && _parent != null) {
+      if (_onData != null) {
+        _parent!._removeListener(_onData!);
+      }
+      if (_onDone != null) {
+        _parent!._addDisposeListener(_onDone!);
+      }
+      if (_onError != null) {
+        _parent!._addErrorListener(_onError!);
+      }
+      _parent = null;
     }
-    _listener = null;
-    _parent = null;
   }
 
   @override
@@ -649,8 +680,16 @@ class RxSubscription<T> implements StreamSubscription<T> {
   @override
   void pause([Future<void>? resumeSignal]) {
     _paused = true;
-    if (_listener != null) {
-      _parent?._removeListener(_listener!);
+    if (_parent != null) {
+      if (_onData != null) {
+        _parent!._removeListener(_onData!);
+      }
+      if (_onDone != null) {
+        _parent!._removeDisposeListener(_onDone!);
+      }
+      if (_onError != null) {
+        _parent!._removeErrorListener(_onError!);
+      }
     }
     resumeSignal?.then((_) => resume());
   }
@@ -658,8 +697,16 @@ class RxSubscription<T> implements StreamSubscription<T> {
   @override
   void resume() {
     _paused = false;
-    if (_listener != null) {
-      _parent?._addListener(_listener!);
+    if (_parent != null) {
+      if (_onData != null) {
+        _parent!._addListener(_onData!);
+      }
+      if (_onDone != null) {
+        _parent!._addDisposeListener(_onDone!);
+      }
+      if (_onError != null) {
+        _parent!._addErrorListener(_onError!);
+      }
     }
   }
 }
@@ -671,7 +718,7 @@ extension ValueOrNull<T> on Reactive<T> {
   }
 }
 
-final _disposersExpando = Expando<StreamController>();
+final _disposersExpando = Expando<List<void Function()>>();
 final _streamControllerExpando = Expando<StreamController>();
 final _errorListenerExpando =
     Expando<List<void Function(Object error, [StackTrace? trace])>>();
