@@ -27,7 +27,8 @@ class RxImpl<T> extends Reactive<T> {
   /// Provide the [bool] paramterer `distinct`
   ///
   /// Avoid chaining this operator
-  /// If you have a common operation to do,
+  /// To do common operation, prefer the other `pipe` operators
+  /// Those are not based on stream, so much faster
   /// See also:
   /// - [pipeMap]
   /// - [pipeWhere]
@@ -58,6 +59,7 @@ class RxImpl<T> extends Reactive<T> {
   /// Provided `test` parameter will be applied to each element to filter them
   /// If you want to change the `distinct` property on the result [Rx<T>]
   /// Provide the [bool] paramterer `distinct`
+  /// [pipeWhere] is a lightWeight operator since it does not need stream
   ///
   /// If you have more complex operation to do, use [pipe] instead
   Rx<T> pipeWhere(bool Function(T e) test, {bool? distinct, Equality? eq}) {
@@ -76,6 +78,7 @@ class RxImpl<T> extends Reactive<T> {
   /// Provided `test` parameter will be applied to each element to filter them
   /// If you want to change the `distinct` property on the result [Rx<S>]
   /// Provide the [bool] paramterer `distinct`
+  /// [pipeMapWhere] is a lightWeight operator since it does not need stream
   ///
   /// If you have more complex operation to do, use [pipe] instead
   Rx<S> pipeMapWhere<S>(S Function(T e) transform, bool Function(T e) test,
@@ -538,6 +541,78 @@ class Reactive<T> {
 
   @protected
   void reportAdd(VoidCallback disposer) => Orchestrator.add(disposer);
+}
+
+class RxSubscription<T> implements StreamSubscription<T> {
+  Rx<T>? _parent;
+  Function(T data)? _listener;
+  bool _paused = false;
+
+  RxSubscription(Rx<T> parent, Function(T data) listener)
+      : _parent = parent,
+        _listener = listener {
+    parent._addListener(listener);
+  }
+
+  @override
+  Future<E> asFuture<E>([E? futureValue]) async {
+    final completer = Completer<E>();
+    onDone(() => completer.complete(futureValue as E));
+    onError(completer.completeError);
+    return completer.future;
+  }
+
+  @override
+  Future<void> cancel() async {
+    if (_listener != null && !_paused) {
+      _parent?._removeListener(_listener!);
+    }
+    _listener = null;
+    _parent = null;
+  }
+
+  @override
+  bool get isPaused => _paused;
+
+  @override
+  void onData(Function(T data)? handleData) {
+    if (_listener != null && !_paused) {
+      _parent?._removeListener(_listener!);
+    }
+    _listener = handleData;
+
+    if (_listener != null && !_paused) {
+      _parent?._addListener(_listener!);
+    }
+  }
+
+  @override
+  void onDone(void Function()? handleDone) {
+    // TODO: implement onDone
+  }
+
+  @override
+  void onError(Function? handleError) {
+    // TODO: implement onError
+  }
+
+  /// Like stream pause but elements won't be buffered
+  @override
+  void pause([Future<void>? resumeSignal]) {
+    _paused = true;
+    if (_listener != null) {
+      _parent?._removeListener(_listener!);
+    }
+    resumeSignal?.then((_) => resume());
+  }
+
+  @override
+  void resume() {
+    _paused = false;
+    if (_listener != null) {
+      _parent?._addListener(_listener!);
+    }
+  }
 }
 
 extension ValueOrNull<T> on Reactive<T> {
