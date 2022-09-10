@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'rx/rx_impl/rx_impl.dart';
 import 'rx/rx_impl/rx_core.dart';
@@ -59,8 +60,8 @@ abstract class Orchestrator {
     _working = false;
   }
 
-  static Rx<T> fuse<T>(T Function() builder) {
-    final base = Rx<T>();
+  static Rx<T> fuse<T>(T Function() builder, {Equality eq = const Equality()}) {
+    final base = Rx<T>.withEq(eq: eq);
     _internal(builder, base);
     return base;
   }

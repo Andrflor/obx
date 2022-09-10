@@ -124,18 +124,18 @@ void main() {
       );
       equals(
         "list empty",
-        Rx.withEq(equalizer: const ListEquality(), init: []),
-        Rx.withEq(equalizer: const ListEquality(), init: []),
+        Rx.withEq(eq: const ListEquality(), init: []),
+        Rx.withEq(eq: const ListEquality(), init: []),
       );
       equals(
         "list int",
-        Rx.withEq(equalizer: const ListEquality(), init: [1]),
-        Rx.withEq(equalizer: const ListEquality(), init: [1]),
+        Rx.withEq(eq: const ListEquality(), init: [1]),
+        Rx.withEq(eq: const ListEquality(), init: [1]),
       );
       equals(
         "list int?",
-        Rx.withEq(equalizer: const ListEquality(), init: <int?>[1]),
-        Rx.withEq(equalizer: const ListEquality(), init: <int?>[1]),
+        Rx.withEq(eq: const ListEquality(), init: <int?>[1]),
+        Rx.withEq(eq: const ListEquality(), init: <int?>[1]),
       );
       equals(
         "equatable",
@@ -151,8 +151,8 @@ void main() {
       );
       inequals(
         "list int",
-        Rx.withEq(equalizer: const ListEquality(), init: [1]),
-        Rx.withEq(equalizer: const ListEquality(), init: [2]),
+        Rx.withEq(eq: const ListEquality(), init: [1]),
+        Rx.withEq(eq: const ListEquality(), init: [2]),
       );
       inequals(
         "list int?",

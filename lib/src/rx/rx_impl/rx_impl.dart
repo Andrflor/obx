@@ -121,19 +121,21 @@ class RxImpl<T> extends Reactive<T> {
   /// And use more ressources
   ///
   /// Furthermore [Rx] is not based on stream
+  /// It uses [Expando] to avoid any unnecessary memory allocation
   Stream<T> get stream {
-    if (_disposers.first != null) return _disposers.first!().stream;
-    final controller = StreamController<T>.broadcast();
-    _disposers.first = () => controller;
-    _addListener(controller.add);
-    controller.onCancel = () {
-      if (!controller.hasListener) {
-        _removeListener(controller.add);
-        _removeController();
+    final controller = _streamControllerExpando[this] as StreamController<T>?;
+    if (controller != null) return controller.stream;
+    final newController = StreamController<T>.broadcast();
+    _streamControllerExpando[this] = newController;
+    _addListener(newController.add);
+    newController.onCancel = () {
+      if (!newController.hasListener) {
+        _removeListener(newController.add);
+        newController.close();
+        _streamControllerExpando[this] = null;
       }
     };
-    _disposers.first = () => controller;
-    return controller.stream;
+    return newController.stream;
   }
 
   //TODO: write doc
@@ -167,8 +169,12 @@ class RxImpl<T> extends Reactive<T> {
   }
 
   void _removeController() {
-    _disposers[0]?.call().close();
-    _disposers[0] == null;
+    final controller = _streamControllerExpando[this];
+    if (controller != null) {
+      _removeListener(controller.add);
+      controller.close();
+      _streamControllerExpando[this] = null;
+    }
   }
 
   @override
@@ -304,12 +310,7 @@ class Emitter extends Reactive<Null> {
       Emitter()..emitEvery(delay);
 
   /// Cancel the emitter from auto emitting
-  void cancel() {
-    for (int i = 1; i < _disposers.length; i++) {
-      _disposers[i]?.call();
-    }
-    _disposers = [_disposers.first];
-  }
+  void cancel() => detatch();
 
   /// Will emit after `delay`
   void emitIn(Duration delay) {
@@ -357,7 +358,8 @@ class Reactive<T> {
   T? _value;
 
   final Equality _eq;
-  Equality get equalizer => _eq;
+  Equality get equalizer =>
+      _eq is CacheWrapper<T> ? (_eq as CacheWrapper<T>).eq : _eq;
 
   T call([T? v]) {
     if (v != null) {
@@ -372,8 +374,7 @@ class Reactive<T> {
       : _value = initial,
         _eq = eq;
 
-  List<Function(T e)?> _listeners = List<Function(T e)?>.filled(5, null);
-  List<Function()?> _disposers = <Function()?>[null];
+  List<Function(T e)?> _listeners = List<Function(T e)?>.filled(1, null);
 
   static bool debugAssertNotDisposed(Reactive notifier) {
     assert(() {
@@ -389,20 +390,15 @@ class Reactive<T> {
     return true;
   }
 
-  /// This method allow to remove all incoming subs
-  /// This will detatched this obs from stream listenable other piped obs
-  void detatch() {
-    for (int i = 1; i < _disposers.length; i++) {
-      _disposers[i]?.call();
-    }
-    _disposers = [_disposers.first];
-  }
-
+  /// Used to add listeners
+  ///
+  /// This function is optimized with voodoo to be as fast as possible
+  /// I'm joking, but no kidding it's faster than ChangeNotifier
   void _addListener(Function(T e) listener) {
     assert(Reactive.debugAssertNotDisposed(this));
     if (_count == _listeners.length) {
       final List<Function(T e)?> newListeners =
-          List<Function(T e)?>.filled(_listeners.length + 5, null);
+          List<Function(T e)?>.filled(_listeners.length + 4, null);
       for (int i = 0; i < _count; i++) {
         newListeners[i] = _listeners[i];
       }
@@ -412,6 +408,13 @@ class Reactive<T> {
     _listeners[_count++] = listener;
   }
 
+  /// Used to remove the listener
+  ///
+  /// This function is made to be ultra fast
+  /// We won't remove anything here
+  /// Just set thos to null
+  /// Then we will garbage collect manually the list
+  /// Using the [_shift] function to shrink the list
   void _removeListener(Function(T e) listener) {
     for (int i = 0; i < _count; i++) {
       if (_listeners[i] == listener) {
@@ -422,6 +425,10 @@ class Reactive<T> {
     }
   }
 
+  /// Shift existing callbacks to the null values are at the end
+  ///
+  /// This is a sort of many garbage collection
+  /// Will reallocate the List if it shrinks to much
   void _shift() {
     final length = _nullIdx.length;
     if (length == 1) {
@@ -462,8 +469,8 @@ class Reactive<T> {
 
   @mustCallSuper
   void dispose() {
-    detatch();
     assert(Reactive.debugAssertNotDisposed(this));
+    _disposersExpando[this] = null;
     _listeners = [];
     _nullIdx = [];
     _count = 0;
@@ -479,6 +486,8 @@ class Reactive<T> {
     for (int i = 0; i < _count; i++) {
       _listeners[i]?.call(_value as T);
     }
+    // If callback have been deleted they will be in the _nullIdxList
+    // So we need to [_shift] to assure speed and collect our garbage
     if (_nullIdx.isNotEmpty) _shift();
   }
 
@@ -508,6 +517,32 @@ class Reactive<T> {
   void trigger(T v) {
     _value = v;
     emit();
+  }
+
+  /// Ca
+  void _addErrorListener(
+      void Function(Object error, [StackTrace? trace]) errorListener) {
+    final errorListeners = _errorListenerExpando[this];
+    if (errorListeners == null) {
+      _errorListenerExpando[this] = [errorListener];
+    } else {
+      errorListeners.add(errorListener);
+    }
+  }
+
+  /// Allow to add an error the the [Rx]
+  ///
+  /// Error will be sent to all existing listeners
+  /// This also mean that the error will be sent to the stream
+  /// If you made one lazy load
+  void addError(Object error, [StackTrace? trace]) {
+    final listeners = _errorListenerExpando[this];
+    if (listeners != null) {
+      for (int i = 0; i < listeners.length; i++) {
+        listeners[i](error, trace);
+      }
+    }
+    _streamControllerExpando[this]?.addError(error, trace);
   }
 
   VoidCallback subscribe(
@@ -546,19 +581,26 @@ class Reactive<T> {
 class RxSubscription<T> implements StreamSubscription<T> {
   Rx<T>? _parent;
   Function(T data)? _listener;
+  Function()? _onDone;
   bool _paused = false;
 
-  RxSubscription(Rx<T> parent, Function(T data) listener)
+  RxSubscription(Rx<T> parent, Function(T data) listener, this._onDone)
       : _parent = parent,
         _listener = listener {
     parent._addListener(listener);
+    if (_onDone != null) {
+      parent._disposers.add(_onDone);
+    }
   }
 
   @override
   Future<E> asFuture<E>([E? futureValue]) async {
     final completer = Completer<E>();
     onDone(() => completer.complete(futureValue as E));
-    onError(completer.completeError);
+    onError((Object error, [StackTrace? trace]) {
+      completer.completeError(error, trace);
+      cancel();
+    });
     return completer.future;
   }
 
@@ -588,12 +630,19 @@ class RxSubscription<T> implements StreamSubscription<T> {
 
   @override
   void onDone(void Function()? handleDone) {
-    // TODO: implement onDone
+    if (_onDone != null) {
+      _parent?._disposers.remove(_onDone);
+    }
+    _onDone = handleDone;
+    if (_onDone != null) {
+      _parent?._disposers.add(_onDone);
+    }
   }
 
   @override
   void onError(Function? handleError) {
-    // TODO: implement onError
+    /// There is no error on Rx
+    // TODO: maybe add errors?
   }
 
   /// Like stream pause but elements won't be buffered
@@ -622,7 +671,12 @@ extension ValueOrNull<T> on Reactive<T> {
   }
 }
 
+final _disposersExpando = Expando<StreamController>();
+final _streamControllerExpando = Expando<StreamController>();
+final _errorListenerExpando =
+    Expando<List<void Function(Object error, [StackTrace? trace])>>();
+
 /// This is used to pass private fields to other files
 extension RxTrackableProtectedAccess<T> on Reactive<T> {
-  set disposers(List<Function()?> value) => _disposers = value;
+  set disposers(List<void Function()?> value) => _disposers = value;
 }

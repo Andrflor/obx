@@ -150,5 +150,6 @@ class Rx<T> extends RxImpl<T> {
   /// - [ever]
   /// - [observe]
   /// - [Rx]
-  factory Rx.fuse(T Function() callback) => Orchestrator.fuse(callback);
+  factory Rx.fuse(T Function() callback, {Equality eq = const Equality()}) =>
+      Orchestrator.fuse(callback, eq: eq);
 }

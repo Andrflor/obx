@@ -1,9 +1,19 @@
+import 'dart:collection';
+
 import 'package:equatable/equatable.dart';
 import 'package:get/get.dart' as getx;
 import 'package:obx/obx.dart';
 
+final expand = Expando<String>();
+final map = HashMap<Rx, String>();
+
 main() async {
-  await getxBench();
+  final rx = Rx("");
+  final rv = Rx("lel");
+  // await getxBench();
+  // Rx("");
+  // "".obs;
+  // final list = List<Function()?>.filled(5, null);
 }
 
 Future<void> getxBench() async {
