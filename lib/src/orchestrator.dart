@@ -55,7 +55,7 @@ abstract class Orchestrator {
         disposers: [debouncer.cancel]);
     base.value = builder();
     debouncer.start();
-    base.disposers = _notifyData!.disposers;
+    disposersExpando[base] = _notifyData!.disposers;
     _notifyData = previousData;
     _working = false;
   }

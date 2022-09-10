@@ -8,12 +8,7 @@ final expand = Expando<String>();
 final map = HashMap<Rx, String>();
 
 main() async {
-  final rx = Rx("");
-  final rv = Rx("lel");
-  // await getxBench();
-  // Rx("");
-  // "".obs;
-  // final list = List<Function()?>.filled(5, null);
+  await getxBench();
 }
 
 Future<void> getxBench() async {

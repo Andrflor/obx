@@ -181,22 +181,40 @@ class RxImpl<T> extends Reactive<T> {
 
   /// Remove an errorListener to the [Rx]
   bool _removeErrorListener(
-          void Function(Object error, [StackTrace? trace]) errorListener) =>
-      _errorListenerExpando[this]?.remove(errorListener) ?? false;
+      void Function(Object error, [StackTrace? trace]) errorListener) {
+    final errorListeners = _errorListenerExpando[this];
+    if (errorListeners == null) return false;
+    if (errorListeners.remove(errorListener)) {
+      if (errorListeners.isEmpty) {
+        _errorListenerExpando[this] = null;
+      }
+      return true;
+    }
+    return false;
+  }
 
   /// Add a disposeListener to the [Rx]
   void _addDisposeListener(void Function() disposer) {
-    final disposers = _disposersExpando[this];
+    final disposers = disposersExpando[this];
     if (disposers == null) {
-      _disposersExpando[this] = [disposer];
+      disposersExpando[this] = [disposer];
     } else {
       disposers.add(disposer);
     }
   }
 
   /// Remove a disposer to the [Rx]
-  bool _removeDisposeListener(void Function() disposer) =>
-      _disposersExpando[this]?.remove(disposer) ?? false;
+  bool _removeDisposeListener(void Function() disposer) {
+    final disposers = disposersExpando[this];
+    if (disposers == null) return false;
+    if (disposers.remove(disposer)) {
+      if (disposers.isEmpty) {
+        disposersExpando[this] = null;
+      }
+      return true;
+    }
+    return false;
+  }
 
   /// Allow to add an error the the [Rx]
   ///
@@ -225,9 +243,8 @@ class RxImpl<T> extends Reactive<T> {
   @override
   @mustCallSuper
   void dispose() {
-    detatch();
     _errorListenerExpando[this] = null;
-    _disposersExpando[this] = null;
+    disposersExpando[this] = null;
     _removeController();
     super.dispose();
   }
@@ -350,6 +367,8 @@ class SingleShot<T> extends Reactive<T> {
 class Emitter extends Reactive<Null> {
   Emitter() : super(eq: const NeverEquality());
 
+  List<Disposer>? _disposers = [];
+
   /// Creates an emitter that emits from an Interval
   factory Emitter.fromInterval(
     Duration delay,
@@ -357,18 +376,24 @@ class Emitter extends Reactive<Null> {
       Emitter()..emitEvery(delay);
 
   /// Cancel the emitter from auto emitting
-  void cancel() => detatch();
+  void cancel() {
+    for (int i = 0; i < (_disposers?.length ?? 0); i++) {
+      _disposers![i]();
+    }
+  }
 
   /// Will emit after `delay`
   void emitIn(Duration delay) {
-    _disposers.add(Timer.periodic(delay, (_) {
+    assert(Reactive.debugAssertNotDisposed(this));
+    _disposers?.add(Timer.periodic(delay, (_) {
       emit();
     }).cancel);
   }
 
   /// Will emit every `delay`
   void emitEvery(Duration delay) {
-    _disposers.add(Timer(delay, () {
+    assert(Reactive.debugAssertNotDisposed(this));
+    _disposers?.add(Timer(delay, () {
       emit();
     }).cancel);
   }
@@ -379,6 +404,7 @@ class Emitter extends Reactive<Null> {
 
   @override
   Null get value {
+    assert(Reactive.debugAssertNotDisposed(this));
     if (!Orchestrator.notInBuild) _reportRead();
     return null;
   }
@@ -391,8 +417,16 @@ class Emitter extends Reactive<Null> {
   /// Obx(() => Text(emiter.bundle(myVariable)));
   /// ```
   T bundle<T>(T value) {
+    assert(Reactive.debugAssertNotDisposed(this));
     if (!Orchestrator.notInBuild) _reportRead();
     return value;
+  }
+
+  @override
+  void dispose() {
+    cancel();
+    _disposers = null;
+    super.dispose();
   }
 }
 
@@ -517,7 +551,7 @@ class Reactive<T> {
   @mustCallSuper
   void dispose() {
     assert(Reactive.debugAssertNotDisposed(this));
-    _disposersExpando[this] = null;
+    disposersExpando[this] = null;
     _listeners = [];
     _nullIdx = [];
     _count = 0;
@@ -649,31 +683,35 @@ class RxSubscription<T> implements StreamSubscription<T> {
 
   @override
   void onData(Function(T data)? handleData) {
-    if (_listener != null && !_paused) {
-      _parent?._removeListener(_listener!);
+    if (_onData != null && !_paused) {
+      _parent?._removeListener(_onData!);
     }
-    _listener = handleData;
-
-    if (_listener != null && !_paused) {
-      _parent?._addListener(_listener!);
+    _onData = handleData;
+    if (_onData != null) {
+      _parent?._addListener(_onData!);
     }
   }
 
   @override
   void onDone(void Function()? handleDone) {
-    if (_onDone != null) {
-      _parent?._disposers.remove(_onDone);
+    if (_onDone != null && !_paused) {
+      _parent?._removeDisposeListener(_onDone!);
     }
     _onDone = handleDone;
     if (_onDone != null) {
-      _parent?._disposers.add(_onDone);
+      _parent?._addDisposeListener(_onDone!);
     }
   }
 
   @override
   void onError(Function? handleError) {
-    /// There is no error on Rx
-    // TODO: maybe add errors?
+    if (_onError != null && !_paused) {
+      _parent?._removeErrorListener(_onError!);
+    }
+    _onError = handleError as Function(Object, [StackTrace?]);
+    if (_onError != null) {
+      _parent?._addErrorListener(_onError!);
+    }
   }
 
   /// Like stream pause but elements won't be buffered
@@ -718,12 +756,7 @@ extension ValueOrNull<T> on Reactive<T> {
   }
 }
 
-final _disposersExpando = Expando<List<void Function()>>();
+final disposersExpando = Expando<List<void Function()>>();
 final _streamControllerExpando = Expando<StreamController>();
 final _errorListenerExpando =
     Expando<List<void Function(Object error, [StackTrace? trace])>>();
-
-/// This is used to pass private fields to other files
-extension RxTrackableProtectedAccess<T> on Reactive<T> {
-  set disposers(List<void Function()?> value) => _disposers = value;
-}
