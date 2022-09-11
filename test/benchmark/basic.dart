@@ -1,5 +1,6 @@
 import 'dart:collection';
 
+import 'package:flutter/material.dart';
 import 'package:equatable/equatable.dart';
 import 'package:get/get.dart' as getx;
 import 'package:obx/obx.dart';
@@ -8,8 +9,15 @@ final expand = Expando<String>();
 final map = HashMap<Rx, String>();
 
 main() async {
-  await getxBench();
+  // await getxBench();
+  Rx("Lol");
+  Obx(() => const Text("Text"));
+  "value".obs;
+  RMemoryTest();
+  ValueNotifier<int>(0);
 }
+
+class RMemoryTest {}
 
 Future<void> getxBench() async {
   print("Getx vs Obx benchmark");

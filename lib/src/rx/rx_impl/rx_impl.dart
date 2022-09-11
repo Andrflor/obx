@@ -340,6 +340,7 @@ class RxImpl<T> extends Reactive<T> {
 }
 
 /// This is an internal class
+///
 /// It's the basic class for the [observe] function
 /// It's name comes from the fact that it is set up
 /// Then it fire once, and then it dies
@@ -361,7 +362,6 @@ class SingleShot<T> extends Reactive<T> {
 /// final emitter = Emitter();
 /// emitter.emit(); \\ Will emit a null value
 /// ```
-///
 /// This null emit will be forwareded to Listeners
 //ignore: prefer_void_to_null
 class Emitter extends Reactive<Null> {
@@ -434,7 +434,6 @@ class Emitter extends Reactive<Null> {
 /// This will just update the ui when it updates
 class Reactive<T> {
   int _count = 0;
-  List<int> _nullIdx = [];
 
   T? _value;
 
@@ -477,10 +476,10 @@ class Reactive<T> {
   /// I'm joking, but no kidding it's faster than ChangeNotifier
   void _addListener(Function(T e) listener) {
     assert(Reactive.debugAssertNotDisposed(this));
-    if (_count == _listeners.length) {
+    if (_count & 65535 == _listeners.length) {
       final List<Function(T e)?> newListeners =
           List<Function(T e)?>.filled(_listeners.length + 4, null);
-      for (int i = 0; i < _count; i++) {
+      for (int i = 0; i < _count & 65535; i++) {
         newListeners[i] = _listeners[i];
       }
       _listeners = newListeners;
@@ -489,19 +488,62 @@ class Reactive<T> {
     _listeners[_count++] = listener;
   }
 
+  void _removeAt(int index) {
+    // TODO: add proper binary mask
+    // The list holding the listeners is not growable for performances reasons.
+    // We still want to shrink this list if a lot of listeners have been added
+    // and then removed outside a notifyListeners iteration.
+    // We do this only when the real number of listeners is half the length
+    // of our list.
+    _count -= 1;
+    if (_count * 2 <= _listeners.length) {
+      final List<Function(T e)?> newListeners =
+          List<Function(T e)?>.filled(_count, null);
+
+      // Listeners before the index are at the same place.
+      for (int i = 0; i < index; i++) {
+        newListeners[i] = _listeners[i];
+      }
+
+      // Listeners after the index move towards the start of the list.
+      for (int i = index; i < _count; i++) {
+        newListeners[i] = _listeners[i + 1];
+      }
+
+      _listeners = newListeners;
+    } else {
+      // When there are more listeners than half the length of the list, we only
+      // shift our listeners, so that we avoid to reallocate memory for the
+      // whole list.
+      for (int i = index; i < _count; i++) {
+        _listeners[i] = _listeners[i + 1];
+      }
+      _listeners[_count] = null;
+    }
+  }
+
   /// Used to remove the listener
   ///
   /// This function is made to be ultra fast
   /// We won't remove anything here
   /// Just set thos to null
   /// Then we will garbage collect manually the list
-  /// Using the [_shift] function to shrink the list
   void _removeListener(Function(T e) listener) {
-    for (int i = 0; i < _count; i++) {
-      if (_listeners[i] == listener) {
-        _listeners[i] = null;
-        _nullIdx.add(i);
-        break;
+    if (_count > 65535) {
+      for (int i = 0; i < _count & 65535; i++) {
+        if (_listeners[i] == listener) {
+          _listeners[i] = null;
+          // TODO: implem += third space in 16 bit
+          break;
+        }
+      }
+    } else {
+      for (int i = 0; i < _count & 65535; i++) {
+        if (_listeners[i] == listener) {
+          _listeners[i] = null;
+          _removeAt(i);
+          break;
+        }
       }
     }
   }
@@ -511,49 +553,17 @@ class Reactive<T> {
   /// This is a sort of many garbage collection
   /// Will reallocate the List if it shrinks to much
   void _shift() {
-    final length = _nullIdx.length;
-    if (length == 1) {
-      _count -= length;
-      for (int i = _nullIdx.first; i < _count; i++) {
-        _listeners[i] = _listeners[i + 1];
-      }
-      _listeners[_count] = null;
-    } else {
-      _nullIdx.sort();
-      // TODO: reallocate smaller if needed
-      int shift = 1;
-      for (int i = 0; i < length; i++) {
-        if (i + 1 == length) {
-          for (int j = _nullIdx[i] + 1; j < _count; j++) {
-            _listeners[j - shift] = _listeners[j];
-          }
-          for (int j = _count - shift; j < _count; j++) {
-            _listeners[j] = null;
-          }
-          break;
-        }
-        if (_nullIdx[i] + 1 == _nullIdx[i + 1]) {
-          shift++;
-          continue;
-        }
-        for (int j = _nullIdx[i] + 1; j < _nullIdx[i + 1]; j++) {
-          _listeners[j - shift] = _listeners[j];
-        }
-        shift++;
-      }
-      _count -= length;
-    }
-    _nullIdx = [];
+    // TODO: implem cleanup with the third space and shift operation
+    // TODO: this time we need to recreate the list
   }
 
   bool get disposed => _listeners.isEmpty;
+  bool get hasListeners => (_count & 65535) != 0;
 
   @mustCallSuper
   void dispose() {
     assert(Reactive.debugAssertNotDisposed(this));
-    disposersExpando[this] = null;
     _listeners = [];
-    _nullIdx = [];
     _count = 0;
   }
 
@@ -564,12 +574,12 @@ class Reactive<T> {
   @pragma('vm:notify-debugger-on-exception')
   void emit() {
     assert(Reactive.debugAssertNotDisposed(this));
-    for (int i = 0; i < _count; i++) {
+    _count += 65536;
+    for (int i = 0; i < _count & 65535; i++) {
       _listeners[i]?.call(_value as T);
     }
-    // If callback have been deleted they will be in the _nullIdxList
-    // So we need to [_shift] to assure speed and collect our garbage
-    if (_nullIdx.isNotEmpty) _shift();
+    _count -= 65536;
+    if ((_count & 562949953355776) > 0) _shift();
   }
 
   /// You should make sure to not call this if there is no value
@@ -628,9 +638,6 @@ class Reactive<T> {
 
   @protected
   void _reportRead() => Orchestrator.read(this);
-
-  @protected
-  void reportAdd(VoidCallback disposer) => Orchestrator.add(disposer);
 }
 
 class RxSubscription<T> implements StreamSubscription<T> {

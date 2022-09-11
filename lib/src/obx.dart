@@ -20,6 +20,7 @@ abstract class RxWidget extends StatelessWidget {
 
 /// Component that can track changes in a reactive variable
 mixin StatelessObserverComponent on StatelessElement {
+  // TODO: check if the call the the updater is already on the remove callback
   List<Disposer>? disposers = <Disposer>[];
 
   void getUpdate() {
@@ -30,6 +31,7 @@ mixin StatelessObserverComponent on StatelessElement {
 
   @override
   Widget build() {
+    // TODO: avoid adding again after first build
     return Orchestrator.append(
         NotifyData(disposers: disposers!, updater: getUpdate), super.build);
   }

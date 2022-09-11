@@ -16,10 +16,7 @@ abstract class Orchestrator {
   static bool _working = false;
   static NotifyData? _notifyData;
 
-  static void add(VoidCallback listener) =>
-      _notifyData!.disposers.add(listener);
-
-  static void read(Reactive updaters) {
+  static void read(Reactive reactive) {
     // TODO: implement that back
     // TODO: implement Obx with dynamic arg
     final updater = _notifyData!.updater;
