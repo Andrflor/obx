@@ -9,7 +9,7 @@ class Test extends StatelessWidget {
   final rxString = Rx("Some String");
   final rxString2 = Rx("Another String");
 
-  final rxInt = Rx(10);
+  final rxInt = Rx(0);
   final rxInt2 = Rx(10);
 
   late final rxMult = Rx.fuse(multChanged);
@@ -19,20 +19,22 @@ class Test extends StatelessWidget {
 
   @override
   Widget build(context) {
-    ever(multChanged, print);
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       mainAxisSize: MainAxisSize.min,
       children: [
         ElevatedButton(
-          // child: Obx(() => Text(observe(() => rxString.length.toString()))),
-          child: Obx(() => Text("$rxMult")),
-          onPressed: () => rxInt(0),
+          // child: Obx(() => Text(observe(() => rxString.length).toString())),
+          child: Obx(() {
+            print("Building");
+            return Text("$rxMult");
+          }),
+          onPressed: () => rxInt2(rxInt2() + 1),
         ),
         const SizedBox(height: 10),
         ElevatedButton(
           child: Obx(() => Text(rxString.value)),
-          onPressed: () => rxInt(10),
+          onPressed: () => rxInt(rxInt() == 0 ? 1 : 0),
         ),
       ],
     );

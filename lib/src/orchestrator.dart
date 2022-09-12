@@ -1,5 +1,5 @@
 import 'package:collection/collection.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'rx/rx_impl/rx_impl.dart';
 import 'rx/rx_impl/rx_core.dart';
 import 'debouncer.dart';
@@ -11,29 +11,12 @@ typedef Disposer = void Function();
 typedef StateUpdate = void Function();
 
 abstract class Orchestrator {
-  static bool get notInBuild => _notifyData == null;
-  static bool get notObserving => notInBuild || _working;
-  static bool _working = false;
-  static NotifyData? _notifyData;
-
-  static void read(Reactive reactive) {
-    // TODO: implement that back
-    // TODO: implement Obx with dynamic arg
-    final updater = _notifyData!.updater;
-    // if (!updaters.containsListener(updater)) {
-    // add(() => updaters.removeListener(updater));
-    // }
-  }
-
-  static T append<T>(NotifyData data, T Function() builder) {
-    _notifyData = data;
-    final result = builder();
-    if (data.disposers.isEmpty && data.throwException) {
-      throw const ObxError();
-    }
-    _notifyData = null;
-    return result;
-  }
+  static bool get notInBuild => element == null;
+  static bool get notInObserve => notifyData == null;
+  static bool get notObserving => notInBuild || notifyData != null;
+  static StatelessObserverComponent? element;
+  static List<Reactive> reactives = [];
+  static NotifyData? notifyData;
 
   static T observe<T>(T Function() builder) {
     final base = SingleShot<T>();
@@ -43,18 +26,16 @@ abstract class Orchestrator {
 
   static void _internal<T, S extends Reactive<T>>(
       T Function() builder, S base) {
-    _working = true;
-    final previousData = _notifyData;
     final debouncer = EveryDebouncer(
         delay: const Duration(milliseconds: 5), retries: 4, enabled: false);
-    _notifyData = NotifyData(
-        updater: () => debouncer(() => base.value = builder()),
+    notifyData = NotifyData(
+        updater: (_) => debouncer(() => base.value = builder()),
         disposers: [debouncer.cancel]);
-    base.value = builder();
+    reactives = [];
+    base.silent(builder());
     debouncer.start();
-    disposersExpando[base] = _notifyData!.disposers;
-    _notifyData = previousData;
-    _working = false;
+    disposersExpando[base] = notifyData!.disposers;
+    notifyData = null;
   }
 
   static Rx<T> fuse<T>(T Function() builder, {Equality eq = const Equality()}) {
@@ -69,7 +50,7 @@ class NotifyData {
       {required this.updater,
       required this.disposers,
       this.throwException = true});
-  final StateUpdate updater;
+  final Function(dynamic) updater;
   final List<VoidCallback> disposers;
   final bool throwException;
 }

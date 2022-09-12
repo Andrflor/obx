@@ -1,8 +1,21 @@
-import 'dart:async';
 import 'package:flutter/widgets.dart';
+import './rx/rx_impl/rx_impl.dart';
 import 'orchestrator.dart';
 
 class ObxElement = StatelessElement with StatelessObserverComponent;
+
+class ObxDisposableElement extends ObxElement {
+  Disposer? disposer;
+
+  ObxDisposableElement(super.widget, disposer);
+
+  @override
+  void unmount() {
+    super.unmount();
+    disposer?.call();
+    disposer = null;
+  }
+}
 
 /// A StatelessWidget than can listen reactive changes.
 ///
@@ -18,35 +31,6 @@ abstract class RxWidget extends StatelessWidget {
   StatelessElement createElement() => ObxElement(this);
 }
 
-/// Component that can track changes in a reactive variable
-mixin StatelessObserverComponent on StatelessElement {
-  // TODO: check if the call the the updater is already on the remove callback
-  List<Disposer>? disposers = <Disposer>[];
-
-  void getUpdate() {
-    if (disposers != null) {
-      scheduleMicrotask(markNeedsBuild);
-    }
-  }
-
-  @override
-  Widget build() {
-    // TODO: avoid adding again after first build
-    return Orchestrator.append(
-        NotifyData(disposers: disposers!, updater: getUpdate), super.build);
-  }
-
-  @override
-  void unmount() {
-    super.unmount();
-    for (final disposer in disposers!) {
-      disposer();
-    }
-    disposers!.clear();
-    disposers = null;
-  }
-}
-
 /// A StatelessWidget that can rebuild and dispose it's data
 ///
 /// The [RxValWidget] is the base for `Val` widgets
@@ -57,9 +41,9 @@ abstract class RxValWidget<T extends Object> extends RxWidget {
   const RxValWidget({Key? key, this.disposer}) : super(key: key);
   final Disposer? disposer;
   @override
-  StatelessElement createElement() =>
-      disposer == null ? ObxElement(this) : ObxElement(this)
-        ..disposers!.add(disposer!);
+  StatelessElement createElement() => disposer == null
+      ? ObxElement(this)
+      : ObxDisposableElement(this, disposer);
 }
 
 /// The simplest reactive widget

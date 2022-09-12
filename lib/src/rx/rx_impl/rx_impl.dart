@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 
 import 'package:collection/collection.dart';
@@ -138,6 +139,9 @@ class RxImpl<T> extends Reactive<T> {
     return newController.stream;
   }
 
+  @override
+  String toString() => value.toString();
+
   //TODO: write doc
   @override
   VoidCallback subscribe(Function(T value) callback,
@@ -171,6 +175,7 @@ class RxImpl<T> extends Reactive<T> {
   /// Add an errorListener to the [Rx]
   void _addErrorListener(
       void Function(Object error, [StackTrace? trace]) errorListener) {
+    // TODO: use bitmask on _count to look tor _errorListeners
     final errorListeners = _errorListenerExpando[this];
     if (errorListeners == null) {
       _errorListenerExpando[this] = [errorListener];
@@ -182,6 +187,7 @@ class RxImpl<T> extends Reactive<T> {
   /// Remove an errorListener to the [Rx]
   bool _removeErrorListener(
       void Function(Object error, [StackTrace? trace]) errorListener) {
+    // TODO: use bitmask on _count to look tor _errorListeners
     final errorListeners = _errorListenerExpando[this];
     if (errorListeners == null) return false;
     if (errorListeners.remove(errorListener)) {
@@ -195,6 +201,7 @@ class RxImpl<T> extends Reactive<T> {
 
   /// Add a disposeListener to the [Rx]
   void _addDisposeListener(void Function() disposer) {
+    // TODO: use bitmask on _count to look tor _disposerListeners
     final disposers = disposersExpando[this];
     if (disposers == null) {
       disposersExpando[this] = [disposer];
@@ -205,6 +212,7 @@ class RxImpl<T> extends Reactive<T> {
 
   /// Remove a disposer to the [Rx]
   bool _removeDisposeListener(void Function() disposer) {
+    // TODO: use bitmask on _count to look tor _disposerListeners
     final disposers = disposersExpando[this];
     if (disposers == null) return false;
     if (disposers.remove(disposer)) {
@@ -222,6 +230,8 @@ class RxImpl<T> extends Reactive<T> {
   /// This also mean that the error will be sent to the stream
   /// If you made one lazy load
   void addError(Object error, [StackTrace? trace]) {
+    // TODO: use bitmask on _count to look tor streamController
+    // TODO: use bitmask on _count to look tor _errorListeners
     final listeners = _errorListenerExpando[this];
     if (listeners != null) {
       for (int i = 0; i < listeners.length; i++) {
@@ -232,6 +242,7 @@ class RxImpl<T> extends Reactive<T> {
   }
 
   void _removeController() {
+    // TODO: use bitmask on _count to look tor streamController
     final controller = _streamControllerExpando[this];
     if (controller != null) {
       _removeListener(controller.add);
@@ -243,6 +254,8 @@ class RxImpl<T> extends Reactive<T> {
   @override
   @mustCallSuper
   void dispose() {
+    // TODO: use bitmask on _count to look tor _errorListeners
+    // TODO: use bitmask on _count to look tor _disposerListeners
     _errorListenerExpando[this] = null;
     disposersExpando[this] = null;
     _removeController();
@@ -353,6 +366,12 @@ class SingleShot<T> extends Reactive<T> {
     super.emit();
     dispose();
   }
+
+  @override
+  void dispose() {
+    // TODO: remove this from the list of observables
+    super.dispose();
+  }
 }
 
 /// Simple emitter for when you don't care about the value
@@ -445,7 +464,7 @@ class Reactive<T> {
     if (v != null) {
       value = v;
     }
-    return _value as T;
+    return value;
   }
 
   bool get hasValue => _value != null || null is T;
@@ -560,6 +579,9 @@ class Reactive<T> {
   bool get disposed => _listeners.isEmpty;
   bool get hasListeners => (_count & 65535) != 0;
 
+  // TODO: implement detatch if needed
+  void detatch() {}
+
   @mustCallSuper
   void dispose() {
     assert(Reactive.debugAssertNotDisposed(this));
@@ -637,7 +659,25 @@ class Reactive<T> {
   }
 
   @protected
-  void _reportRead() => Orchestrator.read(this);
+  void _reportRead() {
+    if (Orchestrator.notInObserve) {
+      final reactives = Orchestrator.element!.reactives;
+      for (int i = 0; i < reactives.length; i++) {
+        if (reactives[i] == this) return;
+      }
+      reactives.add(this);
+      _addListener(Orchestrator.element!.refresh);
+    } else {
+      final reactives = Orchestrator.reactives;
+      for (int i = 0; i < reactives.length; i++) {
+        if (reactives[i] == this) return;
+      }
+      final listener = Orchestrator.notifyData!.updater;
+      reactives.add(this);
+      _addListener(listener);
+      Orchestrator.notifyData!.disposers.add(() => _removeListener(listener));
+    }
+  }
 }
 
 class RxSubscription<T> implements StreamSubscription<T> {
@@ -767,3 +807,34 @@ final disposersExpando = Expando<List<void Function()>>();
 final _streamControllerExpando = Expando<StreamController>();
 final _errorListenerExpando =
     Expando<List<void Function(Object error, [StackTrace? trace])>>();
+
+/// Component that can track changes in a reactive variable
+mixin StatelessObserverComponent on StatelessElement {
+  List<Reactive> reactives = [];
+
+  void refresh(_) {
+    if (reactives.isNotEmpty) {
+      scheduleMicrotask(markNeedsBuild);
+    }
+  }
+
+  @override
+  Widget build() {
+    Orchestrator.element = this;
+    final result = super.build();
+    if (reactives.isEmpty) {
+      throw const ObxError();
+    }
+    Orchestrator.element = null;
+    return result;
+  }
+
+  @override
+  void unmount() {
+    super.unmount();
+    for (int i = 0; i < reactives.length; i++) {
+      reactives[i]._removeListener(refresh);
+    }
+    reactives = [];
+  }
+}
