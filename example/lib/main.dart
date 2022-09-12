@@ -26,8 +26,7 @@ class Test extends StatelessWidget {
         ElevatedButton(
           // child: Obx(() => Text(observe(() => rxString.length).toString())),
           child: Obx(() {
-            print("Building");
-            return Text("$rxMult");
+            return Text("$rxInt");
           }),
           onPressed: () => rxInt2(rxInt2() + 1),
         ),

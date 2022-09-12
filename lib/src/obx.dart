@@ -38,12 +38,13 @@ abstract class RxWidget extends StatelessWidget {
 /// - [ObxVal]
 /// - [ObcVal]
 abstract class RxValWidget<T extends Object> extends RxWidget {
-  const RxValWidget({Key? key, this.disposer}) : super(key: key);
-  final Disposer? disposer;
+  const RxValWidget(this.data, {Key? key, this.disposer}) : super(key: key);
+  final T data;
+  final Function(T data)? disposer;
   @override
   StatelessElement createElement() => disposer == null
       ? ObxElement(this)
-      : ObxDisposableElement(this, disposer);
+      : ObxDisposableElement(this, () => disposer!(data));
 }
 
 /// The simplest reactive widget
@@ -88,11 +89,10 @@ class Obx extends RxWidget {
 ///    false.obs,
 ///   ),
 /// ```
-class ObxVal<T extends Object> extends RxValWidget {
+class ObxVal<T extends Object> extends RxValWidget<T> {
   final Widget Function(T) builder;
-  final T data;
 
-  const ObxVal(this.builder, this.data, {super.disposer, Key? key})
+  const ObxVal(this.builder, super.data, {super.disposer, Key? key})
       : super(key: key);
 
   @override
@@ -140,11 +140,10 @@ class Obc extends RxWidget {
 ///    false.obs,
 ///   ),
 /// ```
-class ObcVal<T extends Object> extends RxValWidget {
+class ObcVal<T extends Object> extends RxValWidget<T> {
   final Widget Function(BuildContext, T) builder;
-  final T data;
 
-  const ObcVal(this.builder, this.data, {super.disposer, Key? key})
+  const ObcVal(this.builder, super.data, {super.disposer, Key? key})
       : super(key: key);
 
   @override

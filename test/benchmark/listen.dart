@@ -11,8 +11,8 @@ void main() async {
     print("With ${i + 1} listeners");
     await notifierTest(i);
     await rxTrest(i);
-    await streamTest(i);
-    await getxTrest(i);
+    // await streamTest(i);
+    // await getxTrest(i);
   }
 }
 

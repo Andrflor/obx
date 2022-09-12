@@ -122,21 +122,20 @@ class RxImpl<T> extends Reactive<T> {
   /// And use more ressources
   ///
   /// Furthermore [Rx] is not based on stream
-  /// It uses [Expando] to avoid any unnecessary memory allocation
   Stream<T> get stream {
-    final controller = _streamControllerExpando[this] as StreamController<T>?;
-    if (controller != null) return controller.stream;
-    final newController = StreamController<T>.broadcast();
-    _streamControllerExpando[this] = newController;
-    _addListener(newController.add);
-    newController.onCancel = () {
-      if (!newController.hasListener) {
-        _removeListener(newController.add);
-        newController.close();
-        _streamControllerExpando[this] = null;
+    if (_hasController) return _streamController!.stream;
+    _streamController = StreamController<T>.broadcast();
+    _addListener(_streamController!.add);
+    _streamController!.onCancel = () {
+      if (!_streamController!.hasListener) {
+        _removeListener(_streamController!.add);
+        _streamController!.close();
+        _streamController = null;
+        _toggleHasController();
       }
     };
-    return newController.stream;
+    _toggleHasController();
+    return _streamController!.stream;
   }
 
   @override
@@ -172,54 +171,56 @@ class RxImpl<T> extends Reactive<T> {
     return super.subDiff(callback);
   }
 
+  List<Disposer>? _disposers;
+  StreamController<T>? _streamController;
+  List<void Function(Object error, [StackTrace? trace])>? _errorListeners;
+
   /// Add an errorListener to the [Rx]
   void _addErrorListener(
       void Function(Object error, [StackTrace? trace]) errorListener) {
-    // TODO: use bitmask on _count to look tor _errorListeners
-    final errorListeners = _errorListenerExpando[this];
-    if (errorListeners == null) {
-      _errorListenerExpando[this] = [errorListener];
+    if (_hasErrorListeners) {
+      _errorListeners!.add(errorListener);
     } else {
-      errorListeners.add(errorListener);
+      _errorListeners = [errorListener];
+      _toggleHasController();
     }
   }
 
   /// Remove an errorListener to the [Rx]
   bool _removeErrorListener(
       void Function(Object error, [StackTrace? trace]) errorListener) {
-    // TODO: use bitmask on _count to look tor _errorListeners
-    final errorListeners = _errorListenerExpando[this];
-    if (errorListeners == null) return false;
-    if (errorListeners.remove(errorListener)) {
-      if (errorListeners.isEmpty) {
-        _errorListenerExpando[this] = null;
+    if (_hasErrorListeners) {
+      if (_errorListeners!.remove(errorListener)) {
+        if (_errorListeners!.isEmpty) {
+          _errorListeners = null;
+          _toggleHasHasErrorListeners();
+        }
+        return true;
       }
-      return true;
     }
     return false;
   }
 
   /// Add a disposeListener to the [Rx]
   void _addDisposeListener(void Function() disposer) {
-    // TODO: use bitmask on _count to look tor _disposerListeners
-    final disposers = disposersExpando[this];
-    if (disposers == null) {
-      disposersExpando[this] = [disposer];
+    if (_hasDisposers) {
+      _disposers!.add(disposer);
     } else {
-      disposers.add(disposer);
+      _disposers = [disposer];
+      _toggleHasDisposers();
     }
   }
 
   /// Remove a disposer to the [Rx]
   bool _removeDisposeListener(void Function() disposer) {
-    // TODO: use bitmask on _count to look tor _disposerListeners
-    final disposers = disposersExpando[this];
-    if (disposers == null) return false;
-    if (disposers.remove(disposer)) {
-      if (disposers.isEmpty) {
-        disposersExpando[this] = null;
+    if (_hasDisposers) {
+      if (_disposers!.remove(disposer)) {
+        if (_disposers!.isEmpty) {
+          _disposers = null;
+          _toggleHasDisposers();
+        }
+        return true;
       }
-      return true;
     }
     return false;
   }
@@ -230,34 +231,35 @@ class RxImpl<T> extends Reactive<T> {
   /// This also mean that the error will be sent to the stream
   /// If you made one lazy load
   void addError(Object error, [StackTrace? trace]) {
-    // TODO: use bitmask on _count to look tor streamController
-    // TODO: use bitmask on _count to look tor _errorListeners
-    final listeners = _errorListenerExpando[this];
-    if (listeners != null) {
-      for (int i = 0; i < listeners.length; i++) {
-        listeners[i](error, trace);
+    if (_hasErrorListeners) {
+      for (int i = 0; i < _errorListeners!.length; i++) {
+        _errorListeners![i](error, trace);
       }
     }
-    _streamControllerExpando[this]?.addError(error, trace);
+    if (_hasController) {
+      _streamController!.addError(error, trace);
+    }
   }
 
   void _removeController() {
-    // TODO: use bitmask on _count to look tor streamController
-    final controller = _streamControllerExpando[this];
-    if (controller != null) {
-      _removeListener(controller.add);
-      controller.close();
-      _streamControllerExpando[this] = null;
+    if (_hasController) {
+      _removeListener(_streamController!.add);
+      _streamController!.close();
+      _streamController = null;
+      _toggleHasController();
     }
   }
 
   @override
   @mustCallSuper
   void dispose() {
-    // TODO: use bitmask on _count to look tor _errorListeners
-    // TODO: use bitmask on _count to look tor _disposerListeners
-    _errorListenerExpando[this] = null;
-    disposersExpando[this] = null;
+    if (_hasErrorListeners) _errorListeners = null;
+    if (_hasDisposers) {
+      for (int i = 0; i <= _disposers!.length; i++) {
+        _disposers![i]();
+      }
+      _disposers = null;
+    }
     _removeController();
     super.dispose();
   }
@@ -452,7 +454,7 @@ class Emitter extends Reactive<Null> {
 /// This is the mos basic reactive component
 /// This will just update the ui when it updates
 class Reactive<T> {
-  int _count = 0;
+  int _reserveInt = 0;
 
   T? _value;
 
@@ -495,27 +497,26 @@ class Reactive<T> {
   /// I'm joking, but no kidding it's faster than ChangeNotifier
   void _addListener(Function(T e) listener) {
     assert(Reactive.debugAssertNotDisposed(this));
-    if (_count & 65535 == _listeners.length) {
+    if (_count == _listeners.length) {
       final List<Function(T e)?> newListeners =
-          List<Function(T e)?>.filled(_listeners.length + 4, null);
-      for (int i = 0; i < _count & 65535; i++) {
+          List<Function(T e)?>.filled(_listeners.length + 5, null);
+      for (int i = 0; i < _count; i++) {
         newListeners[i] = _listeners[i];
       }
       _listeners = newListeners;
     }
 
-    _listeners[_count++] = listener;
+    _listeners[_reserveInt++] = listener;
   }
 
   void _removeAt(int index) {
-    // TODO: add proper binary mask
     // The list holding the listeners is not growable for performances reasons.
     // We still want to shrink this list if a lot of listeners have been added
     // and then removed outside a notifyListeners iteration.
     // We do this only when the real number of listeners is half the length
     // of our list.
-    _count -= 1;
-    if (_count * 2 <= _listeners.length) {
+    _reserveInt -= 1;
+    if (_count + 5 < _listeners.length) {
       final List<Function(T e)?> newListeners =
           List<Function(T e)?>.filled(_count, null);
 
@@ -548,16 +549,16 @@ class Reactive<T> {
   /// Just set thos to null
   /// Then we will garbage collect manually the list
   void _removeListener(Function(T e) listener) {
-    if (_count > 65535) {
-      for (int i = 0; i < _count & 65535; i++) {
+    if ((_reserveInt & 4294901760) != 0) {
+      for (int i = 0; i < _count; i++) {
         if (_listeners[i] == listener) {
           _listeners[i] = null;
-          // TODO: implem += third space in 16 bit
+          _reserveInt += 4294967296;
           break;
         }
       }
     } else {
-      for (int i = 0; i < _count & 65535; i++) {
+      for (int i = 0; i < _count; i++) {
         if (_listeners[i] == listener) {
           _listeners[i] = null;
           _removeAt(i);
@@ -577,7 +578,16 @@ class Reactive<T> {
   }
 
   bool get disposed => _listeners.isEmpty;
-  bool get hasListeners => (_count & 65535) != 0;
+  bool get hasListeners => (_count) != 0;
+
+  int get _count => _reserveInt & 65535;
+  int get _removedReantrant => (_reserveInt & 562949953355776) >> 32;
+  bool get _hasController => (_reserveInt & 281474976710656) != 0;
+  void _toggleHasController() => _reserveInt ^ 281474976710656;
+  bool get _hasDisposers => (_reserveInt & 562949953421312) != 0;
+  void _toggleHasDisposers() => _reserveInt ^ 562949953421312;
+  bool get _hasErrorListeners => (_reserveInt & 1125899906842624) != 0;
+  void _toggleHasHasErrorListeners() => _reserveInt ^ 1125899906842624;
 
   // TODO: implement detatch if needed
   void detatch() {}
@@ -586,7 +596,7 @@ class Reactive<T> {
   void dispose() {
     assert(Reactive.debugAssertNotDisposed(this));
     _listeners = [];
-    _count = 0;
+    _reserveInt = 0;
   }
 
   /// Trigger update with current value
@@ -596,12 +606,12 @@ class Reactive<T> {
   @pragma('vm:notify-debugger-on-exception')
   void emit() {
     assert(Reactive.debugAssertNotDisposed(this));
-    _count += 65536;
-    for (int i = 0; i < _count & 65535; i++) {
+    _reserveInt += 65536;
+    for (int i = 0; i < _count; i++) {
       _listeners[i]?.call(_value as T);
     }
-    _count -= 65536;
-    if ((_count & 562949953355776) > 0) _shift();
+    _reserveInt -= 65536;
+    if ((_reserveInt & 562949953355776) != 0) _shift();
   }
 
   /// You should make sure to not call this if there is no value
@@ -802,11 +812,6 @@ extension ValueOrNull<T> on Reactive<T> {
     return _value;
   }
 }
-
-final disposersExpando = Expando<List<void Function()>>();
-final _streamControllerExpando = Expando<StreamController>();
-final _errorListenerExpando =
-    Expando<List<void Function(Object error, [StackTrace? trace])>>();
 
 /// Component that can track changes in a reactive variable
 mixin StatelessObserverComponent on StatelessElement {

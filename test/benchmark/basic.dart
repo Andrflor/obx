@@ -10,12 +10,25 @@ final map = HashMap<Rx, String>();
 
 main() async {
   // await getxBench();
-  Rx("Lol");
+  final rx = Rx("Lol");
   Obx(() => const Text("Text"));
-  "value".obs;
+  final val = rx.value.obs;
+  // lel[rx] = "strong";
+  // lel[val] = "strong";
+  val.stream.listen((_) {
+    print(lel[val]);
+  });
   RMemoryTest();
   ValueNotifier<int>(0);
+
+  for (int i = 0; i <= 10000; i++) {
+    print(lel[val]);
+    print(lel[rx]);
+    await Future.delayed(Duration(seconds: 3));
+  }
 }
+
+final lel = Expando<String>();
 
 class RMemoryTest {}
 
