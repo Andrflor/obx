@@ -77,12 +77,21 @@ class Reactive<T> {
   /// Used to add listeners
   ///
   /// This function is optimized with voodoo to be as fast as possible
-  /// I'm joking, but no kidding it's faster than ChangeNotifier
+  ///
   void _addListener(Function(T e) listener) {
     assert(Reactive.debugAssertNotDisposed(this));
+    assert(() {
+      // If we had more than 65535 listeners (u16) it will cause unexpected
+      // behaviors, this should never happen and may be due to a StackOverflow.
+      if (_count == 65535) {
+        throw FlutterError(
+            'You are trying to add more than 65535 listeners to a $runtimeType which is not supported.\nMaybe you recursivly called [ever] or [listen] inside another [ever] or [listen]');
+      }
+      return true;
+    }());
     if (_count == _listeners.length) {
       final List<Function(T e)?> newListeners =
-          List<Function(T e)?>.filled(_listeners.length + 5, null);
+          List<Function(T e)?>.filled(2 * _count, null);
       for (int i = 0; i < _count; i++) {
         newListeners[i] = _listeners[i];
       }
@@ -93,47 +102,14 @@ class Reactive<T> {
     _listeners[(_reserveInt++) & 65535] = listener;
   }
 
-  void _removeAt(int index) {
-    // The list holding the listeners is not growable for performances reasons.
-    // We still want to shrink this list if a lot of listeners have been added
-    // and then removed outside a notifyListeners iteration.
-    // We do this only when the real number of listeners is half the length
-    // of our list.
-    _reserveInt -= 1;
-    if (_count + 5 < _listeners.length) {
-      final List<Function(T e)?> newListeners =
-          List<Function(T e)?>.filled(_count, null);
-
-      // Listeners before the index are at the same place.
-      for (int i = 0; i < index; i++) {
-        newListeners[i] = _listeners[i];
-      }
-
-      // Listeners after the index move towards the start of the list.
-      for (int i = index; i < _count; i++) {
-        newListeners[i] = _listeners[i + 1];
-      }
-
-      _listeners = newListeners;
-    } else {
-      // When there are more listeners than half the length of the list, we only
-      // shift our listeners, so that we avoid to reallocate memory for the
-      // whole list.
-      for (int i = index; i < _count; i++) {
-        _listeners[i] = _listeners[i + 1];
-      }
-      _listeners[_count] = null;
-    }
-  }
-
   /// Used to remove the listener
   ///
   /// This function is made to be ultra fast
-  /// We won't remove anything here
-  /// Just set thos to null
-  /// Then we will garbage collect manually the list
+  /// It's even a tiny bit faster than ChangeNotifier
+  ///
+  /// We remove only if we really need it
+  /// Otherwise inside a listener loop we just assign null
   void _removeListener(Function(T e) listener) {
-    // Check if the _callStackDepth is > 0
     if ((_reserveInt & 4294901760) != 0) {
       for (int i = 0; i < _count; i++) {
         if (_listeners[i] == listener) {
@@ -144,28 +120,59 @@ class Reactive<T> {
         }
       }
     } else {
-      for (int i = 0; i < _count; i++) {
-        if (_listeners[i] == listener) {
-          _listeners[i] = null;
-          _removeAt(i);
+      for (int index = 0; index < _count; index++) {
+        if (_listeners[index] == listener) {
+          // The list holding the listeners is not growable for performances reasons.
+          // We still want to shrink this list if a lot of listeners have been added
+          // and then removed outside a notifyListeners iteration.
+          // We do this only when the real number of listeners is half the length
+          // of our list.
+          _reserveInt -= 1;
+          final count = _count;
+          if (count * 2 <= _listeners.length) {
+            final List<Function(T e)?> newListeners =
+                List<Function(T e)?>.filled(count + 1, null);
+
+            // Listeners before the index are at the same place.
+            for (int i = 0; i < index; i++) {
+              newListeners[i] = _listeners[i];
+            }
+
+            // Listeners after the index move towards the start of the list.
+            for (int i = index; i < count; i++) {
+              newListeners[i] = _listeners[i + 1];
+            }
+
+            _listeners = newListeners;
+          } else {
+            // When there are more listeners than half the length of the list, we only
+            // shift our listeners, so that we avoid to reallocate memory for the
+            // whole list.
+            for (int i = index; i < count; i++) {
+              _listeners[i] = _listeners[i + 1];
+            }
+            _listeners[count] = null;
+          }
+
           break;
         }
       }
     }
   }
 
-  /// Shift existing callbacks to the null values are at the end
+  // TODO: test shift to make sure it works properly
+  /// Shift existing callbacks so the null values are at the end
   ///
   /// This is a sort of manual garbage collection
-  /// Will reallocate the List if it shrinks to much
+  /// Will reallocate the List if it shrinks too much
   void _shift() {
     // We really remove the listeners when all notifications are done.
     final int newLength = _count - _removedReantrant;
-    if (newLength + 5 < _listeners.length) {
+    if (newLength * 2 <= _listeners.length) {
       // As in _removeAt, we only shrink the list when the real number of
       // listeners is half the length of our list.
       final List<Function(T e)?> newListeners =
-          List<Function(T e)?>.filled(newLength, null);
+          List<Function(T e)?>.filled(newLength + 1, null);
 
       int newIndex = 0;
       for (int i = 0; i < _count; i++) {
@@ -200,6 +207,27 @@ class Reactive<T> {
   // TODO: implement detatch if needed
   void detatch() {}
 
+  // Recursive function that allow to resume the loop after any error
+  void _continueLooping(int i) {
+    try {
+      for (i; i < _count; i++) {
+        _listeners[i]?.call(_value as T);
+      }
+    } catch (exception, stack) {
+      FlutterError.reportError(FlutterErrorDetails(
+        exception: exception,
+        stack: stack,
+        library: 'obx library',
+        silent: true,
+        context: ErrorSummary(
+            'dispatching notifications for $runtimeType\nThis error was catched to ensure that listener events are dispatched\nSome of your listeners for this Rx is throwing an exception\nMake sure that your listeners do not throw to ensure optimal performance'),
+      ));
+
+      // There is an error we should continue the loop
+      _continueLooping(++i);
+    }
+  }
+
   @mustCallSuper
   void dispose() {
     assert(Reactive.debugAssertNotDisposed(this));
@@ -209,15 +237,48 @@ class Reactive<T> {
 
   /// Trigger update with current value
   /// Force notify listeners and update Widgets
+  ///
+  /// This function is really fast
+  /// It's up to 2x faster than ChangeNotifier
+  /// When there is 10 listeners
   @protected
   @visibleForTesting
   @pragma('vm:notify-debugger-on-exception')
   void emit() {
     assert(Reactive.debugAssertNotDisposed(this));
+    assert(() {
+      // If we have already 8191 _callStackDepth we can assume a StackOverflow
+      if (_reserveInt & 4294901760 == 536805376) {
+        throw FlutterError(
+            'A $runtimeType as a listener that causes a StackOverflow.\nMake sure to not infinitly emit values inside [listen], [ever]...');
+      }
+      return true;
+    }());
+
     // Increase the _callStackDepth by +1
     _reserveInt += 65536;
-    for (int i = 0; i < _count; i++) {
-      _listeners[i]?.call(_value as T);
+    int i = 0;
+    // Could have called _continueLooping(0) instead
+    // But it's slower than putting the first iteration try here
+    // This implementation is what mainly makes reactive up to 2x faster than
+    // ChangeNotifier. Here we avoid try catching on each loop
+    // But we still catch all the errors properly thanks to recursivity
+    try {
+      for (i; i < _count; i++) {
+        _listeners[i]?.call(_value as T);
+      }
+    } catch (exception, stack) {
+      FlutterError.reportError(FlutterErrorDetails(
+        exception: exception,
+        stack: stack,
+        library: 'obx library',
+        silent: true,
+        context: ErrorSummary(
+            'dispatching notifications for $runtimeType\nThis error was catched to ensure that listener events are dispatched\nSome of your listeners for this Rx is throwing an exception\nMake sure that your listeners do not throw to ensure optimal performance'),
+      ));
+
+      // There is an error we should continue the loop
+      _continueLooping(++i);
     }
     // Decrease the _callStackDepth by -1
     _reserveInt -= 65536;
@@ -258,30 +319,14 @@ class Reactive<T> {
     emit();
   }
 
-  VoidCallback subscribe(
+  /// Allow to listen to a Reactive
+  ///
+  /// Return a VoidCallback to dispose the listen
+  VoidCallback listen(
     Function(T value) callback,
   ) {
     _addListener(callback);
     return () => _removeListener(callback);
-  }
-
-  VoidCallback subNow(Function(T value) callback) {
-    callback(_value as T);
-    _addListener(callback);
-    return () => _removeListener(callback);
-  }
-
-  VoidCallback subDiff(
-    Function(T last, T current) callback,
-  ) {
-    T oldVal = _value as T;
-    listener(T value) {
-      callback(oldVal, value);
-      oldVal = _value as T;
-    }
-
-    _addListener(listener);
-    return () => _removeListener(listener);
   }
 
   @protected

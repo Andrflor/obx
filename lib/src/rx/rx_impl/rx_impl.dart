@@ -1,5 +1,8 @@
 part of '../../orchestrator.dart';
 
+// TODO: add the errors on the bindings
+// TODO: add errors / disposers on the listen
+
 class RxImpl<T> extends Reactive<T> {
   RxImpl({super.initial, super.eq});
 
@@ -43,7 +46,7 @@ class RxImpl<T> extends Reactive<T> {
   /// If you have more complex operation to do, use [pipe] instead
   Rx<S> pipeMap<S>(S Function(T e) transform, {bool? distinct, Equality? eq}) {
     final res = _clone(distinct: distinct, convert: transform, eq: eq);
-    res._addDisposeListener(subscribe((T data) => res.value = transform(data)));
+    res._addDisposeListener(listen((T data) => res.value = transform(data)));
     return res;
   }
 
@@ -57,7 +60,7 @@ class RxImpl<T> extends Reactive<T> {
   /// If you have more complex operation to do, use [pipe] instead
   Rx<T> pipeWhere(bool Function(T e) test, {bool? distinct, Equality? eq}) {
     final res = _clone<T>(distinct: distinct, eq: eq);
-    res._addDisposeListener(subscribe((T data) {
+    res._addDisposeListener(listen((T data) {
       if (test(data)) {
         res.value = data;
       }
@@ -77,7 +80,7 @@ class RxImpl<T> extends Reactive<T> {
   Rx<S> pipeMapWhere<S>(S Function(T e) transform, bool Function(T e) test,
       {bool? distinct, Equality? eq}) {
     final res = _clone(distinct: distinct, eq: eq, convert: transform);
-    res._addDisposeListener(subscribe((T data) {
+    res._addDisposeListener(listen((T data) {
       if (test(data)) {
         res.value = transform(data);
       }
@@ -133,35 +136,20 @@ class RxImpl<T> extends Reactive<T> {
   @override
   String toString() => value.toString();
 
-  //TODO: write doc
-  @override
-  VoidCallback subscribe(Function(T value) callback,
-          {StreamFilter<T>? filter}) =>
-      filter?.call(stream).listen(callback).cancel ?? super.subscribe(callback);
+  // We check if we have a distinct observable
+  bool get isDistinct => equalizer is! NeverEquality;
 
-  //TODO: write doc
+  /// Simple listen to an [Rx]
+  ///
+  /// Allow to pass a StreamFilter to modify the stream
+  /// If no [StreamFilter] is provided no [Stream] will be used
+  /// Thus resulting in up to 90x faster results
+  /// So only use a StreamFilter if you really need it
+  ///
+  /// Returns a [VoidCallback] to dispose the listener
   @override
-  VoidCallback subNow(Function(T value) callback, {StreamFilter<T>? filter}) {
-    callback(_value as T);
-    return filter?.call(stream).listen(callback).cancel ??
-        super.subscribe(callback);
-  }
-
-  //TODO: write doc
-  @override
-  VoidCallback subDiff(Function(T last, T current) callback,
-      {StreamFilter<T>? filter}) {
-    if (filter != null) {
-      T oldVal = _value as T;
-      listener(T value) {
-        callback(oldVal, value);
-        oldVal = _value as T;
-      }
-
-      return filter(stream).listen(listener).cancel;
-    }
-    return super.subDiff(callback);
-  }
+  VoidCallback listen(Function(T value) callback, {StreamFilter<T>? filter}) =>
+      filter?.call(stream).listen(callback).cancel ?? super.listen(callback);
 
   StreamController<T>? _streamController;
   List<void Function(Object error, [StackTrace? trace])>? _errorListeners;
@@ -282,7 +270,7 @@ class RxImpl<T> extends Reactive<T> {
   /// You will have to clean it up yourself
   /// For that you can call the provided [Disposer]
   Disposer bindRx(RxImpl<T> rx, [StreamFilter<T>? filter]) {
-    final sub = rx.subscribe(
+    final sub = rx.listen(
       (e) {
         value = e;
       },
@@ -365,6 +353,7 @@ class SingleShot<T> extends Reactive<T> {
       _disposers![i]();
     }
     _disposers = null;
+    // TODO: remove from ObxElement
     super.dispose();
   }
 }

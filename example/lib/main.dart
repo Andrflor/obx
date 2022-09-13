@@ -12,9 +12,7 @@ class Test extends StatelessWidget {
   final rxInt = Rx(0);
   final rxInt2 = Rx(10);
 
-  late final rxMult = Rx.fuse(multChanged)
-    ..stream
-    ..stream;
+  late final rxMult = Rx.fuse(multChanged);
   int get mult => observe(multChanged);
 
   int multChanged() => rxInt() * rxInt2();

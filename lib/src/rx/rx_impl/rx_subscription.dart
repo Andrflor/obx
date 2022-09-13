@@ -115,3 +115,99 @@ class RxSubscription<T> implements StreamSubscription<T> {
     }
   }
 }
+
+class DebounceSubscription<T> implements StreamSubscription<T> {
+  final StreamSubscription<T> _parent;
+  DebounceSubscription(this._parent);
+
+  @override
+  Future<E> asFuture<E>([E? futureValue]) => _parent.asFuture(futureValue);
+
+  @override
+  Future<void> cancel() => _parent.cancel();
+
+  @override
+  bool get isPaused => _parent.isPaused;
+  @override
+  void onData(void Function(T data)? handleData) {
+    // TODO: implement onData
+  }
+
+  @override
+  void onDone(void Function()? handleDone) => _parent.onDone(handleDone);
+
+  @override
+  void onError(Function? handleError) {
+    // TODO: implement onError
+  }
+
+  @override
+  void pause([Future<void>? resumeSignal]) => _parent.pause(resumeSignal);
+
+  @override
+  void resume() => _parent.resume();
+}
+
+class OnceSubscription<T> extends StreamSubscription<T> {
+  final StreamSubscription<T> _parent;
+  OnceSubscription(this._parent);
+
+  @override
+  Future<E> asFuture<E>([E? futureValue]) => _parent.asFuture(futureValue);
+
+  @override
+  Future<void> cancel() => _parent.cancel();
+
+  @override
+  bool get isPaused => _parent.isPaused;
+  @override
+  void onData(void Function(T data)? handleData) {
+    // TODO: implement onData
+  }
+
+  @override
+  void onDone(void Function()? handleDone) => _parent.onDone(handleDone);
+
+  @override
+  void onError(Function? handleError) {
+    // TODO: implement onError
+  }
+
+  @override
+  void pause([Future<void>? resumeSignal]) => _parent.pause(resumeSignal);
+
+  @override
+  void resume() => _parent.resume();
+}
+
+class IntervalSubscription<T> implements StreamSubscription<T> {
+  final StreamSubscription<T> _parent;
+  IntervalSubscription(this._parent);
+
+  @override
+  Future<E> asFuture<E>([E? futureValue]) => _parent.asFuture(futureValue);
+
+  @override
+  Future<void> cancel() => _parent.cancel();
+
+  @override
+  bool get isPaused => _parent.isPaused;
+  @override
+  void onData(void Function(T data)? handleData) {
+    // TODO: implement onData
+  }
+
+  @override
+  void onDone(void Function()? handleDone) => _parent.onDone(handleDone);
+
+  @override
+  void onError(Function? handleError) {
+    // TODO: implement onError
+  }
+
+  @override
+  void pause([Future<void>? resumeSignal]) => _parent.pause(resumeSignal);
+
+  @override
+  void resume() => _parent.resume();
+}
