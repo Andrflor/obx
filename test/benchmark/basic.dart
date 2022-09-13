@@ -1,36 +1,10 @@
-import 'dart:collection';
-
-import 'package:flutter/material.dart';
 import 'package:equatable/equatable.dart';
 import 'package:get/get.dart' as getx;
 import 'package:obx/obx.dart';
 
-final expand = Expando<String>();
-final map = HashMap<Rx, String>();
-
 main() async {
-  // await getxBench();
-  final rx = Rx("Lol");
-  Obx(() => const Text("Text"));
-  final val = rx.value.obs;
-  // lel[rx] = "strong";
-  // lel[val] = "strong";
-  val.stream.listen((_) {
-    print(lel[val]);
-  });
-  RMemoryTest();
-  ValueNotifier<int>(0);
-
-  for (int i = 0; i <= 10000; i++) {
-    print(lel[val]);
-    print(lel[rx]);
-    await Future.delayed(Duration(seconds: 3));
-  }
+  await getxBench();
 }
-
-final lel = Expando<String>();
-
-class RMemoryTest {}
 
 Future<void> getxBench() async {
   print("Getx vs Obx benchmark");

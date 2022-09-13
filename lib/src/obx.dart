@@ -1,5 +1,6 @@
+library obx;
+
 import 'package:flutter/widgets.dart';
-import './rx/rx_impl/rx_impl.dart';
 import 'orchestrator.dart';
 
 class ObxElement = StatelessElement with StatelessObserverComponent;

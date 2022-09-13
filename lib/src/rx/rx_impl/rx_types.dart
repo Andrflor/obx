@@ -1,3 +1,5 @@
+library obx;
+
 import 'dart:async';
 
 import 'rx_core.dart';

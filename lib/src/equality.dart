@@ -1,3 +1,5 @@
+library obx;
+
 import 'package:collection/collection.dart';
 
 class NeverEquality<E> implements Equality<E> {

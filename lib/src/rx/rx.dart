@@ -1,7 +1,9 @@
+library obx;
+
 /// Core implementation of Rx
 export 'rx_impl/rx_core.dart';
-export 'rx_impl/rx_impl.dart' show Emitter;
 export 'rx_impl/rx_types.dart';
+export '../orchestrator.dart' show Emitter, RxSubscription, ValueOrNull;
 
 /// Basic type adapters
 export 'rx_base/rx_bool.dart';

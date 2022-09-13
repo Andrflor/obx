@@ -1,3 +1,5 @@
+library obx;
+
 import '../../functions.dart';
 import '../../orchestrator.dart';
 import '../rx_impl/rx_core.dart';

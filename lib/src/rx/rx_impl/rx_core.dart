@@ -1,9 +1,10 @@
+library obx;
+
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../../equality.dart';
 import '../../orchestrator.dart';
 import 'package:collection/collection.dart';
-import 'rx_impl.dart';
 
 /// Rx is the class for all your reactive need
 ///

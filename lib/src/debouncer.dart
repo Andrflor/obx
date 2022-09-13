@@ -1,3 +1,5 @@
+library obx;
+
 import 'dart:async';
 
 /// This "function" class is the implementation of `debouncer()` Worker.

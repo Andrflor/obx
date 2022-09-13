@@ -12,7 +12,9 @@ class Test extends StatelessWidget {
   final rxInt = Rx(0);
   final rxInt2 = Rx(10);
 
-  late final rxMult = Rx.fuse(multChanged);
+  late final rxMult = Rx.fuse(multChanged)
+    ..stream
+    ..stream;
   int get mult => observe(multChanged);
 
   int multChanged() => rxInt() * rxInt2();
@@ -26,7 +28,7 @@ class Test extends StatelessWidget {
         ElevatedButton(
           // child: Obx(() => Text(observe(() => rxString.length).toString())),
           child: Obx(() {
-            return Text("$rxInt");
+            return Text("$rxMult");
           }),
           onPressed: () => rxInt2(rxInt2() + 1),
         ),

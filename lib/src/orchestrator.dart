@@ -1,8 +1,19 @@
+library obx;
+
 import 'package:collection/collection.dart';
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
+import 'package:obx/src/rx/rx_impl/rx_types.dart';
+
+import 'equality.dart';
 import 'package:flutter/material.dart';
-import 'rx/rx_impl/rx_impl.dart';
 import 'rx/rx_impl/rx_core.dart';
 import 'debouncer.dart';
+
+part 'rx/rx_impl/rx_impl.dart';
+part 'rx/rx_impl/rx_reactive.dart';
+part 'rx/rx_impl/rx_subscription.dart';
 
 // This callback remove the listener on addListener function
 typedef Disposer = void Function();
@@ -34,7 +45,8 @@ abstract class Orchestrator {
     reactives = [];
     base.silent(builder());
     debouncer.start();
-    disposersExpando[base] = notifyData!.disposers;
+    base._disposers = notifyData!.disposers;
+    base._setHasDisposers();
     notifyData = null;
   }
 
@@ -67,5 +79,36 @@ class ObxError {
       (example: Obx => HeavyWidget => variableObservable).
       If you need to update a parent widget and a child widget, wrap each one in an [Obx].
       """;
+  }
+}
+
+/// Component that can track changes in a reactive variable
+mixin StatelessObserverComponent on StatelessElement {
+  List<Reactive> reactives = [];
+
+  void refresh(_) {
+    if (reactives.isNotEmpty) {
+      markNeedsBuild();
+    }
+  }
+
+  @override
+  Widget build() {
+    Orchestrator.element = this;
+    final result = super.build();
+    if (reactives.isEmpty) {
+      throw const ObxError();
+    }
+    Orchestrator.element = null;
+    return result;
+  }
+
+  @override
+  void unmount() {
+    super.unmount();
+    for (int i = 0; i < reactives.length; i++) {
+      reactives[i]._removeListener(refresh);
+    }
+    reactives = [];
   }
 }
