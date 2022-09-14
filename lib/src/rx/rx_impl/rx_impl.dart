@@ -1,8 +1,5 @@
 part of '../../orchestrator.dart';
 
-// TODO: add the errors on the bindings
-// TODO: add errors / disposers on the listen
-
 class RxImpl<T> extends Reactive<T> {
   RxImpl({super.initial, super.eq});
 
@@ -339,12 +336,20 @@ class RxImpl<T> extends Reactive<T> {
 /// Then it fire once, and then it dies
 /// So it really has a "single shot"
 class SingleShot<T> extends Reactive<T> {
-  SingleShot() : super();
+  SingleShot() : super() {
+    Orchestrator.element!.singles.add(this);
+  }
+
+  final VoidCallback update = Orchestrator.element!.markNeedsBuild;
 
   @override
-  void emit() {
-    super.emit();
-    dispose();
+  T get value => _value as T;
+
+  @override
+  set value(T val) {
+    if (_value != val) {
+      update();
+    }
   }
 
   @override
@@ -353,7 +358,6 @@ class SingleShot<T> extends Reactive<T> {
       _disposers![i]();
     }
     _disposers = null;
-    // TODO: remove from ObxElement
     super.dispose();
   }
 }

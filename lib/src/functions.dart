@@ -63,9 +63,6 @@ or you may have wrongly typed $inner in the onData [Function($inner value)] func
 /// So you may end up with those changes done twice
 /// In some senarios you may even end up with uncatched inifite loops
 /// That's why I would avoid it...
-///
-/// Under the hood is a simple [ValueListenable<T>] implementation
-/// In fact all [Rx<T>] are [ValueListenable<T>]
 T observe<T>(T Function() builder) {
   return Orchestrator.notObserving ? builder() : Orchestrator.observe(builder);
 }

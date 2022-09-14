@@ -29,12 +29,6 @@ abstract class Orchestrator {
   static List<Reactive> reactives = [];
   static NotifyData? notifyData;
 
-  static T observe<T>(T Function() builder) {
-    final base = SingleShot<T>();
-    _internal(builder, base);
-    return base.value;
-  }
-
   static void _internal<T, S extends Reactive<T>>(
       T Function() builder, S base) {
     final debouncer = EveryDebouncer(
@@ -43,11 +37,17 @@ abstract class Orchestrator {
         updater: (_) => debouncer(() => base.value = builder()),
         disposers: [debouncer.cancel]);
     reactives = [];
-    base.silent(builder());
+    base._value = builder();
     debouncer.start();
     base._disposers = notifyData!.disposers;
     base._setHasDisposers();
     notifyData = null;
+  }
+
+  static T observe<T>(T Function() builder) {
+    final base = SingleShot<T>();
+    _internal(builder, base);
+    return base.value;
   }
 
   static Rx<T> fuse<T>(T Function() builder, {Equality eq = const Equality()}) {
@@ -85,20 +85,20 @@ class ObxError {
 /// Component that can track changes in a reactive variable
 mixin StatelessObserverComponent on StatelessElement {
   List<Reactive> reactives = [];
+  List<SingleShot> singles = [];
 
-  void refresh(_) {
-    if (reactives.isNotEmpty) {
-      markNeedsBuild();
-    }
-  }
+  void refresh(_) => markNeedsBuild();
 
   @override
   Widget build() {
     Orchestrator.element = this;
     final result = super.build();
-    if (reactives.isEmpty) {
-      throw const ObxError();
-    }
+    assert(() {
+      if (reactives.isEmpty && singles.isEmpty) {
+        throw const ObxError();
+      }
+      return true;
+    }());
     Orchestrator.element = null;
     return result;
   }
@@ -106,9 +106,17 @@ mixin StatelessObserverComponent on StatelessElement {
   @override
   void unmount() {
     super.unmount();
+    clean();
     for (int i = 0; i < reactives.length; i++) {
-      reactives[i]._removeListener(refresh);
+      reactives[i]._unsafeRemoveListener(refresh);
     }
     reactives = [];
+  }
+
+  void clean() {
+    for (int i = 0; i < singles.length; i++) {
+      singles[i].dispose();
+    }
+    singles = [];
   }
 }

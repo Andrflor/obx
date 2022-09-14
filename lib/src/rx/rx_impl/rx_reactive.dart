@@ -37,6 +37,9 @@ class Reactive<T> {
   /// First 16 bit used for the listener count
   int get _count => _reserveInt & 65535;
 
+  // TODO: remove this
+  int get length => _reserveInt & 65535;
+
   /// Third 16 bit used to store the number of removed elements during iteration
   /// The second 16 bit is used to store the callStackDepth
   int get _removedReantrant => (_reserveInt & 562949953355776) >> 32;
@@ -90,9 +93,10 @@ class Reactive<T> {
       return true;
     }());
     if (_count == _listeners.length) {
+      final count = _count;
       final List<Function(T e)?> newListeners =
-          List<Function(T e)?>.filled(2 * _count, null);
-      for (int i = 0; i < _count; i++) {
+          List<Function(T e)?>.filled(2 * count, null);
+      for (int i = 0; i < count; i++) {
         newListeners[i] = _listeners[i];
       }
       _listeners = newListeners;
@@ -100,6 +104,20 @@ class Reactive<T> {
 
     // Use the value of _count and increase it by +1 after
     _listeners[(_reserveInt++) & 65535] = listener;
+  }
+
+  /// Used to remove a listener when it cannot be called during iteration
+  void _unsafeRemoveListener(Function(T e) listener) {
+    final count = --_reserveInt;
+    for (int i = 0; i < _count; i++) {
+      if (_listeners[i] == listener) {
+        for (int j = i; j < count; j++) {
+          _listeners[j] = _listeners[j + 1];
+        }
+        _listeners[count] = null;
+        return;
+      }
+    }
   }
 
   /// Used to remove the listener
@@ -110,6 +128,7 @@ class Reactive<T> {
   /// We remove only if we really need it
   /// Otherwise inside a listener loop we just assign null
   void _removeListener(Function(T e) listener) {
+    // Check that we actually have a non 0 callStackDepth
     if ((_reserveInt & 4294901760) != 0) {
       for (int i = 0; i < _count; i++) {
         if (_listeners[i] == listener) {
@@ -127,8 +146,7 @@ class Reactive<T> {
           // and then removed outside a notifyListeners iteration.
           // We do this only when the real number of listeners is half the length
           // of our list.
-          _reserveInt -= 1;
-          final count = _count;
+          final count = (--_reserveInt) & 65535;
           if (count * 2 <= _listeners.length) {
             final List<Function(T e)?> newListeners =
                 List<Function(T e)?>.filled(count + 1, null);
@@ -346,7 +364,8 @@ class Reactive<T> {
       final listener = Orchestrator.notifyData!.updater;
       reactives.add(this);
       _addListener(listener);
-      Orchestrator.notifyData!.disposers.add(() => _removeListener(listener));
+      Orchestrator.notifyData!.disposers
+          .add(() => _unsafeRemoveListener(listener));
     }
   }
 }

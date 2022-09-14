@@ -12,28 +12,38 @@ class Test extends StatelessWidget {
   final rxInt = Rx(0);
   final rxInt2 = Rx(10);
 
+  bool val = false;
+
   late final rxMult = Rx.fuse(multChanged);
-  int get mult => observe(multChanged);
+  int get mult => observe(() => rxInt() * rxInt2());
 
   int multChanged() => rxInt() * rxInt2();
 
   @override
   Widget build(context) {
+    () async {
+      while (true) {
+        if (val) {
+          print(rxInt.length);
+          rxString.isEmpty ? rxString("trolol") : rxString("");
+        }
+        await Future.delayed(const Duration(milliseconds: 1));
+      }
+    }();
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       mainAxisSize: MainAxisSize.min,
       children: [
-        ElevatedButton(
-          // child: Obx(() => Text(observe(() => rxString.length).toString())),
-          child: Obx(() {
-            return Text("$rxMult");
-          }),
-          onPressed: () => rxInt2(rxInt2() + 1),
-        ),
+        Obx(() => ElevatedButton(
+              child: Column(
+                children: [Text("$mult"), Text("$rxString")],
+              ),
+              onPressed: () => rxInt2(rxInt2() + 1),
+            )),
         const SizedBox(height: 10),
         ElevatedButton(
           child: Obx(() => Text(rxString.value)),
-          onPressed: () => rxInt(rxInt() == 0 ? 1 : 0),
+          onPressed: () => val = !val,
         ),
       ],
     );
