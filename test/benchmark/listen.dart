@@ -8,12 +8,13 @@ import 'package:obx/obx.dart';
 
 void main() async {
   print("Benchmark listen: (dispatch time | add+remove time)");
-  for (int i = 0; i < 20; i++) {
-    // for (int i in [0, 1, 9, 99]) {
+  // for (int i = 0; i < 20; i++) {
+  for (int i in [0, 1, 9, 99]) {
     print("");
     print("With ${i + 1} listeners");
     await notifierTest(i);
     await rxTrest(i);
+    await nexImplemTest(i);
     await streamTest(i);
     await getxTrest(i);
   }
@@ -76,6 +77,46 @@ Future<void> notifierTest(int i) async {
   for (int i = 0; i < loops; i++) {
     notifier.value = 10;
     notifier.notifyListeners();
+  }
+  return _completer.future;
+}
+
+Future<void> nexImplemTest(int i) async {
+  final _completer = Completer<void>();
+  final notifier = NodeList<int?>(0);
+  var notifierCounter = 0;
+  final callbackList = List<VoidCallback?>.filled(i + 1, null);
+  late final DateTime start;
+  listener(_) {}
+  final add = DateTime.now();
+  final stopWatch = Stopwatch();
+  stopWatch.start();
+  for (int k = 0; k < 10; k++) {
+    for (int j = 0; j <= i; j++) {
+      callbackList[j] = notifier.add(Node(notifier, listener)).cancel;
+    }
+    print(notifier.length);
+    for (int j = 0; j <= i; j++) {
+      callbackList[j]!();
+    }
+    print(notifier.length);
+  }
+  stopWatch.stop();
+
+  print("done");
+  print(notifier.length);
+  final endInNs = (stopWatch.elapsedMicroseconds * 1000) / (loops * (i + 1));
+  for (int j = 0; j < i; j++) {
+    notifier.add(Node(notifier, (_) {}));
+  }
+  notifier.add(Node(notifier, (_) {
+    notifierCounter++;
+    show("newImplem: ", start, notifierCounter, _completer, endInNs);
+  }));
+  start = DateTime.now();
+  for (int i = 0; i < loops; i++) {
+    notifier.value = 10;
+    notifier.emit();
   }
   return _completer.future;
 }
@@ -169,7 +210,6 @@ Future<void> getxTrest(int i) async {
   // }
   // stopWatch.stop();
   // final endInNs = (stopWatch.elapsedMicroseconds * 1000) / (loops * (i + 1));
-  print("Warning add time not working on getx");
   for (int j = 0; j < i; j++) {
     rx.listen(listener);
   }
@@ -182,4 +222,63 @@ Future<void> getxTrest(int i) async {
     rx.trigger(10);
   }
   return _completer.future;
+}
+
+class Node<T> {
+  T? _value;
+  T get value => _value as T;
+  Node<T>? previous;
+  Node<T>? next;
+  NodeList _parent;
+
+  Node(this._parent, [this._value]);
+
+  void cancel() {
+    if (previous == null && next == null) {
+      _parent._first = _parent._last = null;
+    }
+    previous?.next = next;
+    next?.previous = previous;
+    previous = next = null;
+  }
+}
+
+class NodeList<T> {
+  T value;
+
+  Node<Function(T e)>? _first;
+  Node<Function(T e)>? _last;
+
+  int get length {
+    var current = _first;
+    if (current == null) return 0;
+    int len = 1;
+    while (current.next != null) {
+      len++;
+    }
+    return len;
+  }
+
+  NodeList(this.value);
+
+  void emit() {
+    if (_first == null) return;
+    Node<Function(T e)>? first = _first?..value(value);
+    try {
+      while (!identical(first = first!.next, null)) {
+        first!.value(value);
+      }
+    } catch (e) {
+      print("Got error mesire");
+    }
+  }
+
+  Node<Function(T e)> add(Node<Function(T e)> node) {
+    if (_first == null) return _last = _first = node;
+    node.previous = node.previous!.next = _last;
+    _last = node;
+    return node;
+  }
+
+  cancel(Node<T> node) {}
 }

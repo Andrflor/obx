@@ -37,9 +37,6 @@ class Reactive<T> {
   /// First 16 bit used for the listener count
   int get _count => _reserveInt & 65535;
 
-  // TODO: remove this
-  int get length => _reserveInt & 65535;
-
   /// Third 16 bit used to store the number of removed elements during iteration
   /// The second 16 bit is used to store the callStackDepth
   int get _removedReantrant => (_reserveInt & 562949953355776) >> 32;
@@ -93,10 +90,9 @@ class Reactive<T> {
       return true;
     }());
     if (_count == _listeners.length) {
-      final count = _count;
       final List<Function(T e)?> newListeners =
-          List<Function(T e)?>.filled(2 * count, null);
-      for (int i = 0; i < count; i++) {
+          List<Function(T e)?>.filled(2 * _count, null);
+      for (int i = 0; i < _count; i++) {
         newListeners[i] = _listeners[i];
       }
       _listeners = newListeners;

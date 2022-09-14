@@ -21,10 +21,11 @@ class Test extends StatelessWidget {
 
   @override
   Widget build(context) {
+    mult;
+    mult;
     () async {
       while (true) {
         if (val) {
-          print(rxInt.length);
           rxString.isEmpty ? rxString("trolol") : rxString("");
         }
         await Future.delayed(const Duration(milliseconds: 1));
