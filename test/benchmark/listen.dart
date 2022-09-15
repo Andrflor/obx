@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
@@ -7,14 +8,14 @@ import 'package:obx/obx.dart';
 
 void main() async {
   print("Benchmark listen: (dispatch time | add time | remove time)");
-  for (int i = 1; i < 30; i++) {
+  for (int i = 0; i < 65; i += i == 0 ? 1 : i) {
     print("");
     print("With ${i + 1} listeners");
-    // await notifierTest(i);
+    await notifierTest(i);
     // await rxTrest(i);
     await nexImplemTest(i);
-    // await streamTest(i);
-    // await getxTrest(i);
+    await streamTest(i);
+    await getxTrest(i);
   }
 }
 
@@ -216,17 +217,18 @@ Future<void> nexImplemTest(int i) async {
   final endInNs2 = (stopWatch2.elapsedMicroseconds * 1000) / (loops * (i + 1));
   final callbackList2 = List<VoidCallback?>.filled(i, null);
   for (int j = 0; j < i; j++) {
-    callbackList2[j] = notifier
-        .add(RxSubscription(notifier, (_) {
-          // if (notifierCounter == 3) {
-          //   notifierCounter++;
-          //   final node = notifier.add(RxSubscription(notifier, (_) {}));
-          //   final otherNode = notifier.add(RxSubscription(notifier, (_) {}));
-          //   notifier.emit();
-          //   node.cancel();
-          //   otherNode.cancel();
-          // }
-        }))
+    callbackList2[j] = (notifier.add(RxSubscription(notifier, (_) {
+      // if (notifierCounter == 3) {
+      //   notifierCounter++;
+      //   final node = notifier.add(RxSubscription(notifier, (_) {}));
+      //   final otherNode = notifier.add(RxSubscription(notifier, (_) {}));
+      //   notifier.emit();
+      //   node.cancel();
+      //   otherNode.cancel();
+      // }
+    }))
+          ..pause()
+          ..resume())
         .cancel;
   }
 
@@ -253,12 +255,15 @@ typedef RxSubscription<T> = _NodeSub<Function(T e), T>;
 
 // For some reason it's very slow if we don't pass the whole function type
 class _NodeSub<T extends Function(E e), E> implements StreamSubscription<E> {
-  T? _listener;
+  T? get _listener => _paused ? null : __listener;
+  T? __listener;
   _NodeSub<T, E>? previous;
   _NodeSub<T, E>? next;
   NodeList<E>? _parent;
 
-  _NodeSub(this._parent, [this._listener]);
+  bool _paused = false;
+
+  _NodeSub(this._parent, [this.__listener]);
 
   @override
   Future<S> asFuture<S>([S? futureValue]) {
@@ -267,12 +272,11 @@ class _NodeSub<T extends Function(E e), E> implements StreamSubscription<E> {
   }
 
   @override
-  // TODO: implement isPaused
-  bool get isPaused => throw UnimplementedError();
+  bool get isPaused => _paused;
 
   @override
   void onData(void Function(E data)? handleData) {
-    _listener = handleData as dynamic;
+    __listener = handleData as T;
   }
 
   @override
@@ -287,12 +291,13 @@ class _NodeSub<T extends Function(E e), E> implements StreamSubscription<E> {
 
   @override
   void pause([Future<void>? resumeSignal]) {
-    // TODO: implement pause
+    _paused = true;
+    resumeSignal?.then((_) => _paused = false);
   }
 
   @override
   void resume() {
-    // TODO: implement resume
+    _paused = false;
   }
 
   @override
@@ -340,6 +345,7 @@ class NodeList<T> {
     }
   }
 
+  // TODO: unlink faster
   void _unlink(_NodeSub<Function(T e), T> node) {
     if (_first == node) {
       if (_last == node) {
