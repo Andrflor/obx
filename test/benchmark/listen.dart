@@ -7,15 +7,17 @@ import 'package:get/get.dart' as getx;
 import 'package:obx/obx.dart';
 
 void main() async {
-  print("Benchmark listen: (dispatch time | add time | remove time)");
-  for (int i = 0; i < 65; i += i == 0 ? 1 : i) {
+  print(
+      "Benchmark listen: dispatch time | add time | remove time (time/listener)");
+  for (int i = 0; i < 100; i++) {
     print("");
     print("With ${i + 1} listeners");
+    await controlTest(i);
     await notifierTest(i);
     // await rxTrest(i);
     await nexImplemTest(i);
-    await streamTest(i);
-    await getxTrest(i);
+    // await streamTest(i);
+    // await getxTrest(i);
   }
 }
 
@@ -35,6 +37,49 @@ void show(
         "$name${(end.difference(start).inMicroseconds * 1000 / loops).toStringAsFixed(0)} ns | ${addInNs.toStringAsFixed(0)} ns | ${addInNs2.toStringAsFixed(0)} ns");
     completer.complete();
   }
+}
+
+double adjust(int i) => linearcCoeff * (i + 1) + linearAffix;
+
+// Change does consts to get 0ns on remove
+const linearcCoeff = 1.783;
+const linearAffix = 33.31;
+
+// Change first linearCoeff and LinearAffix then,
+// When you get 0ns on remove control change this to get 0ns on add
+const adaptConst = 2;
+
+Future<void> controlTest(int i) async {
+  final _completer = Completer<void>();
+  final notifier = ValueNotifier<int?>(null);
+  final callbackList = List<VoidCallback?>.filled(i + 1, null);
+  late final DateTime start;
+  listener() {}
+  final add = DateTime.now();
+  final stopWatch = Stopwatch();
+  final stopWatch2 = Stopwatch();
+  for (int k = 0; k < loops; k++) {
+    stopWatch.start();
+    for (int j = 0; j <= i; j++) {
+      callbackList[j] = () {};
+    }
+    stopWatch.stop();
+    stopWatch2.start();
+    for (int j = 0; j <= i; j++) {
+      callbackList[j]!();
+    }
+    stopWatch2.stop();
+  }
+  final endInNs =
+      ((stopWatch.elapsedMicroseconds * 1000) / loops - adjust(i)) / (i + 1) -
+          adaptConst;
+  final endInNs2 =
+      ((stopWatch2.elapsedMicroseconds * 1000) / loops - adjust(i)) / (i + 1);
+  for (int j = 0; j < i; j++) {
+    notifier.addListener(listener);
+  }
+  show("control:   ", DateTime.now(), loops, _completer, endInNs, endInNs2);
+  return _completer.future;
 }
 
 Future<void> notifierTest(int i) async {
@@ -60,15 +105,18 @@ Future<void> notifierTest(int i) async {
     }
     stopWatch2.stop();
   }
-  final endInNs = (stopWatch.elapsedMicroseconds * 1000) / (loops * (i + 1));
-  final endInNs2 = (stopWatch2.elapsedMicroseconds * 1000) / (loops * (i + 1));
+  final endInNs =
+      ((stopWatch.elapsedMicroseconds * 1000) / loops - adjust(i)) / (i + 1) -
+          adaptConst;
+  final endInNs2 =
+      ((stopWatch2.elapsedMicroseconds * 1000) / loops - adjust(i)) / (i + 1);
   for (int j = 0; j < i; j++) {
     notifier.addListener(listener);
   }
 
   notifier.addListener(() {
     notifierCounter++;
-    show("notifier: ", start, notifierCounter, _completer, endInNs, endInNs2);
+    show("notifier:  ", start, notifierCounter, _completer, endInNs, endInNs2);
   });
   start = DateTime.now();
   for (int i = 0; i < loops; i++) {
@@ -83,7 +131,7 @@ Future<void> streamTest(int i) async {
   final streamController = StreamController.broadcast();
   var streamCounter = 0;
   listener(_) {}
-  final callbackList = List<VoidCallback?>.filled(i + 1, null);
+  final callbackList = List<Future Function()?>.filled(i + 1, null);
   late final DateTime start;
   final add = DateTime.now();
   final stopWatch = Stopwatch();
@@ -96,18 +144,21 @@ Future<void> streamTest(int i) async {
     stopWatch.stop();
     stopWatch2.start();
     for (int j = 0; j <= i; j++) {
-      callbackList[j]!();
+      await callbackList[j]!();
     }
     stopWatch2.stop();
   }
-  final endInNs = (stopWatch.elapsedMicroseconds * 1000) / (loops * (i + 1));
+
+  final endInNs =
+      ((stopWatch.elapsedMicroseconds * 1000) / loops - adjust(i)) / (i + 1) -
+          adaptConst;
   final endInNs2 = (stopWatch2.elapsedMicroseconds * 1000) / (loops * (i + 1));
   for (int j = 0; j < i; j++) {
     streamController.stream.listen(listener);
   }
   streamController.stream.listen((value) {
     streamCounter++;
-    show("stream:   ", start, streamCounter, _completer, endInNs, endInNs2);
+    show("stream:    ", start, streamCounter, _completer, endInNs, endInNs2);
   });
   start = DateTime.now();
   for (int i = 0; i < loops; i++) {
@@ -141,7 +192,7 @@ Future<void> getxTrest(int i) async {
   }
   rx.listen((_) {
     notifierCounter++;
-    show("getx:     ", start, notifierCounter, _completer, 0, 0);
+    show("getx:      ", start, notifierCounter, _completer, 0, 0);
   });
   start = DateTime.now();
   for (int i = 0; i < loops; i++) {
@@ -173,14 +224,17 @@ Future<void> rxTrest(int i) async {
     stopWatch2.stop();
   }
   stopWatch.stop();
-  final endInNs = (stopWatch.elapsedMicroseconds * 1000) / (loops * (i + 1));
-  final endInNs2 = (stopWatch2.elapsedMicroseconds * 1000) / (loops * (i + 1));
+  final endInNs =
+      ((stopWatch.elapsedMicroseconds * 1000) / loops - adjust(i)) / (i + 1) -
+          adaptConst;
+  final endInNs2 =
+      ((stopWatch2.elapsedMicroseconds * 1000) / loops - adjust(i)) / (i + 1);
   for (int j = 0; j < i; j++) {
     rx.listen(listener);
   }
   rx.listen((_) {
     notifierCounter++;
-    show("obx:      ", start, notifierCounter, _completer, endInNs, endInNs2);
+    show("obx:       ", start, notifierCounter, _completer, endInNs, endInNs2);
   });
   start = DateTime.now();
   for (int i = 0; i < loops; i++) {
@@ -203,7 +257,7 @@ Future<void> nexImplemTest(int i) async {
   for (int k = 0; k < loops; k++) {
     stopWatch.start();
     for (int j = 0; j <= i; j++) {
-      callbackList[j] = notifier.add(RxSubscription(notifier, listener)).cancel;
+      callbackList[j] = notifier.listen(listener).cancel;
     }
     stopWatch.stop();
     stopWatch2.start();
@@ -213,11 +267,14 @@ Future<void> nexImplemTest(int i) async {
     stopWatch2.stop();
   }
 
-  final endInNs = (stopWatch.elapsedMicroseconds * 1000) / (loops * (i + 1));
-  final endInNs2 = (stopWatch2.elapsedMicroseconds * 1000) / (loops * (i + 1));
+  final endInNs =
+      ((stopWatch.elapsedMicroseconds * 1000) / loops - adjust(i)) / (i + 1) -
+          adaptConst;
+  final endInNs2 =
+      ((stopWatch2.elapsedMicroseconds * 1000) / loops - adjust(i)) / (i + 1);
   final callbackList2 = List<VoidCallback?>.filled(i, null);
   for (int j = 0; j < i; j++) {
-    callbackList2[j] = (notifier.add(RxSubscription(notifier, (_) {
+    callbackList2[j] = notifier.listen((_) {
       // if (notifierCounter == 3) {
       //   notifierCounter++;
       //   final node = notifier.add(RxSubscription(notifier, (_) {}));
@@ -226,10 +283,7 @@ Future<void> nexImplemTest(int i) async {
       //   node.cancel();
       //   otherNode.cancel();
       // }
-    }))
-          ..pause()
-          ..resume())
-        .cancel;
+    }).cancel;
   }
 
   // notifier.add(RxSubscription(notifier, (_) {
@@ -237,10 +291,10 @@ Future<void> nexImplemTest(int i) async {
   //     callbackList2[j]!();
   //   }
   // }));
-  notifier.add(RxSubscription(notifier, (_) {
+  notifier.listen((_) {
     notifierCounter++;
     show("newImplem: ", start, notifierCounter, _completer, endInNs, endInNs2);
-  }));
+  });
   start = DateTime.now();
   for (int i = 0; i < loops; i++) {
     notifier.value = 10;
@@ -251,24 +305,50 @@ Future<void> nexImplemTest(int i) async {
 
 // This typedef allow to have simple def for user
 // RxSubscription<T> is StreamSubscription<T>
-typedef RxSubscription<T> = _NodeSub<Function(T e), T>;
+typedef RxSubscription<T> = _NodeSub<Function(T value), T>;
+typedef ErrorCallBack = void Function(Object error, [StackTrace? trace]);
+
+/// Override of StreamSubscription to make cancel Futureor<void>
+abstract class Subscription<T> {
+  FutureOr<void> cancel() {}
+  void onData(Function(T value)? handleData);
+  void onError(ErrorCallBack? handleError);
+  void onDone(VoidCallback? handleDone);
+  void pause([Future<void>? resumeSignal]);
+  void resume();
+  bool get isPaused;
+  Future<E> asFuture<E>([E? futureValue]);
+}
 
 // For some reason it's very slow if we don't pass the whole function type
-class _NodeSub<T extends Function(E e), E> implements StreamSubscription<E> {
-  T? get _listener => _paused ? null : __listener;
-  T? __listener;
+class _NodeSub<T extends Function(E value), E> implements Subscription<E> {
+  T? get _handleData => _paused ? null : __handleData;
+  T? __handleData;
+
+  ErrorCallBack? get _handleError => _paused ? null : __handleError;
+  ErrorCallBack? __handleError;
+
+  VoidCallback? get _handleDone => _paused ? null : __handleDone;
+  VoidCallback? __handleDone;
+
   _NodeSub<T, E>? previous;
   _NodeSub<T, E>? next;
   NodeList<E>? _parent;
 
   bool _paused = false;
 
-  _NodeSub(this._parent, [this.__listener]);
+  _NodeSub(this._parent,
+      [this.__handleData, this.__handleError, this.__handleDone]);
 
   @override
   Future<S> asFuture<S>([S? futureValue]) {
-    // TODO: implement asFuture
-    throw UnimplementedError();
+    final completer = Completer<S>();
+    onDone(() => completer.complete(futureValue as S));
+    onError((Object error, [StackTrace? trace]) {
+      completer.completeError(error, trace);
+      cancel();
+    });
+    return completer.future;
   }
 
   @override
@@ -276,17 +356,17 @@ class _NodeSub<T extends Function(E e), E> implements StreamSubscription<E> {
 
   @override
   void onData(void Function(E data)? handleData) {
-    __listener = handleData as T;
+    __handleData = handleData as T;
   }
 
   @override
-  void onDone(void Function()? handleDone) {
-    // TODO: implement onDone
+  void onDone(VoidCallback? handleDone) {
+    __handleDone = handleDone;
   }
 
   @override
-  void onError(Function? handleError) {
-    // TODO: implement onError
+  void onError(ErrorCallBack? handleError) {
+    __handleError = handleError;
   }
 
   @override
@@ -300,9 +380,19 @@ class _NodeSub<T extends Function(E e), E> implements StreamSubscription<E> {
     _paused = false;
   }
 
+  _NodeSub<T, E>? _close() {
+    previous = _parent = null;
+    _handleDone?.call();
+    return next;
+  }
+
   @override
-  Future<void> cancel() async {
-    _parent?._unlink(this);
+  void cancel() {
+    if (_parent == null) return;
+    _parent!._unlink(this);
+    // TODO: parent onCancel??
+    // TODO: maybe add this line to prevent memory leak?
+    // previous = next = null;
     _parent = null;
   }
 }
@@ -316,27 +406,53 @@ class NodeList<T> {
     }
   }
 
-  _NodeSub<Function(T e), T>? _first;
-  _NodeSub<Function(T e), T>? _last;
+  _NodeSub<Function(T e), T>? _firstSubscrption;
+  _NodeSub<Function(T e), T>? _lastSubscription;
 
-  int get length {
-    if (_first == null) return 0;
-    var current = _first;
-    int len = 1;
-    while ((current = current?.next) != null) {
-      len++;
-    }
-    return len;
-  }
+  bool get hasListeners => _firstSubscrption != null;
 
   NodeList([this._value]);
 
+  void _unlink(_NodeSub<Function(T e), T> node) {
+    if (_firstSubscrption == node) {
+      if (_lastSubscription == node) {
+        // First = Last = Node
+        _firstSubscrption = _lastSubscription = null;
+        return;
+      }
+      // First = Node
+      _firstSubscrption = node.next;
+      _firstSubscrption!.previous = null;
+      return;
+    }
+    if (_lastSubscription == node) {
+      // Last = Node
+      _lastSubscription = node.previous;
+      _lastSubscription!.next = null;
+      return;
+    }
+    // Node = Random
+    node.next!.previous = node.previous;
+    node.previous!.next = node.next;
+  }
+
+  Subscription<T> listen(Function(T value)? onData,
+      {ErrorCallBack? onError, VoidCallback? onDone, bool? cancelOnError}) {
+    final node = _NodeSub<Function(T value), T>(this, onData, onError, onDone);
+    if (_firstSubscrption == null) {
+      return _lastSubscription = _firstSubscrption = node;
+    }
+    node.previous = _lastSubscription;
+    return _lastSubscription = _lastSubscription!.next = node;
+  }
+
   void emit() {
-    if (_first == null) return;
-    _NodeSub<Function(T e), T>? first = _first?.._listener?.call(_value as T);
+    if (_firstSubscrption == null) return;
+    _NodeSub<Function(T e), T>? first = _firstSubscrption
+      ?.._handleData?.call(_value as T);
     try {
       while (!identical(first = first!.next, null)) {
-        first!._listener?.call(_value as T);
+        first!._handleData?.call(_value as T);
       }
     } catch (e) {
       print("Got error mesire");
@@ -345,61 +461,27 @@ class NodeList<T> {
     }
   }
 
-  // TODO: unlink faster
-  void _unlink(_NodeSub<Function(T e), T> node) {
-    if (_first == node) {
-      if (_last == node) {
-        // First = Last = Node
-        _first = _last = null;
-        return;
-      }
-      // First = Node
-      _first = node.next;
-      _first!.previous = null;
-      return;
+  void addError(Object error, [StackTrace? trace]) {
+    if (_firstSubscrption == null) return;
+    _NodeSub<Function(T e), T>? first = _firstSubscrption;
+    try {
+      while (!identical(first = first!._close(), null)) {}
+    } catch (e) {
+      print("Got error mesire");
+      // Assert error is stack overlflow
+      // TODO: add resume on error
     }
-    if (_last == node) {
-      // Last = Node
-      _last = node.previous;
-      _last!.next = null;
-      return;
-    }
-    // Node = Random
-    node.next!.previous = node.previous;
-    node.previous!.next = node.next;
   }
 
-  RxSubscription<T> add(RxSubscription<T> node) {
-    if (_first == null) return _last = _first = node;
-    node.previous = _last;
-    return _last = _last!.next = node;
+  void close() {
+    if (_firstSubscrption == null) return;
+    _NodeSub<Function(T e), T>? first = _firstSubscrption;
+    _firstSubscrption = _lastSubscription = null;
+    try {
+      while (!identical(first = first!._close(), null)) {}
+    } catch (e) {
+      print("Got error mesire");
+      // TODO: resume closing on error
+    }
   }
 }
-
-  // void addError() {
-  //   if (_first == null) return;
-  //   // TODO: add cancel on error
-  //   // TODO: transform into error callback
-  //   _Node<Function(T e)>? first = _first?..value(_value as T);
-  //   try {
-  //     while (!identical(first = first!.next, null)) {
-  //       first?.value(_value as T);
-  //       // TODO: add cancel on error
-  //       // TODO: transform into error callback
-  //     }
-  //   } catch (e) {
-  //     print("Got error mesire");
-  //     // TODO: add resume on error
-  //   }
-  // }
-  //
-  // void dispose() {
-  //   if (_first == null) return;
-  //   // TODO: call the done on the sub
-  //   _Node<Function(T e)>? first = _first!;
-  //   _first = _first!.previous = _first!._parent = _last = null;
-  //   while (!identical(first = first!.next, null)) {
-  //     // TODO: call the done on the sub
-  //     first!.previous = first._parent = null;
-  //   }
-  // }

@@ -1,0 +1,336 @@
+Benchmark listen: dispatch time | add time | remove time (time/listener)
+
+With 1 listeners
+control:   0 ns | 3 ns | 4 ns
+notifier:  13 ns | 15 ns | 57 ns
+obx:       14 ns | 20 ns | 60 ns
+newImplem: 10 ns | 15 ns | 11 ns
+
+With 2 listeners
+control:   0 ns | 3 ns | 4 ns
+notifier:  16 ns | 19 ns | 60 ns
+obx:       15 ns | 21 ns | 63 ns
+newImplem: 12 ns | 15 ns | 12 ns
+
+With 3 listeners
+control:   0 ns | 0 ns | 2 ns
+notifier:  19 ns | 22 ns | 65 ns
+obx:       17 ns | 25 ns | 67 ns
+newImplem: 13 ns | 14 ns | 12 ns
+
+With 4 listeners
+control:   0 ns | -0 ns | 1 ns
+notifier:  22 ns | 18 ns | 64 ns
+obx:       19 ns | 21 ns | 70 ns
+newImplem: 15 ns | 14 ns | 12 ns
+
+With 5 listeners
+control:   0 ns | 0 ns | 2 ns
+notifier:  26 ns | 24 ns | 76 ns
+obx:       21 ns | 27 ns | 75 ns
+newImplem: 16 ns | 15 ns | 12 ns
+
+With 6 listeners
+control:   0 ns | -0 ns | 1 ns
+notifier:  28 ns | 20 ns | 77 ns
+obx:       23 ns | 24 ns | 78 ns
+newImplem: 18 ns | 15 ns | 14 ns
+
+With 7 listeners
+control:   0 ns | -0 ns | 1 ns
+notifier:  30 ns | 18 ns | 81 ns
+obx:       25 ns | 23 ns | 86 ns
+newImplem: 20 ns | 15 ns | 13 ns
+
+With 8 listeners
+control:   0 ns | -0 ns | 1 ns
+notifier:  49 ns | 17 ns | 85 ns
+obx:       26 ns | 21 ns | 88 ns
+newImplem: 21 ns | 15 ns | 13 ns
+
+With 9 listeners
+control:   0 ns | -0 ns | 1 ns
+notifier:  55 ns | 23 ns | 89 ns
+obx:       29 ns | 27 ns | 90 ns
+newImplem: 27 ns | 15 ns | 13 ns
+
+With 10 listeners
+control:   0 ns | -0 ns | 1 ns
+notifier:  63 ns | 22 ns | 93 ns
+obx:       32 ns | 25 ns | 95 ns
+newImplem: 26 ns | 16 ns | 14 ns
+
+With 11 listeners
+control:   0 ns | 0 ns | 1 ns
+notifier:  58 ns | 21 ns | 98 ns
+obx:       32 ns | 25 ns | 99 ns
+newImplem: 26 ns | 15 ns | 13 ns
+
+With 12 listeners
+control:   0 ns | -0 ns | 0 ns
+notifier:  60 ns | 20 ns | 99 ns
+obx:       35 ns | 24 ns | 103 ns
+newImplem: 29 ns | 14 ns | 13 ns
+
+With 13 listeners
+control:   0 ns | -0 ns | 0 ns
+notifier:  68 ns | 20 ns | 106 ns
+obx:       39 ns | 25 ns | 112 ns
+newImplem: 32 ns | 16 ns | 14 ns
+
+With 14 listeners
+control:   0 ns | -0 ns | 1 ns
+notifier:  70 ns | 20 ns | 113 ns
+obx:       59 ns | 24 ns | 115 ns
+newImplem: 53 ns | 15 ns | 14 ns
+
+With 15 listeners
+control:   0 ns | -0 ns | 0 ns
+notifier:  72 ns | 20 ns | 115 ns
+obx:       62 ns | 24 ns | 119 ns
+newImplem: 53 ns | 16 ns | 14 ns
+
+With 16 listeners
+control:   0 ns | 0 ns | 0 ns
+notifier:  76 ns | 19 ns | 121 ns
+obx:       66 ns | 23 ns | 123 ns
+newImplem: 55 ns | 16 ns | 14 ns
+
+With 17 listeners
+control:   0 ns | 0 ns | 1 ns
+notifier:  89 ns | 26 ns | 123 ns
+obx:       67 ns | 31 ns | 126 ns
+newImplem: 58 ns | 15 ns | 14 ns
+
+With 18 listeners
+control:   0 ns | -0 ns | 0 ns
+
+notifier:  80 ns | 26 ns | 127 ns
+obx:       69 ns | 30 ns | 130 ns
+newImplem: 58 ns | 15 ns | 14 ns
+
+With 19 listeners
+control:   0 ns | -0 ns | 0 ns
+notifier:  82 ns | 25 ns | 131 ns
+obx:       71 ns | 29 ns | 133 ns
+newImplem: 60 ns | 15 ns | 14 ns
+
+With 20 listeners
+control:   0 ns | -0 ns | 0 ns
+notifier:  85 ns | 25 ns | 134 ns
+obx:       72 ns | 28 ns | 137 ns
+newImplem: 62 ns | 15 ns | 14 ns
+
+With 21 listeners
+control:   0 ns | -0 ns | 0 ns
+notifier:  89 ns | 24 ns | 138 ns
+obx:       75 ns | 28 ns | 140 ns
+newImplem: 64 ns | 15 ns | 14 ns
+
+With 22 listeners
+control:   0 ns | -0 ns | 0 ns
+notifier:  90 ns | 23 ns | 141 ns
+obx:       77 ns | 27 ns | 143 ns
+newImplem: 66 ns | 15 ns | 14 ns
+
+With 23 listeners
+control:   0 ns | 0 ns | 0 ns
+notifier:  99 ns | 22 ns | 143 ns
+obx:       79 ns | 26 ns | 146 ns
+newImplem: 68 ns | 15 ns | 14 ns
+
+With 24 listeners
+control:   0 ns | 0 ns | 0 ns
+notifier:  96 ns | 22 ns | 147 ns
+obx:       81 ns | 26 ns | 151 ns
+newImplem: 69 ns | 16 ns | 14 ns
+
+With 25 listeners
+control:   0 ns | 0 ns | 0 ns
+notifier:  98 ns | 22 ns | 152 ns
+obx:       83 ns | 25 ns | 155 ns
+newImplem: 73 ns | 15 ns | 14 ns
+
+With 26 listeners
+control:   0 ns | 0 ns | 0 ns
+notifier:  95 ns | 20 ns | 149 ns
+obx:       86 ns | 24 ns | 155 ns
+newImplem: 72 ns | 15 ns | 14 ns
+
+With 27 listeners
+control:   0 ns | 0 ns | 0 ns
+notifier:  103 ns | 21 ns | 158 ns
+obx:       87 ns | 24 ns | 161 ns
+newImplem: 76 ns | 15 ns | 13 ns
+
+With 28 listeners
+control:   0 ns | 0 ns | 0 ns
+notifier:  105 ns | 20 ns | 161 ns
+obx:       88 ns | 24 ns | 164 ns
+newImplem: 76 ns | 16 ns | 14 ns
+
+With 29 listeners
+control:   0 ns | 0 ns | 0 ns
+notifier:  114 ns | 20 ns | 164 ns
+obx:       92 ns | 23 ns | 167 ns
+newImplem: 77 ns | 15 ns | 13 ns
+
+With 30 listeners
+control:   0 ns | 0 ns | 0 ns
+notifier:  119 ns | 19 ns | 168 ns
+obx:       89 ns | 23 ns | 170 ns
+newImplem: 75 ns | 14 ns | 13 ns
+
+With 31 listeners
+control:   0 ns | -0 ns | 0 ns
+notifier:  108 ns | 18 ns | 164 ns
+obx:       94 ns | 22 ns | 172 ns
+newImplem: 82 ns | 15 ns | 13 ns
+
+With 32 listeners
+control:   0 ns | 0 ns | 0 ns
+notifier:  116 ns | 19 ns | 177 ns
+
+obx:       93 ns | 22 ns | 173 ns
+newImplem: 86 ns | 15 ns | 13 ns
+
+With 33 listeners
+control:   0 ns | -0 ns | 0 ns
+
+notifier:  119 ns | 26 ns | 176 ns
+obx:       101 ns | 29 ns | 174 ns
+newImplem: 85 ns | 16 ns | 14 ns
+
+With 34 listeners
+control:   0 ns | 0 ns | 1 ns
+notifier:  122 ns | 26 ns | 185 ns
+obx:       121 ns | 33 ns | 192 ns
+newImplem: 88 ns | 17 ns | 14 ns
+
+With 35 listeners
+control:   0 ns | 0 ns | 0 ns
+notifier:  125 ns | 26 ns | 188 ns
+obx:       104 ns | 29 ns | 191 ns
+newImplem: 90 ns | 15 ns | 14 ns
+
+With 36 listeners
+control:   0 ns | 0 ns | 0 ns
+notifier:  126 ns | 27 ns | 193 ns
+
+obx:       105 ns | 28 ns | 192 ns
+newImplem: 90 ns | 15 ns | 13 ns
+
+With 37 listeners
+control:   0 ns | 0 ns | 0 ns
+notifier:  129 ns | 24 ns | 194 ns
+obx:       108 ns | 28 ns | 197 ns
+newImplem: 92 ns | 15 ns | 13 ns
+
+With 38 listeners
+control:   0 ns | 0 ns | 0 ns
+notifier:  132 ns | 24 ns | 197 ns
+obx:       104 ns | 27 ns | 192 ns
+newImplem: 88 ns | 15 ns | 13 ns
+
+With 39 listeners
+control:   0 ns | -0 ns | 0 ns
+notifier:  128 ns | 23 ns | 195 ns
+obx:       112 ns | 27 ns | 201 ns
+newImplem: 96 ns | 15 ns | 14 ns
+
+With 40 listeners
+control:   0 ns | 4 ns | 1 ns
+notifier:  133 ns | 27 ns | 205 ns
+obx:       114 ns | 26 ns | 201 ns
+newImplem: 99 ns | 15 ns | 14 ns
+
+With 41 listeners
+control:   0 ns | 0 ns | 0 ns
+notifier:  132 ns | 31 ns | 227 ns
+obx:       113 ns | 29 ns | 208 ns
+newImplem: 94 ns | 15 ns | 13 ns
+
+With 42 listeners
+control:   0 ns | -0 ns | 0 ns
+notifier:  178 ns | 25 ns | 212 ns
+obx:       118 ns | 31 ns | 217 ns
+newImplem: 95 ns | 15 ns | 13 ns
+
+With 43 listeners
+control:   0 ns | -0 ns | 0 ns
+notifier:  193 ns | 23 ns | 217 ns
+obx:       119 ns | 33 ns | 227 ns
+newImplem: 103 ns | 22 ns | 17 ns
+
+With 44 listeners
+control:   0 ns | 2 ns | 1 ns
+notifier:  149 ns | 23 ns | 222 ns
+obx:       137 ns | 34 ns | 238 ns
+newImplem: 105 ns | 16 ns | 14 ns
+
+With 45 listeners
+control:   0 ns | 0 ns | 0 ns
+notifier:  150 ns | 29 ns | 238 ns
+obx:       125 ns | 29 ns | 229 ns
+newImplem: 106 ns | 21 ns | 16 ns
+
+With 46 listeners
+control:   0 ns | 0 ns | 0 ns
+notifier:  146 ns | 24 ns | 229 ns
+obx:       118 ns | 25 ns | 219 ns
+newImplem: 102 ns | 14 ns | 13 ns
+
+With 47 listeners
+control:   0 ns | -0 ns | 0 ns
+notifier:  155 ns | 21 ns | 228 ns
+obx:       127 ns | 25 ns | 231 ns
+newImplem: 109 ns | 16 ns | 14 ns
+
+With 48 listeners
+control:   0 ns | 0 ns | 0 ns
+
+notifier:  159 ns | 21 ns | 233 ns
+obx:       130 ns | 25 ns | 235 ns
+newImplem: 112 ns | 16 ns | 13 ns
+
+With 49 listeners
+control:   0 ns | 0 ns | 0 ns
+notifier:  161 ns | 21 ns | 238 ns
+obx:       126 ns | 24 ns | 234 ns
+newImplem: 109 ns | 14 ns | 13 ns
+
+With 50 listeners
+control:   0 ns | 0 ns | 0 ns
+notifier:  166 ns | 20 ns | 241 ns
+obx:       129 ns | 24 ns | 243 ns
+newImplem: 111 ns | 15 ns | 13 ns
+
+With 51 listeners
+control:   0 ns | -0 ns | 0 ns
+notifier:  165 ns | 20 ns | 243 ns
+obx:       136 ns | 24 ns | 246 ns
+newImplem: 110 ns | 15 ns | 13 ns
+
+With 52 listeners
+control:   0 ns | -0 ns | 0 ns
+notifier:  163 ns | 19 ns | 240 ns
+obx:       138 ns | 24 ns | 248 ns
+newImplem: 119 ns | 16 ns | 13 ns
+
+With 53 listeners
+control:   0 ns | 0 ns | 0 ns
+notifier:  172 ns | 20 ns | 252 ns
+obx:       138 ns | 23 ns | 253 ns
+newImplem: 120 ns | 15 ns | 13 ns
+
+With 54 listeners
+control:   0 ns | 0 ns | 0 ns
+notifier:  177 ns | 20 ns | 256 ns
+obx:       135 ns | 24 ns | 260 ns
+newImplem: 116 ns | 14 ns | 13 ns
+
+With 55 listeners
+control:   0 ns | -0 ns | 0 ns
+notifier:  167 ns | 19 ns | 256 ns
+obx:       144 ns | 22 ns | 254 ns
+newImplem: 123 ns | 15 ns | 13 ns
