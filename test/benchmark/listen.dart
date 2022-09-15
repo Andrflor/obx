@@ -7,7 +7,7 @@ import 'package:obx/obx.dart';
 
 void main() async {
   print("Benchmark listen: (dispatch time | add time | remove time)");
-  for (int i = 1; i < 10; i++) {
+  for (int i = 1; i < 30; i++) {
     print("");
     print("With ${i + 1} listeners");
     // await notifierTest(i);
@@ -199,29 +199,29 @@ Future<void> nexImplemTest(int i) async {
   final add = DateTime.now();
   final stopWatch = Stopwatch();
   final stopWatch2 = Stopwatch();
-  // for (int k = 0; k < loops; k++) {
-  //   stopWatch.start();
-  //   for (int j = 0; j <= i; j++) {
-  //     callbackList[j] = notifier.add(Node(notifier, listener)).cancel;
-  //   }
-  //   stopWatch.stop();
-  //   stopWatch2.start();
-  //   for (int j = 0; j <= i; j++) {
-  //     callbackList[j]!();
-  //   }
-  //   stopWatch2.stop();
-  // }
+  for (int k = 0; k < loops; k++) {
+    stopWatch.start();
+    for (int j = 0; j <= i; j++) {
+      callbackList[j] = notifier.add(RxSubscription(notifier, listener)).cancel;
+    }
+    stopWatch.stop();
+    stopWatch2.start();
+    for (int j = 0; j <= i; j++) {
+      callbackList[j]!();
+    }
+    stopWatch2.stop();
+  }
 
   final endInNs = (stopWatch.elapsedMicroseconds * 1000) / (loops * (i + 1));
   final endInNs2 = (stopWatch2.elapsedMicroseconds * 1000) / (loops * (i + 1));
   final callbackList2 = List<VoidCallback?>.filled(i, null);
   for (int j = 0; j < i; j++) {
     callbackList2[j] = notifier
-        .add(Node(notifier, (_) {
+        .add(RxSubscription(notifier, (_) {
           // if (notifierCounter == 3) {
           //   notifierCounter++;
-          //   final node = notifier.add(Node(notifier, (_) {}));
-          //   final otherNode = notifier.add(Node(notifier, (_) {}));
+          //   final node = notifier.add(RxSubscription(notifier, (_) {}));
+          //   final otherNode = notifier.add(RxSubscription(notifier, (_) {}));
           //   notifier.emit();
           //   node.cancel();
           //   otherNode.cancel();
@@ -230,12 +230,12 @@ Future<void> nexImplemTest(int i) async {
         .cancel;
   }
 
-  // notifier.add(Node(notifier, (_) {
+  // notifier.add(RxSubscription(notifier, (_) {
   //   for (int j = 0; j < i; j++) {
   //     callbackList2[j]!();
   //   }
   // }));
-  notifier.add(Node(notifier, (_) {
+  notifier.add(RxSubscription(notifier, (_) {
     notifierCounter++;
     show("newImplem: ", start, notifierCounter, _completer, endInNs, endInNs2);
   }));
@@ -247,38 +247,59 @@ Future<void> nexImplemTest(int i) async {
   return _completer.future;
 }
 
-class Node<T> {
-  Function(T e)? _listener;
-  Node<T>? previous;
-  Node<T>? next;
-  NodeList<T>? _parent;
+// This typedef allow to have simple def for user
+// RxSubscription<T> is StreamSubscription<T>
+typedef RxSubscription<T> = _NodeSub<Function(T e), T>;
 
-  Node(this._parent, [this._listener]);
+// For some reason it's very slow if we don't pass the whole function type
+class _NodeSub<T extends Function(E e), E> implements StreamSubscription<E> {
+  T? _listener;
+  _NodeSub<T, E>? previous;
+  _NodeSub<T, E>? next;
+  NodeList<E>? _parent;
 
-  void cancel() {
-    _parent?._unlink(this);
+  _NodeSub(this._parent, [this._listener]);
+
+  @override
+  Future<S> asFuture<S>([S? futureValue]) {
+    // TODO: implement asFuture
+    throw UnimplementedError();
   }
 
-  // void cancel() {
-  //   // Already canceled
-  //   if (_parent == null) return;
-  //   if (previous == null) {
-  //     if (next == null) {
-  //       // Single node
-  //       return _parent = _parent!._first = _parent!._last = null;
-  //     }
-  //     // First node
-  //     return next = next!.previous = _parent = null;
-  //   }
-  //   if (next == null) {
-  //     // Last node
-  //     return previous = previous!.next = _parent = null;
-  //   }
-  //   // Random node
-  //   previous?.next = next;
-  //   next?.previous = previous;
-  //   previous = next = _parent = null;
-  // }
+  @override
+  // TODO: implement isPaused
+  bool get isPaused => throw UnimplementedError();
+
+  @override
+  void onData(void Function(E data)? handleData) {
+    _listener = handleData as dynamic;
+  }
+
+  @override
+  void onDone(void Function()? handleDone) {
+    // TODO: implement onDone
+  }
+
+  @override
+  void onError(Function? handleError) {
+    // TODO: implement onError
+  }
+
+  @override
+  void pause([Future<void>? resumeSignal]) {
+    // TODO: implement pause
+  }
+
+  @override
+  void resume() {
+    // TODO: implement resume
+  }
+
+  @override
+  Future<void> cancel() async {
+    _parent?._unlink(this);
+    _parent = null;
+  }
 }
 
 class NodeList<T> {
@@ -290,8 +311,8 @@ class NodeList<T> {
     }
   }
 
-  Node<T>? _first;
-  Node<T>? _last;
+  _NodeSub<Function(T e), T>? _first;
+  _NodeSub<Function(T e), T>? _last;
 
   int get length {
     if (_first == null) return 0;
@@ -307,7 +328,7 @@ class NodeList<T> {
 
   void emit() {
     if (_first == null) return;
-    Node<T>? first = _first?.._listener?.call(_value as T);
+    _NodeSub<Function(T e), T>? first = _first?.._listener?.call(_value as T);
     try {
       while (!identical(first = first!.next, null)) {
         first!._listener?.call(_value as T);
@@ -319,60 +340,60 @@ class NodeList<T> {
     }
   }
 
-  void _unlink(Node<T> child) {
-    if (child == _first) {
-      _first = child.next;
-      _first?.previous = child._parent = null;
-      if (child == _last) {
-        _last = child.previous;
-        _last?.next = null;
+  void _unlink(_NodeSub<Function(T e), T> node) {
+    if (_first == node) {
+      if (_last == node) {
+        // First = Last = Node
+        _first = _last = null;
         return;
       }
+      // First = Node
+      _first = node.next;
+      _first!.previous = null;
       return;
     }
-    if (child == _last) {
-      _last = child.previous;
-      _last?.next = child._parent = null;
+    if (_last == node) {
+      // Last = Node
+      _last = node.previous;
+      _last!.next = null;
       return;
     }
-    child.next!.previous = child.previous;
-    child.previous!.next = child.previous;
-    child._parent = null;
+    // Node = Random
+    node.next!.previous = node.previous;
+    node.previous!.next = node.next;
   }
 
-  void addError() {
-    if (_first == null) return;
-    // TODO: add cancel on error
-    // TODO: transform into error callback
-    Node<T>? first = _first?.._listener?.call(_value as T);
-    try {
-      while (!identical(first = first!.next, null)) {
-        first?._listener?.call(_value as T);
-        // TODO: add cancel on error
-        // TODO: transform into error callback
-      }
-    } catch (e) {
-      print("Got error mesire");
-      // TODO: add resume on error
-    }
-  }
-
-  void dispose() {
-    if (_first == null) return;
-    // TODO: call the done on the sub
-    Node<T>? first = _first!;
-    _first = _first!.previous = _first!._parent = _last = null;
-    while (!identical(first = first!.next, null)) {
-      // TODO: call the done on the sub
-      first!.previous = first._parent = null;
-    }
-  }
-
-  Node<T> add(Node<T> node) {
+  RxSubscription<T> add(RxSubscription<T> node) {
     if (_first == null) return _last = _first = node;
     node.previous = _last;
     return _last = _last!.next = node;
   }
-
-  cancel(Node<T> node) {}
 }
+
+  // void addError() {
+  //   if (_first == null) return;
+  //   // TODO: add cancel on error
+  //   // TODO: transform into error callback
+  //   _Node<Function(T e)>? first = _first?..value(_value as T);
+  //   try {
+  //     while (!identical(first = first!.next, null)) {
+  //       first?.value(_value as T);
+  //       // TODO: add cancel on error
+  //       // TODO: transform into error callback
+  //     }
+  //   } catch (e) {
+  //     print("Got error mesire");
+  //     // TODO: add resume on error
+  //   }
+  // }
+  //
+  // void dispose() {
+  //   if (_first == null) return;
+  //   // TODO: call the done on the sub
+  //   _Node<Function(T e)>? first = _first!;
+  //   _first = _first!.previous = _first!._parent = _last = null;
+  //   while (!identical(first = first!.next, null)) {
+  //     // TODO: call the done on the sub
+  //     first!.previous = first._parent = null;
+  //   }
+  // }
