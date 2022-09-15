@@ -18,5 +18,6 @@ dev_dependencies:
   flutter_lints: ^2.0.0
   equatable: ^2.0.0
   get: ^5.0.0-beta.52
+  benchmark_harness: ^2.2.0
 
 flutter:

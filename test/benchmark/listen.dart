@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
@@ -7,16 +6,15 @@ import 'package:get/get.dart' as getx;
 import 'package:obx/obx.dart';
 
 void main() async {
-  print("Benchmark listen: (dispatch time | add+remove time)");
-  // for (int i = 0; i < 20; i++) {
-  for (int i in [0, 1, 9, 99]) {
+  print("Benchmark listen: (dispatch time | add time | remove time)");
+  for (int i = 1; i < 10; i++) {
     print("");
     print("With ${i + 1} listeners");
-    await notifierTest(i);
-    await rxTrest(i);
+    // await notifierTest(i);
+    // await rxTrest(i);
     await nexImplemTest(i);
-    await streamTest(i);
-    await getxTrest(i);
+    // await streamTest(i);
+    // await getxTrest(i);
   }
 }
 
@@ -28,11 +26,12 @@ void show(
   int notifierCount,
   Completer completer,
   double addInNs,
+  double addInNs2,
 ) {
   if (notifierCount == loops) {
     final end = DateTime.now();
     print(
-        "$name${(end.difference(start).inMicroseconds * 1000 / loops).toStringAsFixed(0)} ns | ${addInNs.toStringAsFixed(0)} ns");
+        "$name${(end.difference(start).inMicroseconds * 1000 / loops).toStringAsFixed(0)} ns | ${addInNs.toStringAsFixed(0)} ns | ${addInNs2.toStringAsFixed(0)} ns");
     completer.complete();
   }
 }
@@ -46,77 +45,34 @@ Future<void> notifierTest(int i) async {
   listener() {}
   final add = DateTime.now();
   final stopWatch = Stopwatch();
-  stopWatch.start();
+  final stopWatch2 = Stopwatch();
   for (int k = 0; k < loops; k++) {
+    stopWatch.start();
     for (int j = 0; j <= i; j++) {
       notifier.addListener(listener);
       callbackList[j] = () => notifier.removeListener(listener);
     }
+    stopWatch.stop();
+    stopWatch2.start();
     for (int j = 0; j <= i; j++) {
       callbackList[j]!();
     }
+    stopWatch2.stop();
   }
-  stopWatch.stop();
   final endInNs = (stopWatch.elapsedMicroseconds * 1000) / (loops * (i + 1));
+  final endInNs2 = (stopWatch2.elapsedMicroseconds * 1000) / (loops * (i + 1));
   for (int j = 0; j < i; j++) {
-    // if (i != 3) {
-    // } else {
-    // listener = () {
-    // throw FlutterError("");
-    // };
-    // }
-    // listener = () => notifier.removeListener(listener);
     notifier.addListener(listener);
   }
 
   notifier.addListener(() {
     notifierCounter++;
-    show("notifier: ", start, notifierCounter, _completer, endInNs);
+    show("notifier: ", start, notifierCounter, _completer, endInNs, endInNs2);
   });
   start = DateTime.now();
   for (int i = 0; i < loops; i++) {
     notifier.value = 10;
     notifier.notifyListeners();
-  }
-  return _completer.future;
-}
-
-Future<void> nexImplemTest(int i) async {
-  final _completer = Completer<void>();
-  final notifier = NodeList<int?>(0);
-  var notifierCounter = 0;
-  final callbackList = List<VoidCallback?>.filled(i + 1, null);
-  late final DateTime start;
-  listener(_) {}
-  final add = DateTime.now();
-  final stopWatch = Stopwatch();
-  stopWatch.start();
-  for (int k = 0; k < 10; k++) {
-    for (int j = 0; j <= i; j++) {
-      callbackList[j] = notifier.add(Node(notifier, listener)).cancel;
-    }
-    print(notifier.length);
-    for (int j = 0; j <= i; j++) {
-      callbackList[j]!();
-    }
-    print(notifier.length);
-  }
-  stopWatch.stop();
-
-  print("done");
-  print(notifier.length);
-  final endInNs = (stopWatch.elapsedMicroseconds * 1000) / (loops * (i + 1));
-  for (int j = 0; j < i; j++) {
-    notifier.add(Node(notifier, (_) {}));
-  }
-  notifier.add(Node(notifier, (_) {
-    notifierCounter++;
-    show("newImplem: ", start, notifierCounter, _completer, endInNs);
-  }));
-  start = DateTime.now();
-  for (int i = 0; i < loops; i++) {
-    notifier.value = 10;
-    notifier.emit();
   }
   return _completer.future;
 }
@@ -130,62 +86,31 @@ Future<void> streamTest(int i) async {
   late final DateTime start;
   final add = DateTime.now();
   final stopWatch = Stopwatch();
-  stopWatch.start();
+  final stopWatch2 = Stopwatch();
   for (int k = 0; k < loops; k++) {
+    stopWatch.start();
     for (int j = 0; j <= i; j++) {
       callbackList[j] = streamController.stream.listen(listener).cancel;
     }
+    stopWatch.stop();
+    stopWatch2.start();
     for (int j = 0; j <= i; j++) {
       callbackList[j]!();
     }
+    stopWatch2.stop();
   }
-  stopWatch.stop();
   final endInNs = (stopWatch.elapsedMicroseconds * 1000) / (loops * (i + 1));
+  final endInNs2 = (stopWatch2.elapsedMicroseconds * 1000) / (loops * (i + 1));
   for (int j = 0; j < i; j++) {
     streamController.stream.listen(listener);
   }
   streamController.stream.listen((value) {
     streamCounter++;
-    show("stream:   ", start, streamCounter, _completer, endInNs);
+    show("stream:   ", start, streamCounter, _completer, endInNs, endInNs2);
   });
   start = DateTime.now();
   for (int i = 0; i < loops; i++) {
     streamController.add(10);
-  }
-  return _completer.future;
-}
-
-Future<void> rxTrest(int i) async {
-  final _completer = Completer<void>();
-  final rx = Rx(0);
-  var notifierCounter = 0;
-  final callbackList = List<VoidCallback?>.filled(i + 1, null);
-  late final DateTime start;
-  listener(_) {}
-  final add = DateTime.now();
-  final stopWatch = Stopwatch();
-  stopWatch.start();
-  for (int k = 0; k < loops; k++) {
-    for (int j = 0; j <= i; j++) {
-      callbackList[j] = rx.listen(listener);
-    }
-    for (int j = 0; j <= i; j++) {
-      callbackList[j]!();
-    }
-  }
-  stopWatch.stop();
-  final endInNs = (stopWatch.elapsedMicroseconds * 1000) / (loops * (i + 1));
-  for (int j = 0; j < i; j++) {
-    rx.listen(listener);
-  }
-  rx.listen((_) {
-    notifierCounter++;
-    show("obx:      ", start, notifierCounter, _completer, endInNs);
-  });
-  start = DateTime.now();
-  for (int i = 0; i < loops; i++) {
-    rx.value = 10;
-    rx.emit();
   }
   return _completer.future;
 }
@@ -215,7 +140,7 @@ Future<void> getxTrest(int i) async {
   }
   rx.listen((_) {
     notifierCounter++;
-    show("getx:     ", start, notifierCounter, _completer, 0);
+    show("getx:     ", start, notifierCounter, _completer, 0, 0);
   });
   start = DateTime.now();
   for (int i = 0; i < loops; i++) {
@@ -224,60 +149,229 @@ Future<void> getxTrest(int i) async {
   return _completer.future;
 }
 
+Future<void> rxTrest(int i) async {
+  final _completer = Completer<void>();
+  final rx = Rx(0);
+  var notifierCounter = 0;
+  final callbackList = List<VoidCallback?>.filled(i + 1, null);
+  late final DateTime start;
+  listener(_) {}
+  final add = DateTime.now();
+  final stopWatch = Stopwatch();
+  final stopWatch2 = Stopwatch();
+  for (int k = 0; k < loops; k++) {
+    stopWatch.start();
+    for (int j = 0; j <= i; j++) {
+      callbackList[j] = rx.listen(listener);
+    }
+    stopWatch.stop();
+    stopWatch2.start();
+    for (int j = 0; j <= i; j++) {
+      callbackList[j]!();
+    }
+    stopWatch2.stop();
+  }
+  stopWatch.stop();
+  final endInNs = (stopWatch.elapsedMicroseconds * 1000) / (loops * (i + 1));
+  final endInNs2 = (stopWatch2.elapsedMicroseconds * 1000) / (loops * (i + 1));
+  for (int j = 0; j < i; j++) {
+    rx.listen(listener);
+  }
+  rx.listen((_) {
+    notifierCounter++;
+    show("obx:      ", start, notifierCounter, _completer, endInNs, endInNs2);
+  });
+  start = DateTime.now();
+  for (int i = 0; i < loops; i++) {
+    rx.value = 10;
+    rx.emit();
+  }
+  return _completer.future;
+}
+
+Future<void> nexImplemTest(int i) async {
+  final _completer = Completer<void>();
+  final notifier = NodeList<int?>(0);
+  var notifierCounter = 0;
+  final callbackList = List<VoidCallback?>.filled(i + 1, null);
+  late final DateTime start;
+  listener(_) {}
+  final add = DateTime.now();
+  final stopWatch = Stopwatch();
+  final stopWatch2 = Stopwatch();
+  // for (int k = 0; k < loops; k++) {
+  //   stopWatch.start();
+  //   for (int j = 0; j <= i; j++) {
+  //     callbackList[j] = notifier.add(Node(notifier, listener)).cancel;
+  //   }
+  //   stopWatch.stop();
+  //   stopWatch2.start();
+  //   for (int j = 0; j <= i; j++) {
+  //     callbackList[j]!();
+  //   }
+  //   stopWatch2.stop();
+  // }
+
+  final endInNs = (stopWatch.elapsedMicroseconds * 1000) / (loops * (i + 1));
+  final endInNs2 = (stopWatch2.elapsedMicroseconds * 1000) / (loops * (i + 1));
+  final callbackList2 = List<VoidCallback?>.filled(i, null);
+  for (int j = 0; j < i; j++) {
+    callbackList2[j] = notifier
+        .add(Node(notifier, (_) {
+          // if (notifierCounter == 3) {
+          //   notifierCounter++;
+          //   final node = notifier.add(Node(notifier, (_) {}));
+          //   final otherNode = notifier.add(Node(notifier, (_) {}));
+          //   notifier.emit();
+          //   node.cancel();
+          //   otherNode.cancel();
+          // }
+        }))
+        .cancel;
+  }
+
+  // notifier.add(Node(notifier, (_) {
+  //   for (int j = 0; j < i; j++) {
+  //     callbackList2[j]!();
+  //   }
+  // }));
+  notifier.add(Node(notifier, (_) {
+    notifierCounter++;
+    show("newImplem: ", start, notifierCounter, _completer, endInNs, endInNs2);
+  }));
+  start = DateTime.now();
+  for (int i = 0; i < loops; i++) {
+    notifier.value = 10;
+    notifier.emit();
+  }
+  return _completer.future;
+}
+
 class Node<T> {
-  T? _value;
-  T get value => _value as T;
+  Function(T e)? _listener;
   Node<T>? previous;
   Node<T>? next;
-  NodeList _parent;
+  NodeList<T>? _parent;
 
-  Node(this._parent, [this._value]);
+  Node(this._parent, [this._listener]);
 
   void cancel() {
-    if (previous == null && next == null) {
-      _parent._first = _parent._last = null;
-    }
-    previous?.next = next;
-    next?.previous = previous;
-    previous = next = null;
+    _parent?._unlink(this);
   }
+
+  // void cancel() {
+  //   // Already canceled
+  //   if (_parent == null) return;
+  //   if (previous == null) {
+  //     if (next == null) {
+  //       // Single node
+  //       return _parent = _parent!._first = _parent!._last = null;
+  //     }
+  //     // First node
+  //     return next = next!.previous = _parent = null;
+  //   }
+  //   if (next == null) {
+  //     // Last node
+  //     return previous = previous!.next = _parent = null;
+  //   }
+  //   // Random node
+  //   previous?.next = next;
+  //   next?.previous = previous;
+  //   previous = next = _parent = null;
+  // }
 }
 
 class NodeList<T> {
-  T value;
+  T? _value;
+  set value(T val) {
+    if (_value != val) {
+      _value = val;
+      emit();
+    }
+  }
 
-  Node<Function(T e)>? _first;
-  Node<Function(T e)>? _last;
+  Node<T>? _first;
+  Node<T>? _last;
 
   int get length {
+    if (_first == null) return 0;
     var current = _first;
-    if (current == null) return 0;
     int len = 1;
-    while (current.next != null) {
+    while ((current = current?.next) != null) {
       len++;
     }
     return len;
   }
 
-  NodeList(this.value);
+  NodeList([this._value]);
 
   void emit() {
     if (_first == null) return;
-    Node<Function(T e)>? first = _first?..value(value);
+    Node<T>? first = _first?.._listener?.call(_value as T);
     try {
       while (!identical(first = first!.next, null)) {
-        first!.value(value);
+        first!._listener?.call(_value as T);
       }
     } catch (e) {
       print("Got error mesire");
+      // Assert error is stack overlflow
+      // TODO: add resume on error
     }
   }
 
-  Node<Function(T e)> add(Node<Function(T e)> node) {
+  void _unlink(Node<T> child) {
+    if (child == _first) {
+      _first = child.next;
+      _first?.previous = child._parent = null;
+      if (child == _last) {
+        _last = child.previous;
+        _last?.next = null;
+        return;
+      }
+      return;
+    }
+    if (child == _last) {
+      _last = child.previous;
+      _last?.next = child._parent = null;
+      return;
+    }
+    child.next!.previous = child.previous;
+    child.previous!.next = child.previous;
+    child._parent = null;
+  }
+
+  void addError() {
+    if (_first == null) return;
+    // TODO: add cancel on error
+    // TODO: transform into error callback
+    Node<T>? first = _first?.._listener?.call(_value as T);
+    try {
+      while (!identical(first = first!.next, null)) {
+        first?._listener?.call(_value as T);
+        // TODO: add cancel on error
+        // TODO: transform into error callback
+      }
+    } catch (e) {
+      print("Got error mesire");
+      // TODO: add resume on error
+    }
+  }
+
+  void dispose() {
+    if (_first == null) return;
+    // TODO: call the done on the sub
+    Node<T>? first = _first!;
+    _first = _first!.previous = _first!._parent = _last = null;
+    while (!identical(first = first!.next, null)) {
+      // TODO: call the done on the sub
+      first!.previous = first._parent = null;
+    }
+  }
+
+  Node<T> add(Node<T> node) {
     if (_first == null) return _last = _first = node;
-    node.previous = node.previous!.next = _last;
-    _last = node;
-    return node;
+    node.previous = _last;
+    return _last = _last!.next = node;
   }
 
   cancel(Node<T> node) {}
