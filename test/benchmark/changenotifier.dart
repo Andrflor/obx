@@ -70,8 +70,7 @@ class NotifierAddBenchmark extends BenchmarkBase {
 }
 
 class ReactiveAddBenchmark extends BenchmarkBase {
-  ReactiveAddBenchmark(this.listenerCount)
-      : super('Reactive add $listenerCount');
+  ReactiveAddBenchmark(this.listenerCount) : super('Old add $listenerCount');
 
   final int listenerCount;
 
@@ -97,7 +96,7 @@ class ReactiveAddBenchmark extends BenchmarkBase {
 }
 
 class ReactiveBenchmark extends BenchmarkBase {
-  ReactiveBenchmark(this.listenerCount) : super('Reactive $listenerCount');
+  ReactiveBenchmark(this.listenerCount) : super('Old $listenerCount');
 
   final int listenerCount;
 
@@ -126,7 +125,7 @@ class ReactiveBenchmark extends BenchmarkBase {
 }
 
 class RxAddBenchmark extends BenchmarkBase {
-  RxAddBenchmark(this.listenerCount) : super('Rx Add $listenerCount');
+  RxAddBenchmark(this.listenerCount) : super('New Add $listenerCount');
 
   final int listenerCount;
 
@@ -135,7 +134,7 @@ class RxAddBenchmark extends BenchmarkBase {
   @override
   void run() {
     for (int i = 0; i < listenerCount; i++) {
-      notifier!.add(Node(notifier, (_) {}));
+      notifier!.listen((_) {});
     }
   }
 
@@ -146,13 +145,13 @@ class RxAddBenchmark extends BenchmarkBase {
 
   @override
   void teardown() {
-    notifier!.dispose();
+    notifier!.close();
     notifier = null;
   }
 }
 
 class RxBenchmark extends BenchmarkBase {
-  RxBenchmark(this.listenerCount) : super('Rx $listenerCount');
+  RxBenchmark(this.listenerCount) : super('New $listenerCount');
 
   final int listenerCount;
 
@@ -169,25 +168,27 @@ class RxBenchmark extends BenchmarkBase {
   void setup() {
     notifier = NodeList<int?>(-1);
     for (int i = 0; i < listenerCount; i++) {
-      notifier!.add(Node(notifier, (_) {}));
+      notifier!.listen((_) {});
     }
   }
 
   @override
   void teardown() {
-    notifier!.dispose();
+    notifier!.close();
     notifier = null;
   }
 }
 
 void main() {
-  final toBench = [0, 1, 2, 3, 10, 12];
+  final toBench = [1, 2, 3, 10, 15];
 
-  bench(
-      [NotifierAddBenchmark.new, RxAddBenchmark.new, ReactiveAddBenchmark.new],
-      toBench);
-  bench([ChangeNotifierBenchmark.new, RxBenchmark.new, ReactiveBenchmark.new],
-      toBench);
+  bench([
+    NotifierAddBenchmark.new,
+    ReactiveAddBenchmark.new,
+    RxAddBenchmark.new,
+  ], toBench);
+  bench([ChangeNotifierBenchmark.new, ReactiveBenchmark.new, RxBenchmark.new],
+      [0, ...toBench]);
 }
 
 typedef BenchContructor = BenchmarkBase Function(int);
