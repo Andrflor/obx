@@ -23,7 +23,7 @@ extension RxMapExt<K, V> on Rx<Map<K, V>> {
   /// without any checks.
   /// That means that you can do `mapWithStringKeys.cast<int,int>().remove("a")`
   /// successfully, even if it looks like it shouldn't have any effect.
-  Map<RK, RV> cast<RK, RV>() => observe(() => value.cast<RK, RV>());
+  Map<RK, RV> cast<RK, RV>() => observe(() => data.cast<RK, RV>());
 
   /// Cast this [Rx<Map<K, V>>] into an [Rx<Map<RK, RV>>]
 	///

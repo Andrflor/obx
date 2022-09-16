@@ -21,7 +21,7 @@ extension RxSetExt<E> on Rx<Set<E>> {
   /// without any checks.
   /// That means that you can do `setOfStrings.cast<int>().remove("a")`
   /// successfully, even if it looks like it shouldn't have any effect.
-  Set<S> cast<S>() => observe(() => value.cast<S>());
+  Set<S> cast<S>() => observe(() => data.cast<S>());
 
   /// Cast this [Rx<Set<T>>] into an [Rx<List<S>>]
   ///

@@ -17,7 +17,7 @@ extension RxStringExt on Rx<String> {
   /// ```
   /// This method is equivalent to
   /// `String.fromCharCode(this.codeUnitAt(index))`.
-  String operator [](int index) => (observe(() => value[index]));
+  String operator [](int index) => (observe(() => data[index]));
 
   /// Creates a new string by concatenating this string with [other].
   ///
@@ -25,7 +25,7 @@ extension RxStringExt on Rx<String> {
   /// ```dart
   /// const string = 'dart' + 'lang'; // 'dartlang'
   /// ```
-  String operator +(String val) => (observe(() => value + val));
+  String operator +(String val) => (observe(() => data + val));
 
   /// Compares this string to [other].
   ///
@@ -49,12 +49,12 @@ extension RxStringExt on Rx<String> {
   /// relation = 'Forward'.compareTo('Forward');
   /// print(relation); // 0
   /// ```
-  int compareTo(String other) => value.compareTo(other);
+  int compareTo(String other) => data.compareTo(other);
 
   /// Returns true if this string ends with [other]. For example:
   ///
   ///     'Dart'.endsWith('t'); // true
-  bool endsWith(String other) => observe(() => value.endsWith(other));
+  bool endsWith(String other) => observe(() => data.endsWith(other));
 
   /// The length of the string.
   ///
@@ -69,23 +69,23 @@ extension RxStringExt on Rx<String> {
   /// clef.length;            // 2
   /// clef.runes.length;      // 1
   /// ```
-  int get length => observe(() => value.length);
+  int get length => observe(() => data.length);
 
   /// Returns true if this string starts with a match of [pattern].
   bool startsWith(Pattern pattern, [int index = 0]) =>
-      observe(() => value.startsWith(pattern, index));
+      observe(() => data.startsWith(pattern, index));
 
   /// Returns the position of the first match of [pattern] in this string
   int indexOf(Pattern pattern, [int start = 0]) =>
-      observe(() => value.indexOf(pattern, start));
+      observe(() => data.indexOf(pattern, start));
 
   /// Returns the starting position of the last match [pattern] in this string,
   /// searching backward starting at [start], inclusive:
   int lastIndexOf(Pattern pattern, [int? start]) =>
-      observe(() => value.lastIndexOf(pattern, start));
+      observe(() => data.lastIndexOf(pattern, start));
 
   /// Returns true if this string is empty.
-  bool get isEmpty => observe(() => value.isEmpty);
+  bool get isEmpty => observe(() => data.isEmpty);
 
   /// Returns true if this string is not empty.
   bool get isNotEmpty => !isEmpty;
@@ -93,42 +93,42 @@ extension RxStringExt on Rx<String> {
   /// Returns the substring of this string that extends from [startIndex],
   /// inclusive, to [endIndex], exclusive
   String substring(int startIndex, [int? endIndex]) =>
-      observe(() => value.substring(startIndex, endIndex));
+      observe(() => data.substring(startIndex, endIndex));
 
   /// Returns the string without any leading and trailing whitespace.
-  String trim() => observe(() => value.trim());
+  String trim() => observe(() => data.trim());
 
   /// Returns the string without any leading whitespace.
   ///
   /// As [trim], but only removes leading whitespace.
-  String trimLeft() => observe(() => value.trimLeft());
+  String trimLeft() => observe(() => data.trimLeft());
 
   /// Returns the string without any trailing whitespace.
   ///
   /// As [trim], but only removes trailing whitespace.
-  String trimRight() => observe(() => value.trimRight());
+  String trimRight() => observe(() => data.trimRight());
 
   /// Pads this string on the left if it is shorter than [width].
   ///
   /// Return a new string that prepends [padding] onto this string
   /// one time for each position the length is less than [width].
   String padLeft(int width, [String padding = ' ']) =>
-      observe(() => value.padLeft(width, padding));
+      observe(() => data.padLeft(width, padding));
 
   /// Pads this string on the right if it is shorter than [width].
 
   /// Return a new string that appends [padding] after this string
   /// one time for each position the length is less than [width].
   String padRight(int width, [String padding = ' ']) =>
-      observe(() => value.padRight(width, padding));
+      observe(() => data.padRight(width, padding));
 
   /// Returns true if this string contains a match of [other]:
   bool contains(Pattern other, [int startIndex = 0]) =>
-      observe(() => value.contains(other, startIndex));
+      observe(() => data.contains(other, startIndex));
 
   /// Replaces all substrings that match [from] with [replace].
   String replaceAll(Pattern from, String replace) =>
-      observe(() => value.replaceAll(from, replace));
+      observe(() => data.replaceAll(from, replace));
 
   /// Replace the first occurrence of [from] in this string.
   ///
@@ -148,11 +148,11 @@ extension RxStringExt on Rx<String> {
   /// The [startIndex] must be non-negative and no greater than [length].
   String replaceFirstMapped(Pattern from, String Function(Match match) replace,
           [int startIndex = 0]) =>
-      observe(() => value.replaceFirstMapped(from, replace, startIndex));
+      observe(() => data.replaceFirstMapped(from, replace, startIndex));
 
   /// Splits the string at matches of [pattern] and returns a list
   /// of substrings.
-  List<String> split(Pattern pattern) => observe(() => value.split(pattern));
+  List<String> split(Pattern pattern) => observe(() => data.split(pattern));
 
   /// Replace all substrings that match [from] by a computed string.
   ///
@@ -177,7 +177,7 @@ extension RxStringExt on Rx<String> {
   /// print(result); // 'Iway avehay away ecretsay ownay!'
   /// ```
   String replaceAllMapped(Pattern from, String Function(Match match) replace) =>
-      observe(() => value.replaceAllMapped(from, replace));
+      observe(() => data.replaceAllMapped(from, replace));
 
   /// Replaces the substring from [start] to [end] with [replacement].
   ///
@@ -195,7 +195,7 @@ extension RxStringExt on Rx<String> {
   /// That is `0 <= start <= end <= this.length`.
   /// If [end] is `null`, it defaults to [length].
   String replaceRange(int start, int? end, String replacement) =>
-      observe(() => value.replaceRange(start, end, replacement));
+      observe(() => data.replaceRange(start, end, replacement));
 
   /// Splits the string, converts its parts, and combines them into a new
   /// string.
@@ -225,26 +225,26 @@ extension RxStringExt on Rx<String> {
   String splitMapJoin(Pattern pattern,
           {String Function(Match)? onMatch,
           String Function(String)? onNonMatch}) =>
-      observe(() => value.splitMapJoin(pattern,
-          onMatch: onMatch, onNonMatch: onNonMatch));
+      observe(() =>
+          data.splitMapJoin(pattern, onMatch: onMatch, onNonMatch: onNonMatch));
 
   /// Returns an unmodifiable list of the UTF-16 code units of this string.
-  List<int> get codeUnits => value.codeUnits;
+  List<int> get codeUnits => data.codeUnits;
 
   /// Returns an [Iterable] of Unicode code-points of this string.
   ///
   /// If the string contains surrogate pairs, they are combined and returned
   /// as one integer by this iterator. Unmatched surrogate halves are treated
   /// like valid 16-bit code-units.
-  Runes get runes => value.runes;
+  Runes get runes => data.runes;
 
   /// Converts all characters in this string to lower case.
   /// If the string is already in all lower case, this method returns `this`.
-  String toLowerCase() => observe(() => value.toLowerCase());
+  String toLowerCase() => observe(() => data.toLowerCase());
 
   /// Converts all characters in this string to upper case.
   /// If the string is already in all upper case, this method returns `this`.
-  String toUpperCase() => observe(() => value.toUpperCase());
+  String toUpperCase() => observe(() => data.toUpperCase());
 
   /// Matches this pattern against the string repeatedly.
   ///
@@ -275,7 +275,7 @@ extension RxStringExt on Rx<String> {
   /// bird
   /// ```
   Iterable<Match> allMatches(String string, [int start = 0]) =>
-      value.allMatches(string, start);
+      data.allMatches(string, start);
 
   ///
   /// Returns a match if the pattern matches a substring of [string]
@@ -293,7 +293,7 @@ extension RxStringExt on Rx<String> {
   /// match = regExp.matchAsPrefix(string); // null
   /// ```
   Match? matchAsPrefix(String string, [int start = 0]) =>
-      value.matchAsPrefix(string, start);
+      data.matchAsPrefix(string, start);
 }
 
 extension RxnStringExt on Rx<String?> {
@@ -310,7 +310,7 @@ extension RxnStringExt on Rx<String?> {
   /// ```
   /// This method is equivalent to
   /// `String.fromCharCode(this.codeUnitAt(index))`.
-  String? operator [](int index) => (observe(() => value?[index]));
+  String? operator [](int index) => (observe(() => data?[index]));
 
   /// Creates a new string by concatenating this string with [other].
   ///
@@ -319,7 +319,7 @@ extension RxnStringExt on Rx<String?> {
   /// const string = 'dart' + 'lang'; // 'dartlang'
   /// ```
   String operator +(String val) =>
-      (observe(() => value == null ? val : value! + val));
+      (observe(() => data == null ? val : data! + val));
 
   /// Compares this string to [other].
   ///
@@ -343,7 +343,7 @@ extension RxnStringExt on Rx<String?> {
   /// relation = 'Forward'.compareTo('Forward');
   /// print(relation); // 0
   /// ```
-  int? compareTo(String other) => observe(() => value?.compareTo(other));
+  int? compareTo(String other) => observe(() => data?.compareTo(other));
 
   /// The length of the string.
   ///
@@ -358,71 +358,71 @@ extension RxnStringExt on Rx<String?> {
   /// clef.length;            // 2
   /// clef.runes.length;      // 1
   /// ```
-  int? get length => observe(() => value?.length);
+  int? get length => observe(() => data?.length);
 
   /// Returns true if this string ends with [other]. For example:
   ///
   ///     'Dart'.endsWith('t'); // true
-  bool? endsWith(String other) => observe(() => value?.endsWith(other));
+  bool? endsWith(String other) => observe(() => data?.endsWith(other));
 
   /// Returns true if this string starts with a match of [pattern].
   bool? startsWith(Pattern pattern, [int index = 0]) =>
-      observe(() => value?.startsWith(pattern, index));
+      observe(() => data?.startsWith(pattern, index));
 
   /// Returns the position of the first match of [pattern] in this string
   int? indexOf(Pattern pattern, [int start = 0]) =>
-      observe(() => value?.indexOf(pattern, start));
+      observe(() => data?.indexOf(pattern, start));
 
   /// Returns the starting position of the last match [pattern] in this string,
   /// searching backward starting at [start], inclusive:
   int? lastIndexOf(Pattern pattern, [int? start]) =>
-      observe(() => value?.lastIndexOf(pattern, start));
+      observe(() => data?.lastIndexOf(pattern, start));
 
   /// Returns true if this string is empty.
-  bool? get isEmpty => observe(() => value?.isEmpty);
+  bool? get isEmpty => observe(() => data?.isEmpty);
 
   /// Returns true if this string is not empty.
-  bool? get isNotEmpty => observe(() => value?.isNotEmpty);
+  bool? get isNotEmpty => observe(() => data?.isNotEmpty);
 
   /// Returns the substring of this string that extends from [startIndex],
   /// inclusive, to [endIndex], exclusive
   String? substring(int startIndex, [int? endIndex]) =>
-      observe(() => value?.substring(startIndex, endIndex));
+      observe(() => data?.substring(startIndex, endIndex));
 
   /// Returns the string without any leading and trailing whitespace.
-  String? trim() => observe(() => value?.trim());
+  String? trim() => observe(() => data?.trim());
 
   /// Returns the string without any leading whitespace.
   ///
   /// As [trim], but only removes leading whitespace.
-  String? trimLeft() => observe(() => value?.trimLeft());
+  String? trimLeft() => observe(() => data?.trimLeft());
 
   /// Returns the string without any trailing whitespace.
   ///
   /// As [trim], but only removes trailing whitespace.
-  String? trimRight() => observe(() => value?.trimRight());
+  String? trimRight() => observe(() => data?.trimRight());
 
   /// Pads this string on the left if it is shorter than [width].
   ///
   /// Return a new string that prepends [padding] onto this string
   /// one time for each position the length is less than [width].
   String? padLeft(int width, [String padding = ' ']) =>
-      observe(() => value?.padLeft(width, padding));
+      observe(() => data?.padLeft(width, padding));
 
   /// Pads this string on the right if it is shorter than [width].
 
   /// Return a new string that appends [padding] after this string
   /// one time for each position the length is less than [width].
   String? padRight(int width, [String padding = ' ']) =>
-      observe(() => value?.padRight(width, padding));
+      observe(() => data?.padRight(width, padding));
 
   /// Returns true if this string contains a match of [other]:
   bool? contains(Pattern other, [int startIndex = 0]) =>
-      observe(() => value?.contains(other, startIndex));
+      observe(() => data?.contains(other, startIndex));
 
   /// Replaces all substrings that match [from] with [replace].
   String? replaceAll(Pattern from, String replace) =>
-      observe(() => value?.replaceAll(from, replace));
+      observe(() => data?.replaceAll(from, replace));
 
   /// Replace the first occurrence of [from] in this string.
   ///
@@ -442,11 +442,11 @@ extension RxnStringExt on Rx<String?> {
   /// The [startIndex] must be non-negative and no greater than [length].
   String? replaceFirstMapped(Pattern from, String Function(Match match) replace,
           [int startIndex = 0]) =>
-      observe(() => value?.replaceFirstMapped(from, replace, startIndex));
+      observe(() => data?.replaceFirstMapped(from, replace, startIndex));
 
   /// Splits the string at matches of [pattern] and returns a list
   /// of substrings.
-  List<String>? split(Pattern pattern) => observe(() => value?.split(pattern));
+  List<String>? split(Pattern pattern) => observe(() => data?.split(pattern));
 
   /// Replace all substrings that match [from] by a computed string.
   ///
@@ -472,7 +472,7 @@ extension RxnStringExt on Rx<String?> {
   /// ```
   String? replaceAllMapped(
           Pattern from, String Function(Match match) replace) =>
-      observe(() => value?.replaceAllMapped(from, replace));
+      observe(() => data?.replaceAllMapped(from, replace));
 
   /// Replaces the substring from [start] to [end] with [replacement].
   ///
@@ -490,7 +490,7 @@ extension RxnStringExt on Rx<String?> {
   /// That is `0 <= start <= end <= this.length`.
   /// If [end] is `null`, it defaults to [length].
   String? replaceRange(int start, int? end, String replacement) =>
-      observe(() => value?.replaceRange(start, end, replacement));
+      observe(() => data?.replaceRange(start, end, replacement));
 
   /// Splits the string, converts its parts, and combines them into a new
   /// string.
@@ -520,26 +520,26 @@ extension RxnStringExt on Rx<String?> {
   String? splitMapJoin(Pattern pattern,
           {String Function(Match)? onMatch,
           String Function(String)? onNonMatch}) =>
-      observe(() => value?.splitMapJoin(pattern,
+      observe(() => data?.splitMapJoin(pattern,
           onMatch: onMatch, onNonMatch: onNonMatch));
 
   /// Returns an unmodifiable list of the UTF-16 code units of this string.
-  List<int>? get codeUnits => value?.codeUnits;
+  List<int>? get codeUnits => data?.codeUnits;
 
   /// Returns an [Iterable] of Unicode code-points of this string.
   ///
   /// If the string contains surrogate pairs, they are combined and returned
   /// as one integer by this iterator. Unmatched surrogate halves are treated
   /// like valid 16-bit code-units.
-  Runes? get runes => value?.runes;
+  Runes? get runes => data?.runes;
 
   /// Converts all characters in this string to lower case.
   /// If the string is already in all lower case, this method returns `this`.
-  String? toLowerCase() => observe(() => value?.toLowerCase());
+  String? toLowerCase() => observe(() => data?.toLowerCase());
 
   /// Converts all characters in this string to upper case.
   /// If the string is already in all upper case, this method returns `this`.
-  String? toUpperCase() => observe(() => value?.toUpperCase());
+  String? toUpperCase() => observe(() => data?.toUpperCase());
 
   /// Matches this pattern against the string repeatedly.
   ///
@@ -570,7 +570,7 @@ extension RxnStringExt on Rx<String?> {
   /// bird
   /// ```
   Iterable<Match>? allMatches(String string, [int start = 0]) =>
-      value?.allMatches(string, start);
+      data?.allMatches(string, start);
 
   ///
   /// Returns a match if the pattern matches a substring of [string]
@@ -588,5 +588,5 @@ extension RxnStringExt on Rx<String?> {
   /// match = regExp.matchAsPrefix(string); // null
   /// ```
   Match? matchAsPrefix(String string, [int start = 0]) =>
-      value?.matchAsPrefix(string, start);
+      data?.matchAsPrefix(string, start);
 }

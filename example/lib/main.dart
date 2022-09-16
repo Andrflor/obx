@@ -43,7 +43,7 @@ class Test extends StatelessWidget {
             )),
         const SizedBox(height: 10),
         ElevatedButton(
-          child: Obx(() => Text(rxString.value)),
+          child: Obx(() => Text(rxString.data)),
           onPressed: () => val = !val,
         ),
       ],

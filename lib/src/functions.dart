@@ -116,59 +116,60 @@ T observe<T>(T Function() builder) {
 /// It takes a [StreamFilter<T>] aka [Stream<T> Function(Stream<T>)]
 /// It allows you to make any stream filtering operation
 /// Example: (stream) => stream.skip(1).skipWhile(//someCondition).take(5)
-Disposer ever<T>(
-  Object observable,
-  Function(T value) onData, {
-  StreamFilter<T>? filter,
-  void Function()? onDone,
-  Function? onError,
-  bool? cancelOnError,
-  bool forceDistinct = false,
-}) {
-  if (observable is Rx<T>) {
-    return (forceDistinct && !observable.isDistinct
-            ? observable.distinct()
-            : observable)
-        .listen(
-      onData,
-      filter: filter,
-    );
-  }
-  if (observable is T Function()) {
-    return Orchestrator.fuse(observable).listen(
-      onData,
-      filter: filter,
-    );
-  }
-  if (observable is Stream<T>) {
-    observable = forceDistinct ? observable.distinct() : observable;
-    return (filter == null ? observable : filter(observable))
-        .listen(
-          onData,
-          onDone: onDone,
-          cancelOnError: cancelOnError ?? false,
-          onError: onError,
-        )
-        .cancel;
-  }
-  if (observable is ValueListenable<T>) {
-    if (forceDistinct || filter != null) {
-      return Rx.fromValueListenable(observable, distinct: forceDistinct).listen(
-        onData,
-        filter: filter,
-      );
-    }
-    listener() {
-      onData((observable as ValueListenable<T>).value);
-    }
-
-    observable.addListener(listener);
-    return () => (observable as ValueListenable<T>).removeListener(listener);
-  }
-
-  assert(_debugAssertObservableType(observable, T, 'ever'));
-  return () {};
-}
+// TODO: add back this
+// Disposer ever<T>(
+//   Object observable,
+//   Function(T value) onData, {
+//   StreamFilter<T>? filter,
+//   void Function()? onDone,
+//   Function? onError,
+//   bool? cancelOnError,
+//   bool forceDistinct = false,
+// }) {
+//   if (observable is Rx<T>) {
+//     return (forceDistinct && !observable.isDistinct
+//             ? observable.distinct()
+//             : observable)
+//         .listen(
+//       onData,
+//       filter: filter,
+//     );
+//   }
+//   if (observable is T Function()) {
+//     return Orchestrator.fuse(observable).listen(
+//       onData,
+//       filter: filter,
+//     );
+//   }
+//   if (observable is Stream<T>) {
+//     observable = forceDistinct ? observable.distinct() : observable;
+//     return (filter == null ? observable : filter(observable))
+//         .listen(
+//           onData,
+//           onDone: onDone,
+//           cancelOnError: cancelOnError ?? false,
+//           onError: onError,
+//         )
+//         .cancel;
+//   }
+//   if (observable is ValueListenable<T>) {
+//     if (forceDistinct || filter != null) {
+//       return Rx.fromValueListenable(observable, distinct: forceDistinct).listen(
+//         onData,
+//         filter: filter,
+//       );
+//     }
+//     listener() {
+//       onData((observable as ValueListenable<T>).value);
+//     }
+// 
+//     observable.addListener(listener);
+//     return () => (observable as ValueListenable<T>).removeListener(listener);
+//   }
+// 
+//   assert(_debugAssertObservableType(observable, T, 'ever'));
+//   return () {};
+// }
 
 // /// Runs a calback each time the observable [Object] changes and now
 // ///

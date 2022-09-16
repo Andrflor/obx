@@ -105,7 +105,7 @@ class ReactiveBenchmark extends BenchmarkBase {
   @override
   void run() {
     for (int i = 0; i < 100; i++) {
-      notifier!.value = i;
+      notifier!.data = i;
     }
   }
 

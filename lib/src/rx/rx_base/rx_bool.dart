@@ -4,40 +4,40 @@ import '../../functions.dart';
 import '../rx_impl/rx_core.dart';
 
 extension RxBoolExt on Rx<bool> {
-  bool get isTrue => value;
+  bool get isTrue => data;
 
   bool get isFalse => !isTrue;
 
-  bool operator &(bool other) => observe(() => other && value);
+  bool operator &(bool other) => observe(() => other && data);
 
-  bool operator |(bool other) => observe(() => other || value);
+  bool operator |(bool other) => observe(() => other || data);
 
-  bool operator ^(bool other) => observe(() => !other == value);
+  bool operator ^(bool other) => observe(() => !other == data);
 
-  /// Toggles the bool [value] between false and true.
+  /// Toggles the bool [data] between false and true.
   /// A shortcut for `flag.value = !flag.value;`
-  void toggle() => call(!value);
+  void toggle() => call(!data);
 }
 
 extension RxnBoolExt on Rx<bool?> {
-  bool? get isTrue => value;
+  bool? get isTrue => data;
 
-  bool? get isFalse => value == null ? value : !value!;
+  bool? get isFalse => data == null ? data : !data!;
 
   bool? operator &(bool other) =>
-      observe(() => value == null ? null : other && value!);
+      observe(() => data == null ? null : other && data!);
 
   bool? operator |(bool other) =>
-      observe(() => value == null ? null : other || value!);
+      observe(() => data == null ? null : other || data!);
 
   bool? operator ^(bool other) =>
-      observe(() => value == null ? null : !other == value);
+      observe(() => data == null ? null : !other == data);
 
-  /// Toggles the bool [value] between false and true.
+  /// Toggles the bool [data] between false and true.
   /// A shortcut for `flag.value = !flag.value;`
   void toggle() {
-    if (value != null) {
-      call(!value!);
+    if (data != null) {
+      call(!data!);
     }
   }
 }

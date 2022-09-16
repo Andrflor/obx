@@ -37,13 +37,14 @@ void main() {
         boolListen('inobs', inobs, true);
       });
 
-      group('detatch', () {
-        init();
-        boolListen('obs', obs, false, obs.dupe()..detatch(), false);
-        boolListen('nobs', nobs, false, nobs.dupe()..detatch(), false);
-        boolListen('iobs', iobs, false, iobs.dupe()..detatch(), false);
-        boolListen('inobs', inobs, false, inobs.dupe()..detatch(), false);
-      });
+      // TODO: maybe add back detach?
+      // group('detatch', () {
+      //   init();
+      //   boolListen('obs', obs, false, obs.dupe()..detatch(), false);
+      //   boolListen('nobs', nobs, false, nobs.dupe()..detatch(), false);
+      //   boolListen('iobs', iobs, false, iobs.dupe()..detatch(), false);
+      //   boolListen('inobs', inobs, false, inobs.dupe()..detatch(), false);
+      // });
 
       group('emiter', () {
         init();
@@ -170,8 +171,8 @@ void main() {
 
 void isEqual<S, T>(String name, Rx<T> t, Rx<S> s, bool isEqual) {
   return test(name, () {
-    expect(t.equalizer.equals(t.value, s.value), isEqual);
-    expect(s.equalizer.equals(t.value, s.value), isEqual);
+    expect(t.equalizer.equals(t.data, s.data), isEqual);
+    expect(s.equalizer.equals(t.data, s.data), isEqual);
   });
 }
 

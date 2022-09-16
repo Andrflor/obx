@@ -5,7 +5,7 @@ import '../rx_impl/rx_core.dart';
 import '../rx_impl/rx_types.dart';
 
 extension RxListExt<E> on Rx<List<E>> {
-  Iterator<E> get iterator => value.iterator;
+  Iterator<E> get iterator => data.iterator;
 
   /// The object at the given [index] in the list.
   ///
@@ -13,16 +13,16 @@ extension RxListExt<E> on Rx<List<E>> {
   /// which means that `index` must be non-negative and
   /// less than [length].
   E operator [](int index) {
-    return value[index];
+    return data[index];
   }
 
-  /// Sets the value at the given [index] in the list to [value].
+  /// Sets the value at the given [index] in the list to [data].
   ///
   /// The [index] must be a valid index of this list,
   /// which means that `index` must be non-negative and
   /// less than [length].
   void operator []=(int index, E val) {
-    value[index] = val;
+    data[index] = val;
     refresh();
   }
 
@@ -44,7 +44,7 @@ extension RxListExt<E> on Rx<List<E>> {
   /// successfully, even if it looks like it shouldn't have any effect.
   ///
   /// Typically implemented as `List.castFrom<E, R>(this)`.
-  List<S> cast<S>() => value.cast<S>();
+  List<S> cast<S>() => data.cast<S>();
 
   /// Cast this [Rx<List<T>>] into an [Rx<List<S>>]
   ///
@@ -72,7 +72,7 @@ extension RxListExt<E> on Rx<List<E>> {
     return this;
   }
 
-  /// Adds [value] to the end of this list,
+  /// Adds [data] to the end of this list,
   /// extending the length by one.
   ///
   /// The list must be growable.
@@ -83,7 +83,7 @@ extension RxListExt<E> on Rx<List<E>> {
   /// print(numbers); // [1, 2, 3, 4]
   /// ```
   void add(E element) {
-    value.add(element);
+    data.add(element);
     refresh();
   }
 
@@ -98,7 +98,7 @@ extension RxListExt<E> on Rx<List<E>> {
   /// print(numbers); // [1, 2, 3, 4, 5, 6]
   /// ```
   void addAll(Iterable<E> iterable) {
-    value.addAll(iterable);
+    data.addAll(iterable);
     refresh();
   }
 
@@ -109,7 +109,7 @@ extension RxListExt<E> on Rx<List<E>> {
   /// final reverseOrder = numbers.reversed;
   /// print(reverseOrder.toList()); // [four, three, two]
   /// ```
-  Iterable<E> get reversed => observe(() => value.reversed);
+  Iterable<E> get reversed => observe(() => data.reversed);
 
   /// Removes all objects from this list that satisfy [test].
   ///
@@ -121,7 +121,7 @@ extension RxListExt<E> on Rx<List<E>> {
   /// ```
   /// The list must be growable.
   void removeWhere(bool Function(E element) test) {
-    value.removeWhere(test);
+    data.removeWhere(test);
     refresh();
   }
 
@@ -135,11 +135,11 @@ extension RxListExt<E> on Rx<List<E>> {
   /// ```
   /// The list must be growable.
   void retainWhere(bool Function(E element) test) {
-    value.retainWhere(test);
+    data.retainWhere(test);
     refresh();
   }
 
-  int get length => observe(() => value.length);
+  int get length => observe(() => data.length);
 
   /// Setting the `length` changes the number of elements in the list.
   ///
@@ -162,7 +162,7 @@ extension RxListExt<E> on Rx<List<E>> {
   /// numbers.length = 5; // Throws, cannot add `null`s.
   /// ```
   set length(int newLength) {
-    value.length = newLength;
+    data.length = newLength;
     refresh();
   }
 
@@ -195,7 +195,7 @@ extension RxListExt<E> on Rx<List<E>> {
   /// print(numbers); // [one, two, four, three] OR [two, one, four, three]
   /// ```
   void sort([int Function(E a, E b)? compare]) {
-    value.sort(compare);
+    data.sort(compare);
     refresh();
   }
 

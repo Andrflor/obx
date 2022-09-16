@@ -5,7 +5,9 @@ class RxImpl<T> extends Reactive<T> {
 
   Rx<S> _clone<S>({bool? distinct, S Function(T e)? convert, Equality? eq}) =>
       Rx.withEq(
-          init: hasValue ? (convert?.call(_value as T) ?? _value as S) : null,
+          // TODO: add back this with hasValue
+          // init: hasValue ? (convert?.call(_data as T) ?? _data as S) : null,
+          init: (convert?.call(_data as T) ?? _data as S),
           eq: eq ??
               (distinct == null
                   ? _eq
@@ -31,7 +33,9 @@ class RxImpl<T> extends Reactive<T> {
       _clone(
         convert: init,
         distinct: distinct,
-      )..bindStream(transformer(stream));
+      );
+  // TODO: add back this
+  // )..bindStream(transformer(stream));
 
   /// Maps this [Rx<T>] into a new [Rx<S>]
   ///
@@ -43,7 +47,8 @@ class RxImpl<T> extends Reactive<T> {
   /// If you have more complex operation to do, use [pipe] instead
   Rx<S> pipeMap<S>(S Function(T e) transform, {bool? distinct, Equality? eq}) {
     final res = _clone(distinct: distinct, convert: transform, eq: eq);
-    res._addDisposeListener(listen((T data) => res.value = transform(data)));
+    // TODO: add back this
+    // res._addDisposeListener(listen((T data) => res.data = transform(data)));
     return res;
   }
 
@@ -57,11 +62,12 @@ class RxImpl<T> extends Reactive<T> {
   /// If you have more complex operation to do, use [pipe] instead
   Rx<T> pipeWhere(bool Function(T e) test, {bool? distinct, Equality? eq}) {
     final res = _clone<T>(distinct: distinct, eq: eq);
-    res._addDisposeListener(listen((T data) {
-      if (test(data)) {
-        res.value = data;
-      }
-    }));
+    // TODO: add back this
+    // res._addDisposeListener(listen((T data) {
+    //   if (test(data)) {
+    //     res.data = data;
+    //   }
+    // }));
     return res;
   }
 
@@ -77,11 +83,12 @@ class RxImpl<T> extends Reactive<T> {
   Rx<S> pipeMapWhere<S>(S Function(T e) transform, bool Function(T e) test,
       {bool? distinct, Equality? eq}) {
     final res = _clone(distinct: distinct, eq: eq, convert: transform);
-    res._addDisposeListener(listen((T data) {
-      if (test(data)) {
-        res.value = transform(data);
-      }
-    }));
+    // TODO: add back this
+    // res._addDisposeListener(listen((T data) {
+    //   if (test(data)) {
+    //     res.data = transform(data);
+    //   }
+    // }));
     return res;
   }
 
@@ -89,7 +96,7 @@ class RxImpl<T> extends Reactive<T> {
   ///
   /// The copy will receive all events comming from the original
   Rx<T> dupe({Equality? eq}) =>
-      Rx.withEq(init: _value, eq: eq ?? _eq)..bindRx(this);
+      Rx.withEq(init: _data, eq: eq ?? _eq)..bindRx(this);
 
   /// Create an exact copy of the [Rx<T>] but distinct enforced
   ///
@@ -114,24 +121,25 @@ class RxImpl<T> extends Reactive<T> {
   /// And use more ressources
   ///
   /// Furthermore [Rx] is not based on stream
-  Stream<T> get stream {
-    if (_hasController) return _streamController!.stream;
-    _streamController = StreamController<T>.broadcast();
-    _addListener(_streamController!.add);
-    _streamController!.onCancel = () {
-      if (!_streamController!.hasListener) {
-        _removeListener(_streamController!.add);
-        _streamController!.close();
-        _streamController = null;
-        _toggleHasController();
-      }
-    };
-    _toggleHasController();
-    return _streamController!.stream;
-  }
+  // TODO: add back this
+  // Stream<T> get stream {
+  //   if (_hasController) return _streamController!.stream;
+  //   _streamController = StreamController<T>.broadcast();
+  //   _addListener(_streamController!.add);
+  //   _streamController!.onCancel = () {
+  //     if (!_streamController!.hasListener) {
+  //       _removeListener(_streamController!.add);
+  //       _streamController!.close();
+  //       _streamController = null;
+  //       _toggleHasController();
+  //     }
+  //   };
+  //   _toggleHasController();
+  //   return _streamController!.stream;
+  // }
 
   @override
-  String toString() => value.toString();
+  String toString() => data.toString();
 
   // We check if we have a distinct observable
   bool get isDistinct => equalizer is! NeverEquality;
@@ -144,100 +152,6 @@ class RxImpl<T> extends Reactive<T> {
   /// So only use a StreamFilter if you really need it
   ///
   /// Returns a [VoidCallback] to dispose the listener
-  @override
-  VoidCallback listen(Function(T value) callback, {StreamFilter<T>? filter}) =>
-      filter?.call(stream).listen(callback).cancel ?? super.listen(callback);
-
-  StreamController<T>? _streamController;
-  List<void Function(Object error, [StackTrace? trace])>? _errorListeners;
-
-  /// Add an errorListener to the [Rx]
-  void _addErrorListener(
-      void Function(Object error, [StackTrace? trace]) errorListener) {
-    if (_hasErrorListeners) {
-      _errorListeners!.add(errorListener);
-    } else {
-      _errorListeners = [errorListener];
-      _toggleHasController();
-    }
-  }
-
-  /// Remove an errorListener to the [Rx]
-  bool _removeErrorListener(
-      void Function(Object error, [StackTrace? trace]) errorListener) {
-    if (_hasErrorListeners) {
-      if (_errorListeners!.remove(errorListener)) {
-        if (_errorListeners!.isEmpty) {
-          _errorListeners = null;
-          _toggleHasHasErrorListeners();
-        }
-        return true;
-      }
-    }
-    return false;
-  }
-
-  /// Add a disposeListener to the [Rx]
-  void _addDisposeListener(void Function() disposer) {
-    if (_hasDisposers) {
-      _disposers!.add(disposer);
-    } else {
-      _disposers = [disposer];
-      _toggleHasDisposers();
-    }
-  }
-
-  /// Remove a disposer to the [Rx]
-  bool _removeDisposeListener(void Function() disposer) {
-    if (_hasDisposers) {
-      if (_disposers!.remove(disposer)) {
-        if (_disposers!.isEmpty) {
-          _disposers = null;
-          _toggleHasDisposers();
-        }
-        return true;
-      }
-    }
-    return false;
-  }
-
-  /// Allow to add an error the the [Rx]
-  ///
-  /// Error will be sent to all existing listeners
-  /// This also mean that the error will be sent to the stream if any
-  void addError(Object error, [StackTrace? trace]) {
-    if (_hasErrorListeners) {
-      for (int i = 0; i < _errorListeners!.length; i++) {
-        _errorListeners![i](error, trace);
-      }
-    }
-    if (_hasController) {
-      _streamController!.addError(error, trace);
-    }
-  }
-
-  void _removeController() {
-    if (_hasController) {
-      _removeListener(_streamController!.add);
-      _streamController!.close();
-      _streamController = null;
-      _toggleHasController();
-    }
-  }
-
-  @override
-  @mustCallSuper
-  void dispose() {
-    if (_hasErrorListeners) _errorListeners = null;
-    if (_hasDisposers) {
-      for (int i = 0; i < _disposers!.length; i++) {
-        _disposers![i]();
-      }
-      _disposers = null;
-    }
-    _removeController();
-    super.dispose();
-  }
 
   /// Binds an existing `Stream<T>` to this Rx<T> to keep the values in sync.
   ///
@@ -246,11 +160,14 @@ class RxImpl<T> extends Reactive<T> {
   /// You can also cancel the sub with the provided callback
   Disposer bindStream(Stream<T> stream, [StreamFilter<T>? filter]) {
     final sub = (filter?.call(stream) ?? stream).listen((e) {
-      value = e;
+      data = e;
     }, cancelOnError: false);
-    _addDisposeListener(sub.cancel);
+
+    // TODO: add back this
+    // _addDisposeListener(sub.cancel);
     clean() {
-      _removeDisposeListener(sub.cancel);
+      // TODO: add back this
+      // _removeDisposeListener(sub.cancel);
       sub.cancel();
     }
 
@@ -269,14 +186,17 @@ class RxImpl<T> extends Reactive<T> {
   Disposer bindRx(RxImpl<T> rx, [StreamFilter<T>? filter]) {
     final sub = rx.listen(
       (e) {
-        value = e;
+        data = e;
       },
-      filter: filter,
+      // TODO: add back this
+      // filter: filter,
     );
-    _addDisposeListener(sub);
+    // TODO: add back this
+    // _addDisposeListener(sub);
     clean() {
-      _removeDisposeListener(sub);
-      sub();
+      // TODO: add back this
+      // _removeDisposeListener(sub);
+      // sub();
     }
 
     return clean;
@@ -294,15 +214,18 @@ class RxImpl<T> extends Reactive<T> {
     ValueListenable<T> listenable,
   ) {
     closure() {
-      value = listenable.value;
+      data = listenable.value;
     }
 
     listenable.addListener(closure);
     cancel() => listenable.removeListener(closure);
-    _addDisposeListener(cancel);
+
+    // TODO: add back this
+    // _addDisposeListener(cancel);
 
     return () {
-      _removeDisposeListener(cancel);
+      // TODO: add back this
+      // _removeDisposeListener(cancel);
       cancel();
     };
   }
@@ -317,13 +240,15 @@ class RxImpl<T> extends Reactive<T> {
   /// For that you can call the provided [Disposer]
   Disposer bindListenable(Listenable listenable,
       {required T Function() onEvent}) {
-    closure() => value = onEvent();
+    closure() => data = onEvent();
     listenable.addListener(closure);
     cancel() => listenable.removeListener(closure);
-    _addDisposeListener(cancel);
+    // TODO: add back this
+    // _addDisposeListener(cancel);
 
     return () {
-      _removeDisposeListener(cancel);
+      // TODO: add back this
+      // _removeDisposeListener(cancel);
       cancel();
     };
   }
@@ -343,22 +268,13 @@ class SingleShot<T> extends Reactive<T> {
   final VoidCallback update = Orchestrator.element!.markNeedsBuild;
 
   @override
-  T get value => _value as T;
+  T get data => _data as T;
 
   @override
-  set value(T val) {
-    if (_value != val) {
+  set data(T val) {
+    if (_data != val) {
       update();
     }
-  }
-
-  @override
-  void dispose() {
-    for (int i = 0; i < _disposers!.length; i++) {
-      _disposers![i]();
-    }
-    _disposers = null;
-    super.dispose();
   }
 }
 
@@ -382,34 +298,31 @@ class Emitter extends Reactive<Null> {
 
   /// Cancel the emitter from auto emitting
   void cancel() {
-    for (int i = 0; i < (_disposers?.length ?? 0); i++) {
-      _disposers![i]();
-    }
+    close();
   }
 
   /// Will emit after `delay`
   void emitIn(Duration delay) {
-    assert(Reactive.debugAssertNotDisposed(this));
-    _disposers?.add(Timer.periodic(delay, (_) {
-      emit();
-    }).cancel);
+    listen(null,
+        onDone: Timer.periodic(delay, (_) {
+          emit();
+        }).cancel);
   }
 
   /// Will emit every `delay`
   void emitEvery(Duration delay) {
-    assert(Reactive.debugAssertNotDisposed(this));
-    _disposers?.add(Timer(delay, () {
-      emit();
-    }).cancel);
+    listen(null,
+        onDone: Timer(delay, () {
+          emit();
+        }).cancel);
   }
 
   @override
   //ignore: prefer_void_to_null
-  set value(Null value) => emit();
+  set data(Null value) => emit();
 
   @override
-  Null get value {
-    assert(Reactive.debugAssertNotDisposed(this));
+  Null get data {
     if (!Orchestrator.notInBuild) _reportRead();
     return null;
   }
@@ -422,15 +335,7 @@ class Emitter extends Reactive<Null> {
   /// Obx(() => Text(emiter.bundle(myVariable)));
   /// ```
   T bundle<T>(T value) {
-    assert(Reactive.debugAssertNotDisposed(this));
     if (!Orchestrator.notInBuild) _reportRead();
     return value;
-  }
-
-  @override
-  void dispose() {
-    cancel();
-    _disposers = null;
-    super.dispose();
   }
 }

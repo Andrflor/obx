@@ -2,7 +2,6 @@ library obx;
 
 import '../../functions.dart';
 import '../rx_impl/rx_core.dart';
-import '../../notifier.dart';
 
 extension RxIterableExt<T extends Iterable<E>, E> on Rx<T> {
   /// Returns a new `Iterator` that allows iterating the elements of this
@@ -31,7 +30,7 @@ extension RxIterableExt<T extends Iterable<E>, E> on Rx<T> {
   /// on that iterator.
   /// Any *modifiable* iterable class should specify which operations will
   /// break iteration.
-  Iterator<E> get iterator => value.iterator;
+  Iterator<E> get iterator => data.iterator;
 
   /// Provides a view of this iterable as an iterable of [S] instances.
   ///
@@ -41,7 +40,7 @@ extension RxIterableExt<T extends Iterable<E>, E> on Rx<T> {
   ///
   /// When the returned iterable creates a new object that depends on
   /// the type [S], e.g., from [toList], it will have exactly the type [S].
-  Iterable<S> cast<S>() => observe(() => value.cast<S>());
+  Iterable<S> cast<S>() => observe(() => data.cast<S>());
 
   /// Cast this [Rx<Iteralbe<T>>] into an [Rx<Iterable<S>>]
   ///
@@ -54,14 +53,14 @@ extension RxIterableExt<T extends Iterable<E>, E> on Rx<T> {
   /// When the returned iterable creates a new object that depends on
   /// the type [S], e.g., from [toList], it will have exactly the type [S].
   Rx<Iterable<S>> pipeCast<S>() =>
-      S == E ? this as Rx<Iterable<S>> : pipeMap((e) => value.cast<S>());
+      S == E ? this as Rx<Iterable<S>> : pipeMap((e) => data.cast<S>());
 
   /// Returns the number of elements in [this].
   ///
   /// Counting all elements may involve iterating through all elements and can
   /// therefore be slow.
   /// Some iterables have a more efficient way to find the number of elements.
-  int get length => observe(() => value.length);
+  int get length => observe(() => data.length);
 
   /// Whether this collection has no elements.
   ///
@@ -73,7 +72,7 @@ extension RxIterableExt<T extends Iterable<E>, E> on Rx<T> {
   /// print(emptyList.isEmpty); // true;
   /// print(emptyList.iterator.moveNext()); // false
   /// ```
-  bool get isEmpty => observe(() => value.isEmpty);
+  bool get isEmpty => observe(() => data.isEmpty);
 
   /// Whether this collection has at least one element.
   ///
@@ -85,14 +84,14 @@ extension RxIterableExt<T extends Iterable<E>, E> on Rx<T> {
   /// print(numbers.isNotEmpty); // true;
   /// print(numbers.iterator.moveNext()); // true
   /// ``
-  bool get isNotEmpty => observe(() => value.isEmpty);
+  bool get isNotEmpty => observe(() => data.isEmpty);
 
   /// Returns the first element.
   ///
   /// Throws a [StateError] if `this` is empty.
   /// Otherwise returns the first element in the iteration order,
   /// equivalent to `this.elementAt(0)`.
-  E get first => observe(() => value.first);
+  E get first => observe(() => data.first);
 
   /// Returns the last element.
   ///
@@ -102,12 +101,12 @@ extension RxIterableExt<T extends Iterable<E>, E> on Rx<T> {
   /// Some iterables may have more efficient ways to find the last element
   /// (for example a list can directly access the last element,
   /// without iterating through the previous ones).
-  E get last => observe(() => value.last);
+  E get last => observe(() => data.last);
 
   /// Checks that this iterable has only one element, and returns that element.
   ///
   /// Throws a [StateError] if `this` is empty or has more than one element.
-  E get single => observe(() => value.single);
+  E get single => observe(() => data.single);
 
   /// Whether the collection contains an element equal to [element].
   ///
@@ -132,8 +131,8 @@ extension RxIterableExt<T extends Iterable<E>, E> on Rx<T> {
   /// final containsJupiter = gasPlanets.values.contains('Jupiter'); // true
   /// final containsMercury = gasPlanets.values.contains('Mercury'); // false
   /// ```
-  bool contains(Object? element) => observe(() => value.contains(
-      element is Rx && !isSubtype<E, Rx>() ? element.value : element));
+  bool contains(Object? element) => observe(() => data
+      .contains(element is Rx && !isSubtype<E, Rx>() ? element.data : element));
 
   /// Invokes [action] on each element of this iterable in iteration order.
   ///
@@ -146,7 +145,7 @@ extension RxIterableExt<T extends Iterable<E>, E> on Rx<T> {
   /// // 6
   /// // 7
   /// ```
-  void forEach(void Function(E element) action) => value.forEach(action);
+  void forEach(void Function(E element) action) => data.forEach(action);
 
   /// Returns a new lazy [Iterable] with all elements that satisfy the
   /// predicate [test].
@@ -169,7 +168,7 @@ extension RxIterableExt<T extends Iterable<E>, E> on Rx<T> {
   /// result = numbers.where((x) => x.isEven); // (2, 6)
   /// ```
   Iterable<E> where(bool Function(E value) test) =>
-      observe(() => value.where(test));
+      observe(() => data.where(test));
 
   /// Returns the single element that satisfies [test].
   ///
@@ -195,7 +194,7 @@ extension RxIterableExt<T extends Iterable<E>, E> on Rx<T> {
   /// result = numbers.singleWhere((element) => element == 2); // Throws Error.
   /// ```
   E singleWhere(bool Function(E element) test, {E Function()? orElse}) =>
-      observe(() => value.singleWhere(test, orElse: orElse));
+      observe(() => data.singleWhere(test, orElse: orElse));
 
   ///
   /// Iterates through elements and returns the first to satisfy [test].
@@ -213,7 +212,7 @@ extension RxIterableExt<T extends Iterable<E>, E> on Rx<T> {
   /// function is returned.
   /// If [orElse] is omitted, it defaults to throwing a [StateError].
   E firstWhere(bool Function(E element) test, {E Function()? orElse}) =>
-      observe(() => value.firstWhere(test, orElse: orElse));
+      observe(() => data.firstWhere(test, orElse: orElse));
 
   /// Returns the last element that satisfies the given predicate [test].
   ///
@@ -237,7 +236,7 @@ extension RxIterableExt<T extends Iterable<E>, E> on Rx<T> {
   /// function is returned.
   /// If [orElse] is omitted, it defaults to throwing a [StateError].
   E lastWhere(bool Function(E element) test, {E Function()? orElse}) =>
-      observe(() => value.lastWhere(test, orElse: orElse));
+      observe(() => data.lastWhere(test, orElse: orElse));
 
   /// Returns the [index]th element.
   ///
@@ -254,7 +253,7 @@ extension RxIterableExt<T extends Iterable<E>, E> on Rx<T> {
   /// final numbers = <int>[1, 2, 3, 5, 6, 7];
   /// final elementAt = numbers.elementAt(4); // 6
   /// ```
-  E elementAt(int index) => observe(() => value.elementAt(index));
+  E elementAt(int index) => observe(() => data.elementAt(index));
 
   /// The current elements of this iterable modified by [toElement].
   ///
@@ -294,7 +293,7 @@ extension RxIterableExt<T extends Iterable<E>, E> on Rx<T> {
   /// var totalPrice = values.fold(0.0, (a, b) => a + b); // 42.5.
   /// ```
   Iterable<S> map<S>(S Function(E value) toElement) =>
-      observe(() => value.map<S>(toElement));
+      observe(() => data.map<S>(toElement));
 
   /// Returns a new lazy [Iterable] with all elements that have type [T].
   ///
@@ -305,7 +304,7 @@ extension RxIterableExt<T extends Iterable<E>, E> on Rx<T> {
   /// Iterating will not cache results, and thus iterating multiple times over
   /// the returned [Iterable] may yield different results,
   /// if the underlying elements change between iterations.
-  Iterable<S> whereType<S>() => observe(() => value.whereType<S>());
+  Iterable<S> whereType<S>() => observe(() => data.whereType<S>());
 
   /// Expands each element of this [Iterable] into zero or more elements.
   ///
@@ -336,7 +335,7 @@ extension RxIterableExt<T extends Iterable<E>, E> on Rx<T> {
   /// }
   /// ```
   Iterable<S> expand<S>(Iterable<S> Function(E element) toElements) =>
-      observe(() => value.expand<S>(toElements));
+      observe(() => data.expand<S>(toElements));
 
   /// Reduces a collection to a single value by iteratively combining elements
   /// of the collection using the provided function.
@@ -361,7 +360,7 @@ extension RxIterableExt<T extends Iterable<E>, E> on Rx<T> {
   /// print(result); // 17.5
   /// ```
   E reduce(E Function(E value, E element) combine) =>
-      observe(() => value.reduce(combine));
+      observe(() => data.reduce(combine));
 
   /// Reduces a collection to a single value by iteratively combining each
   /// element of the collection with an existing value
@@ -385,7 +384,7 @@ extension RxIterableExt<T extends Iterable<E>, E> on Rx<T> {
   /// print(result); // 117.5
   /// ```
   S fold<S>(S initialValue, S Function(S previousValue, E element) combine) =>
-      observe(() => value.fold<S>(initialValue, combine));
+      observe(() => data.fold<S>(initialValue, combine));
 
   /// Converts each element to a [String] and concatenates the strings.
   ///
@@ -400,7 +399,7 @@ extension RxIterableExt<T extends Iterable<E>, E> on Rx<T> {
   ///   0.11: 'Mars'};
   /// final joinedNames = planetsByMass.values.join('-'); // Mercury-Venus-Mars
   /// ```
-  String join([String separator = ""]) => observe(() => value.join(separator));
+  String join([String separator = ""]) => observe(() => data.join(separator));
 
   /// Checks whether every element of this iterable satisfies [test].
   ///
@@ -414,7 +413,7 @@ extension RxIterableExt<T extends Iterable<E>, E> on Rx<T> {
   /// // Checks whether all keys are smaller than 1.
   /// final every = planetsByMass.keys.every((key) => key < 1.0); // true
   /// ```
-  bool every(bool Function(E element) test) => observe(() => value.every(test));
+  bool every(bool Function(E element) test) => observe(() => data.every(test));
 
   /// Checks whether any element of this iterable satisfies [test].
   ///
@@ -427,7 +426,7 @@ extension RxIterableExt<T extends Iterable<E>, E> on Rx<T> {
   /// var result = numbers.any((element) => element >= 5); // true;
   /// result = numbers.any((element) => element >= 10); // false;
   /// ```
-  bool any(bool Function(E element) test) => observe(() => value.any(test));
+  bool any(bool Function(E element) test) => observe(() => data.any(test));
 
   /// Returns a lazy iterable of the [count] first elements of this iterable.
   ///
@@ -445,7 +444,7 @@ extension RxIterableExt<T extends Iterable<E>, E> on Rx<T> {
   /// final result = numbers.take(4); // (1, 2, 3, 5)
   /// final takeAll = numbers.take(100); // (1, 2, 3, 5, 6, 7)
   /// ```
-  Iterable<E> take(int count) => observe(() => value.take(count));
+  Iterable<E> take(int count) => observe(() => data.take(count));
 
   /// Returns a lazy iterable of the leading elements satisfying [test].
   ///
@@ -465,7 +464,7 @@ extension RxIterableExt<T extends Iterable<E>, E> on Rx<T> {
   /// result = numbers.takeWhile((x) => x.isOdd); // (1)
   /// ```
   Iterable<E> takeWhile(bool Function(E element) test) =>
-      observe(() => value.takeWhile(test));
+      observe(() => data.takeWhile(test));
 
   /// Returns the lazy concatenation of this iterable and [other].
   ///
@@ -480,7 +479,7 @@ extension RxIterableExt<T extends Iterable<E>, E> on Rx<T> {
   /// print(updated); // (Earth, Jupiter, Mars, Venus)
   /// ```
   Iterable<E> followedBy(Iterable<E> other) =>
-      observe(() => value.followedBy(other));
+      observe(() => data.followedBy(other));
 
   /// Returns an [Iterable] that provides all but the first [count] elements.
   ///
@@ -503,7 +502,7 @@ extension RxIterableExt<T extends Iterable<E>, E> on Rx<T> {
   /// ```
   ///
   /// The [count] must not be negative.
-  Iterable<E> skip(int count) => observe(() => value.skip(count));
+  Iterable<E> skip(int count) => observe(() => data.skip(count));
 
   /// Returns an `Iterable` that skips leading elements while [test] is satisfied.
   ///
@@ -525,7 +524,7 @@ extension RxIterableExt<T extends Iterable<E>, E> on Rx<T> {
   /// result = numbers.skipWhile((x) => x.isOdd); // (2, 3, 5, 6, 7)
   /// ```
   Iterable<E> skipWhile(bool Function(E element) test) =>
-      observe(() => value.skipWhile(test));
+      observe(() => data.skipWhile(test));
 
   /// Creates a [Set] containing the same elements as this iterable.
   ///
@@ -540,7 +539,7 @@ extension RxIterableExt<T extends Iterable<E>, E> on Rx<T> {
   /// final planets = <int, String>{1: 'Mercury', 2: 'Venus', 3: 'Mars'};
   /// final valueSet = planets.values.toSet(); // {Mercury, Venus, Mars}
   /// ```
-  Set<E> toSet() => value.toSet();
+  Set<E> toSet() => data.toSet();
 
   /// Creates a [Rx<Set>] mapping from this [Rx<Iter>]
   ///
@@ -558,7 +557,7 @@ extension RxIterableExt<T extends Iterable<E>, E> on Rx<T> {
   /// final planetRxSet = Rx(planets.values).toPipeSet();
   /// planetRxSet.value; // {Mercury, Venus, Mars}
   /// ```
-  Rx<Set<E>> toPipeSet() => pipeMap((e) => value.toSet());
+  Rx<Set<E>> toPipeSet() => pipeMap((e) => data.toSet());
 
   /// Creates a [List] containing the elements of this [Iterable].
   ///
@@ -572,7 +571,7 @@ extension RxIterableExt<T extends Iterable<E>, E> on Rx<T> {
   /// final valuesList =
   ///     planets.values.toList(growable: false); // [Mercury, Venus, Mars]
   /// ```
-  List<E> toList({bool growable = true}) => value.toList(growable: growable);
+  List<E> toList({bool growable = true}) => data.toList(growable: growable);
 
   /// Creates a [Rx<List>] mapping from this [Rx<Iter>]
   ///
@@ -591,7 +590,7 @@ extension RxIterableExt<T extends Iterable<E>, E> on Rx<T> {
   /// valuesRxList.value; // [Mercury, Venus, Mars]
   /// ```
   Rx<List<E>> toPipeList({bool growable = true}) =>
-      pipeMap((e) => value.toList(growable: growable));
+      pipeMap((e) => data.toList(growable: growable));
 }
 
 extension RxnIterableExt<T extends Iterable<E>?, E> on Rx<T> {
@@ -621,7 +620,7 @@ extension RxnIterableExt<T extends Iterable<E>?, E> on Rx<T> {
   /// on that iterator.
   /// Any *modifiable* iterable class should specify which operations will
   /// break iteration.
-  Iterator<E>? get iterator => value?.iterator;
+  Iterator<E>? get iterator => data?.iterator;
 
   /// Provides a view of this iterable as an iterable of [S] instances.
   ///
@@ -631,7 +630,7 @@ extension RxnIterableExt<T extends Iterable<E>?, E> on Rx<T> {
   ///
   /// When the returned iterable creates a new object that depends on
   /// the type [S], e.g., from [toList], it will have exactly the type [S].
-  Iterable<S>? cast<S>() => observe(() => value?.cast<S>());
+  Iterable<S>? cast<S>() => observe(() => data?.cast<S>());
 
   /// Cast this [Rx<Iteralbe<T>>] into an [Rx<Iterable<S>>]
   ///
@@ -644,14 +643,14 @@ extension RxnIterableExt<T extends Iterable<E>?, E> on Rx<T> {
   /// When the returned iterable creates a new object that depends on
   /// the type [S], e.g., from [toList], it will have exactly the type [S].
   Rx<Iterable<S>?> pipeCast<S>() =>
-      S == E ? this as Rx<Iterable<S>> : pipeMap((e) => value?.cast<S>());
+      S == E ? this as Rx<Iterable<S>> : pipeMap((e) => data?.cast<S>());
 
   /// Returns the number of elements in [this].
   ///
   /// Counting all elements may involve iterating through all elements and can
   /// therefore be slow.
   /// Some iterables have a more efficient way to find the number of elements.
-  int? get length => observe(() => value?.length);
+  int? get length => observe(() => data?.length);
 
   /// Whether this collection has no elements.
   ///
@@ -663,7 +662,7 @@ extension RxnIterableExt<T extends Iterable<E>?, E> on Rx<T> {
   /// print(emptyList.isEmpty); // true;
   /// print(emptyList.iterator.moveNext()); // false
   /// ```
-  bool get isEmpty => observe(() => value?.isEmpty ?? false);
+  bool get isEmpty => observe(() => data?.isEmpty ?? false);
 
   /// Whether this collection has at least one element.
   ///
@@ -675,14 +674,14 @@ extension RxnIterableExt<T extends Iterable<E>?, E> on Rx<T> {
   /// print(numbers.isNotEmpty); // true;
   /// print(numbers.iterator.moveNext()); // true
   /// ``
-  bool get isNotEmpty => observe(() => value?.isEmpty ?? true);
+  bool get isNotEmpty => observe(() => data?.isEmpty ?? true);
 
   /// Returns the first element.
   ///
   /// Throws a [StateError] if `this` is empty.
   /// Otherwise returns the first element in the iteration order,
   /// equivalent to `this.elementAt(0)`.
-  E? get first => observe(() => value?.first);
+  E? get first => observe(() => data?.first);
 
   /// Returns the last element.
   ///
@@ -692,12 +691,12 @@ extension RxnIterableExt<T extends Iterable<E>?, E> on Rx<T> {
   /// Some iterables may have more efficient ways to find the last element
   /// (for example a list can directly access the last element,
   /// without iterating through the previous ones).
-  E? get last => observe(() => value?.last);
+  E? get last => observe(() => data?.last);
 
   /// Checks that this iterable has only one element, and returns that element.
   ///
   /// Throws a [StateError] if `this` is empty or has more than one element.
-  E? get single => observe(() => value?.single);
+  E? get single => observe(() => data?.single);
 
   /// Whether the collection contains an element equal to [element].
   ///
@@ -723,8 +722,8 @@ extension RxnIterableExt<T extends Iterable<E>?, E> on Rx<T> {
   /// final containsMercury = gasPlanets.values.contains('Mercury'); // false
   /// ```
   bool contains(Object? element) => observe(() =>
-      value?.contains(
-          element is Rx && !isSubtype<E, Rx>() ? element.value : element) ??
+      data?.contains(
+          element is Rx && !isSubtype<E, Rx>() ? element.data : element) ??
       false);
 
   /// Invokes [action] on each element of this iterable in iteration order.
@@ -738,7 +737,7 @@ extension RxnIterableExt<T extends Iterable<E>?, E> on Rx<T> {
   /// // 6
   /// // 7
   /// ```
-  void forEach(void Function(E element) action) => value?.forEach(action);
+  void forEach(void Function(E element) action) => data?.forEach(action);
 
   /// Returns a new lazy [Iterable] with all elements that satisfy the
   /// predicate [test].
@@ -761,7 +760,7 @@ extension RxnIterableExt<T extends Iterable<E>?, E> on Rx<T> {
   /// result = numbers.where((x) => x.isEven); // (2, 6)
   /// ```
   Iterable<E>? where(bool Function(E value) test) =>
-      observe(() => value?.where(test));
+      observe(() => data?.where(test));
 
   /// Returns the single element that satisfies [test].
   ///
@@ -787,7 +786,7 @@ extension RxnIterableExt<T extends Iterable<E>?, E> on Rx<T> {
   /// result = numbers.singleWhere((element) => element == 2); // Throws Error.
   /// ```
   E? singleWhere(bool Function(E element) test, {E Function()? orElse}) =>
-      observe(() => value?.singleWhere(test, orElse: orElse));
+      observe(() => data?.singleWhere(test, orElse: orElse));
 
   ///
   /// Iterates through elements and returns the first to satisfy [test].
@@ -805,7 +804,7 @@ extension RxnIterableExt<T extends Iterable<E>?, E> on Rx<T> {
   /// function is returned.
   /// If [orElse] is omitted, it defaults to throwing a [StateError].
   E? firstWhere(bool Function(E element) test, {E Function()? orElse}) =>
-      observe(() => value?.firstWhere(test, orElse: orElse));
+      observe(() => data?.firstWhere(test, orElse: orElse));
 
   /// Returns the last element that satisfies the given predicate [test].
   ///
@@ -829,7 +828,7 @@ extension RxnIterableExt<T extends Iterable<E>?, E> on Rx<T> {
   /// function is returned.
   /// If [orElse] is omitted, it defaults to throwing a [StateError].
   E? lastWhere(bool Function(E element) test, {E Function()? orElse}) =>
-      observe(() => value?.lastWhere(test, orElse: orElse));
+      observe(() => data?.lastWhere(test, orElse: orElse));
 
   /// Returns the [index]th element.
   ///
@@ -846,7 +845,7 @@ extension RxnIterableExt<T extends Iterable<E>?, E> on Rx<T> {
   /// final numbers = <int>[1, 2, 3, 5, 6, 7];
   /// final elementAt = numbers.elementAt(4); // 6
   /// ```
-  E? elementAt(int index) => observe(() => value?.elementAt(index));
+  E? elementAt(int index) => observe(() => data?.elementAt(index));
 
   /// The current elements of this iterable modified by [toElement].
   ///
@@ -886,7 +885,7 @@ extension RxnIterableExt<T extends Iterable<E>?, E> on Rx<T> {
   /// var totalPrice = values.fold(0.0, (a, b) => a + b); // 42.5.
   /// ```
   Iterable<S>? map<S>(S Function(E value) toElement) =>
-      observe(() => value?.map<S>(toElement));
+      observe(() => data?.map<S>(toElement));
 
   /// Returns a new lazy [Iterable] with all elements that have type [T].
   ///
@@ -897,7 +896,7 @@ extension RxnIterableExt<T extends Iterable<E>?, E> on Rx<T> {
   /// Iterating will not cache results, and thus iterating multiple times over
   /// the returned [Iterable] may yield different results,
   /// if the underlying elements change between iterations.
-  Iterable<S>? whereType<S>() => observe(() => value?.whereType<S>());
+  Iterable<S>? whereType<S>() => observe(() => data?.whereType<S>());
 
   /// Expands each element of this [Iterable] into zero or more elements.
   ///
@@ -928,7 +927,7 @@ extension RxnIterableExt<T extends Iterable<E>?, E> on Rx<T> {
   /// }
   /// ```
   Iterable<S>? expand<S>(Iterable<S> Function(E element) toElements) =>
-      observe(() => value?.expand<S>(toElements));
+      observe(() => data?.expand<S>(toElements));
 
   /// Reduces a collection to a single value by iteratively combining elements
   /// of the collection using the provided function.
@@ -953,7 +952,7 @@ extension RxnIterableExt<T extends Iterable<E>?, E> on Rx<T> {
   /// print(result); // 17.5
   /// ```
   E? reduce(E Function(E value, E element) combine) =>
-      observe(() => value?.reduce(combine));
+      observe(() => data?.reduce(combine));
 
   /// Reduces a collection to a single value by iteratively combining each
   /// element of the collection with an existing value
@@ -977,7 +976,7 @@ extension RxnIterableExt<T extends Iterable<E>?, E> on Rx<T> {
   /// print(result); // 117.5
   /// ```
   S? fold<S>(S initialValue, S Function(S previousValue, E element) combine) =>
-      observe(() => value?.fold<S>(initialValue, combine));
+      observe(() => data?.fold<S>(initialValue, combine));
 
   /// Converts each element to a [String] and concatenates the strings.
   ///
@@ -992,8 +991,7 @@ extension RxnIterableExt<T extends Iterable<E>?, E> on Rx<T> {
   ///   0.11: 'Mars'};
   /// final joinedNames = planetsByMass.values.join('-'); // Mercury-Venus-Mars
   /// ```
-  String? join([String separator = ""]) =>
-      observe(() => value?.join(separator));
+  String? join([String separator = ""]) => observe(() => data?.join(separator));
 
   /// Checks whether every element of this iterable satisfies [test].
   ///
@@ -1008,7 +1006,7 @@ extension RxnIterableExt<T extends Iterable<E>?, E> on Rx<T> {
   /// final every = planetsByMass.keys.every((key) => key < 1.0); // true
   /// ```
   bool every(bool Function(E element) test) =>
-      observe(() => value?.every(test) ?? false);
+      observe(() => data?.every(test) ?? false);
 
   /// Checks whether any element of this iterable satisfies [test].
   ///
@@ -1022,7 +1020,7 @@ extension RxnIterableExt<T extends Iterable<E>?, E> on Rx<T> {
   /// result = numbers.any((element) => element >= 10); // false;
   /// ```
   bool any(bool Function(E element) test) =>
-      observe(() => value?.any(test) ?? false);
+      observe(() => data?.any(test) ?? false);
 
   /// Returns a lazy iterable of the [count] first elements of this iterable.
   ///
@@ -1040,7 +1038,7 @@ extension RxnIterableExt<T extends Iterable<E>?, E> on Rx<T> {
   /// final result = numbers.take(4); // (1, 2, 3, 5)
   /// final takeAll = numbers.take(100); // (1, 2, 3, 5, 6, 7)
   /// ```
-  Iterable<E>? take(int count) => observe(() => value?.take(count));
+  Iterable<E>? take(int count) => observe(() => data?.take(count));
 
   /// Returns a lazy iterable of the leading elements satisfying [test].
   ///
@@ -1060,7 +1058,7 @@ extension RxnIterableExt<T extends Iterable<E>?, E> on Rx<T> {
   /// result = numbers.takeWhile((x) => x.isOdd); // (1)
   /// ```
   Iterable<E>? takeWhile(bool Function(E element) test) =>
-      observe(() => value?.takeWhile(test));
+      observe(() => data?.takeWhile(test));
 
   /// Returns the lazy concatenation of this iterable and [other].
   ///
@@ -1075,7 +1073,7 @@ extension RxnIterableExt<T extends Iterable<E>?, E> on Rx<T> {
   /// print(updated); // (Earth, Jupiter, Mars, Venus)
   /// ```
   Iterable<E>? followedBy(Iterable<E> other) =>
-      observe(() => value?.followedBy(other));
+      observe(() => data?.followedBy(other));
 
   /// Returns an [Iterable] that provides all but the first [count] elements.
   ///
@@ -1098,7 +1096,7 @@ extension RxnIterableExt<T extends Iterable<E>?, E> on Rx<T> {
   /// ```
   ///
   /// The [count] must not be negative.
-  Iterable<E>? skip(int count) => observe(() => value?.skip(count));
+  Iterable<E>? skip(int count) => observe(() => data?.skip(count));
 
   /// Returns an `Iterable` that skips leading elements while [test] is satisfied.
   ///
@@ -1120,7 +1118,7 @@ extension RxnIterableExt<T extends Iterable<E>?, E> on Rx<T> {
   /// result = numbers.skipWhile((x) => x.isOdd); // (2, 3, 5, 6, 7)
   /// ```
   Iterable<E>? skipWhile(bool Function(E element) test) =>
-      observe(() => value?.skipWhile(test));
+      observe(() => data?.skipWhile(test));
 
   /// Creates a [Set] containing the same elements as this iterable.
   ///
@@ -1135,7 +1133,7 @@ extension RxnIterableExt<T extends Iterable<E>?, E> on Rx<T> {
   /// final planets = <int, String>{1: 'Mercury', 2: 'Venus', 3: 'Mars'};
   /// final valueSet = planets.values.toSet(); // {Mercury, Venus, Mars}
   /// ```
-  Set<E>? toSet() => value?.toSet();
+  Set<E>? toSet() => data?.toSet();
 
   /// Creates a [Rx<Set>] mapping from this [Rx<Iter>]
   ///
@@ -1153,7 +1151,7 @@ extension RxnIterableExt<T extends Iterable<E>?, E> on Rx<T> {
   /// final planetRxSet = Rx(planets.values).toPipeSet();
   /// planetRxSet.value; // {Mercury, Venus, Mars}
   /// ```
-  Rx<Set<E>?> toPipeSet() => pipeMap((e) => value?.toSet());
+  Rx<Set<E>?> toPipeSet() => pipeMap((e) => data?.toSet());
 
   /// Creates a [List] containing the elements of this [Iterable].
   ///
@@ -1167,7 +1165,7 @@ extension RxnIterableExt<T extends Iterable<E>?, E> on Rx<T> {
   /// final valuesList =
   ///     planets.values.toList(growable: false); // [Mercury, Venus, Mars]
   /// ```
-  List<E>? toList({bool growable = true}) => value?.toList(growable: growable);
+  List<E>? toList({bool growable = true}) => data?.toList(growable: growable);
 
   /// Creates a [Rx<List>] mapping from this [Rx<Iter>]
   ///
@@ -1186,5 +1184,5 @@ extension RxnIterableExt<T extends Iterable<E>?, E> on Rx<T> {
   /// valuesRxList.value; // [Mercury, Venus, Mars]
   /// ```
   Rx<List<E>?> toPipeList({bool growable = true}) =>
-      pipeMap((e) => value?.toList(growable: growable));
+      pipeMap((e) => data?.toList(growable: growable));
 }

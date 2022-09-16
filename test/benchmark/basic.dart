@@ -2,8 +2,6 @@ import 'package:equatable/equatable.dart';
 import 'package:get/get.dart' as getx;
 import 'package:obx/obx.dart';
 
-import 'listen.dart';
-
 main() async {
   await getxBench();
 }
@@ -57,21 +55,21 @@ class Foo extends Equatable {
 
 Future<void> bench<S extends Object>(S value, S diff) async {
   final boolx = value.obs;
-  final rxbool = Reactive(value);
+  final rxbool = Rx(value);
   print("");
   print("Testing for $S");
   print("");
   print("Instantiation");
   await delay(() => value.obs);
-  await delay(() => Reactive(value));
+  await delay(() => Rx(value));
   print("");
   print("Accesss");
   await delay(() => boolx.value);
-  await delay(() => rxbool.value);
+  await delay(() => rxbool.data);
   print("");
   print("Same value assign");
   await delay(() => boolx.value = value);
-  await delay(() => rxbool.value = value);
+  await delay(() => rxbool.data = value);
   print("");
   print("Different value assign");
   await delay(() {
@@ -79,8 +77,8 @@ Future<void> bench<S extends Object>(S value, S diff) async {
     boolx.value = value;
   }, 2);
   await delay(() {
-    rxbool.value = diff;
-    rxbool.value = value;
+    rxbool.data = diff;
+    rxbool.data = value;
   }, 2);
   print("");
   print("Minimal use case");
@@ -91,10 +89,10 @@ Future<void> bench<S extends Object>(S value, S diff) async {
     val.value = diff;
   });
   await delay(() {
-    final val = Reactive(value);
-    final data = val.value;
-    val.value = val.value;
-    val.value = diff;
+    final val = Rx(value);
+    final data = val.data;
+    val.data = val.data;
+    val.data = diff;
   });
 }
 

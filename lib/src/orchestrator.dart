@@ -34,20 +34,24 @@ abstract class Orchestrator {
     final debouncer = EveryDebouncer(
         delay: const Duration(milliseconds: 5), retries: 4, enabled: false);
     notifyData = NotifyData(
-        updater: (_) => debouncer(() => base.value = builder()),
+        updater: (_) => debouncer(() => base.data = builder()),
         disposers: [debouncer.cancel]);
     reactives = [];
-    base._value = builder();
+    base._data = builder();
     debouncer.start();
-    base._disposers = notifyData!.disposers;
-    base._setHasDisposers();
+    final disposers = notifyData!.disposers;
+    base.listen(null, onDone: () {
+      for (int i = 0; i < disposers.length; i++) {
+        disposers[i]();
+      }
+    });
     notifyData = null;
   }
 
   static T observe<T>(T Function() builder) {
     final base = SingleShot<T>();
     _internal(builder, base);
-    return base.value;
+    return base.data;
   }
 
   static Rx<T> fuse<T>(T Function() builder, {Equality eq = const Equality()}) {
@@ -108,14 +112,15 @@ mixin StatelessObserverComponent on StatelessElement {
     super.unmount();
     clean();
     for (int i = 0; i < reactives.length; i++) {
-      reactives[i]._unsafeRemoveListener(refresh);
+      // TODO: add  back cleanup
+      // reactives[i]._unsafeRemoveListener(refresh);
     }
     reactives = [];
   }
 
   void clean() {
     for (int i = 0; i < singles.length; i++) {
-      singles[i].dispose();
+      singles[i].close();
     }
     singles = [];
   }
