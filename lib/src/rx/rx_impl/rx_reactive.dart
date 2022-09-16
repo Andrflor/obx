@@ -67,10 +67,10 @@ class Reactive<T> {
     emit();
   }
 
-  RxStream? _stream;
-  RxStream get stream {
+  RxStream<T>? _stream;
+  RxStream<T> get stream {
     if (_stream == null) {
-      return _stream = RxStream(this);
+      return _stream = RxStream<T>(this);
     }
     return _stream!;
   }
@@ -208,6 +208,17 @@ class Reactive<T> {
     // Node = Random
     node._next!._previous = node._previous;
     node._previous!._next = node._next;
+  }
+
+  // Allow to listen and gives you a subscription in return
+  // Like [StreamSubscription] except that cancel is synchronous
+  StreamSubscription<T> _listen(_NodeSub<T, Function(T value)> node) {
+    if (identical(_firstSubscrption, null)) {
+      _lastSubscription = node;
+      return _firstSubscrption = node;
+    }
+    node._previous = _lastSubscription;
+    return _lastSubscription = _lastSubscription!._next = node;
   }
 
   @protected

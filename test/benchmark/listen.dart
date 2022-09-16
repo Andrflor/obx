@@ -229,7 +229,7 @@ Future<void> rxTrest(int i) async {
           adaptConst;
   final endInNs2 =
       ((stopWatch2.elapsedMicroseconds * 1000) / loops - adjust(i)) / (i + 1);
-  final newStream = rx.stream;
+  final newStream = rx.stream.where((e) => true);
   for (int j = 0; j < i; j++) {
     newStream.listen(listener);
   }

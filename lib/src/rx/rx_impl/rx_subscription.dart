@@ -85,110 +85,15 @@ class _NodeSub<E, T extends Function(E value)>
     _parent = null;
     _paused = false;
   }
-}
 
-/// Override of StreamSubscription to make cancel Futureor<void>
-abstract class Subscription<T> {
-  /// Cancels this subscription.
-  ///
-  /// After this call, the subscription no longer receives events.
-  ///
-  /// The [Rx] may need to shut down the source of events and clean up after
-  /// the subscription is canceled.
-  ///
-  /// Returns a future that is completed once the stream has finished
-  /// its cleanup or returns void when synchronous.
-  FutureOr<void> cancel();
-
-  /// Replaces the data event handler of this subscription.
-  ///
-  /// The [handleData] function is called for each data event of the [Rx]
-  /// after this function is called.
-  /// If [handleData] is `null`, data events are ignored.
-  ///
-  /// This method replaces the current handler set by the invocation of
-  /// [Rx.listen] or by a previous call to [onData].
-  void onData(void Function(T data)? handleData);
-
-  /// Replaces the error event handler of this subscription.
-  ///
-  /// The [handleError] function must be able to be called with either
-  /// one positional argument, or with two positional arguments
-  /// where the seconds is always a [StackTrace].
-  ///
-  /// The [handleError] argument may be `null`, in which case further
-  /// error events are considered *unhandled*, and will be reported to
-  /// [Zone.handleUncaughtError].
-  ///
-  /// The provided function is called for all error events from the
-  /// subscription.
-  ///
-  /// This method replaces the current handler set by the invocation of
-  /// [Rx.listen], by calling [asFuture], or by a previous call to [onError].
-  void onError(Function(Object error, [StackTrace? trace])? handleError);
-
-  /// Replaces the done event handler of this subscription.
-  ///
-  /// The [handleDone] function is called when the stream closes.
-  /// The value may be `null`, in which case no function is called.
-  ///
-  /// This method replaces the current handler set by the invocation of
-  /// [Rx.listen], by calling [asFuture], or by a previous call to [onDone].
-  void onDone(void Function()? handleDone);
-
-  /// Requests that the [Rx] do not dispatch events to this subscription until further notice.
-  ///
-  /// While paused, the subscription will not recieve any events.
-  /// Pausing is a very lightweight operation.
-  ///
-  /// If [resumeSignal] is provided, the subscription will undo the pause
-  /// when the future completes, as if by a call to [resume].
-  /// If the future completes with an error,
-  /// the stream will still resume, but the error will be considered unhandled
-  /// and is passed to [Zone.handleUncaughtError].
-  ///
-  /// A call to [resume] will also undo a pause.
-  ///
-  /// If the subscription is paused more than once it has no additional effect
-  /// Calls to [resume] and the completion of a [resumeSignal] are
-  /// interchangeable - the [pause] which was passed a [resumeSignal] may be
-  /// ended by a call to [resume], and completing the [resumeSignal] may end a
-  /// different [pause].
-  ///
-  /// It is safe to [resume] or complete a [resumeSignal] even when the
-  /// subscription is not paused, and the resume will have no effect.
-  void pause([Future<void>? resumeSignal]);
-
-  /// Resumes after a pause.
-  ///
-  /// This undoes one previous call to [pause].
-  /// The subscription will recieve events again.
-  ///
-  /// It is safe to [resume] even when the subscription is not paused, and the
-  /// resume will have no effect.
-  void resume();
-
-  /// Whether the [Subscription] is currently paused.
-  ///
-  /// Returns `false` if the [Rx] can currently emit events, or if
-  /// the subscription has completed or been cancelled.
-  bool get isPaused;
-
-  /// Returns a future that handles the [onDone] and [onError] callbacks.
-  ///
-  /// This method *overwrites* the existing [onDone] and [onError] callbacks
-  /// with new ones that complete the returned future.
-  ///
-  /// In case of an error the subscription will automatically cancel (even
-  /// when it was listening with `cancelOnError` set to `false`).
-  ///
-  /// In case of a `done` event the future completes with the given
-  /// [futureValue].
-  ///
-  /// If [futureValue] is omitted, the value `null as E` is used as a default.
-  /// If `E` is not nullable, this will throw immediately when [asFuture]
-  /// is called.
-  Future<E> asFuture<E>([E? futureValue]);
+  // Faster cancel due to sync nature
+  void _syncCancel() {
+    if (identical(_parent, null)) return;
+    // TODO: notify parent onCancel if needed
+    _parent!._unlink(this);
+    _parent = null;
+    _paused = false;
+  }
 }
 
 class RxStream<T> extends _Stream<T> {
@@ -199,6 +104,10 @@ class RxStream<T> extends _Stream<T> {
   StreamSubscription<T> listen(void Function(T event)? onData,
           {Function? onError, void Function()? onDone, bool? cancelOnError}) =>
       _parent.listen(onData, onError: onError, onDone: onDone);
+
+  @override
+  StreamSubscription<T> _listen(_NodeSub<T, Function(T value)> node) =>
+      _parent._listen(node);
 }
 
 abstract class _Stream<T> implements Stream<T> {
@@ -209,6 +118,8 @@ abstract class _Stream<T> implements Stream<T> {
     // TODO: implement asBroadcastStream
     throw UnimplementedError();
   }
+
+  StreamSubscription<T> _listen(_NodeSub<T, Function(T value)> node);
 
   @override
   Stream<E> asyncExpand<E>(Stream<E>? Function(T event) convert) {
@@ -406,8 +317,8 @@ abstract class _Stream<T> implements Stream<T> {
 
   @override
   Stream<T> where(bool Function(T event) test) {
-    // TODO: implement where
-    throw UnimplementedError();
+    print(test.runtimeType);
+    return _WhereReactiveStream<T>(this, test);
   }
 }
 
@@ -420,6 +331,7 @@ class _ReactiveStream<T> extends _Stream<T> {
 
   // Allow to listen and gives you a subscription in return
   // Like [StreamSubscription] except that cancel is synchronous
+  @override
   StreamSubscription<T> listen(Function(T value)? onData,
       {Function? onError, VoidCallback? onDone, bool? cancelOnError}) {
     final node = _NodeSub<T, Function(T value)>(this, onData, onError, onDone);
@@ -431,8 +343,20 @@ class _ReactiveStream<T> extends _Stream<T> {
     return _lastSubscription = _lastSubscription!._next = node;
   }
 
+  // Allow to listen and gives you a subscription in return
+  // Like [StreamSubscription] except that cancel is synchronous
+  @override
+  StreamSubscription<T> _listen(_NodeSub<T, Function(T value)> node) {
+    if (identical(_firstSubscrption, null)) {
+      _lastSubscription = node;
+      return _firstSubscrption = node;
+    }
+    node._previous = _lastSubscription;
+    return _lastSubscription = _lastSubscription!._next = node;
+  }
+
   /// Emit the last data value
-  void emit() {
+  void _emit() {
     if (identical(_firstSubscrption, null)) return;
     var currentSubscription = _firstSubscrption?.._handleData?.call(_data as T);
     try {
@@ -450,7 +374,7 @@ class _ReactiveStream<T> extends _Stream<T> {
   }
 
   /// Allow to add an error with an optional [StackTrace]
-  void addError(Object error, [StackTrace? trace]) {
+  void _addError(Object error, [StackTrace? trace]) {
     _error = error;
     if (identical(_firstSubscrption, null)) return;
     _NodeSub<T, Function(T e)>? currentSubscription = _firstSubscrption;
@@ -471,7 +395,7 @@ class _ReactiveStream<T> extends _Stream<T> {
   /// Close the [Rx<T>] with proper cleanup
   ///
   /// You don't need to call this unless you don't have closed all subscriptions
-  void close() {
+  void _close() {
     // No need to close if we have no _firstSubscrption
     if (identical(_firstSubscrption, null)) return;
     _NodeSub<T, Function(T e)>? currentSubscription = _firstSubscrption;
@@ -563,4 +487,39 @@ class _ReactiveStream<T> extends _Stream<T> {
           'dispatching $kind for $runtimeType\nThis error was catched to ensure that listener events are dispatched\nSome of your listeners for this Rx is throwing an exception\nMake sure that your listeners do not throw to ensure optimal performance'),
     ));
   }
+}
+
+class _WhereReactiveStream<T> extends _ReactiveStream<T> {
+  _WhereReactiveStream(_Stream<T> source, bool Function(T value) test) {
+    source._listen(_WhereSub<T, Function(T)>(this, test));
+  }
+}
+
+class _WhereSub<E, T extends Function(E value)> extends _NodeSub<E, T> {
+  final bool Function(E value) _test;
+  _WhereSub(super.parent, this._test);
+
+  @override
+  T? get _handleData => throw UnimplementedError();
+
+  @override
+  // TODO: implement _handleDone
+  VoidCallback? get _handleDone => throw UnimplementedError();
+
+  @override
+  // TODO: implement _handleError
+  Function? get _handleError => throw UnimplementedError();
+}
+
+class _FeedSub<E, T extends Function(E value)> extends _NodeSub<E, T> {
+  _FeedSub(super.parent);
+
+  @override
+  T? __handleData = ;
+
+  @override
+  VoidCallback? __handleDone;
+
+  @override
+  Function? __handleError = parent.e;
 }
