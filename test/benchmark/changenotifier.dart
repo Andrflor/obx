@@ -129,7 +129,7 @@ class RxAddBenchmark extends BenchmarkBase {
 
   final int listenerCount;
 
-  NodeList<int?>? notifier;
+  Reactive<int?>? notifier;
 
   @override
   void run() {
@@ -140,7 +140,7 @@ class RxAddBenchmark extends BenchmarkBase {
 
   @override
   void setup() {
-    notifier = NodeList<int?>(-1);
+    notifier = Reactive<int?>(-1);
   }
 
   @override
@@ -155,7 +155,7 @@ class RxBenchmark extends BenchmarkBase {
 
   final int listenerCount;
 
-  NodeList<int?>? notifier;
+  Reactive<int?>? notifier;
 
   @override
   void run() {
@@ -166,7 +166,7 @@ class RxBenchmark extends BenchmarkBase {
 
   @override
   void setup() {
-    notifier = NodeList<int?>(-1);
+    notifier = Reactive<int?>(-1);
     for (int i = 0; i < listenerCount; i++) {
       notifier!.listen((_) {});
     }

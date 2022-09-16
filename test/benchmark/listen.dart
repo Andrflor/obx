@@ -9,6 +9,7 @@ import 'package:obx/obx.dart';
 void main() async {
   print(
       "Benchmark listen: dispatch time | add time | remove time (time/listener)");
+
   for (int i = 0; i < 100; i++) {
     print("");
     print("With ${i + 1} listeners");
@@ -246,7 +247,7 @@ Future<void> rxTrest(int i) async {
 
 Future<void> nexImplemTest(int i) async {
   final _completer = Completer<void>();
-  final notifier = NodeList<int?>(0);
+  final notifier = Reactive<int?>(0);
   var notifierCounter = 0;
   final callbackList = List<VoidCallback?>.filled(i + 1, null);
   late final DateTime start;
@@ -275,7 +276,7 @@ Future<void> nexImplemTest(int i) async {
   final callbackList2 = List<VoidCallback?>.filled(i, null);
   for (int j = 0; j < i; j++) {
     callbackList2[j] = notifier.listen((_) {
-      // if (notifierCounter == 3) {
+      // if (identical(notifierCounter, 3)) {
       //   notifierCounter++;
       //   final node = notifier.add(RxSubscription(notifier, (_) {}));
       //   final otherNode = notifier.add(RxSubscription(notifier, (_) {}));
@@ -331,9 +332,9 @@ class _NodeSub<T extends Function(E value), E> implements Subscription<E> {
   VoidCallback? get _handleDone => _paused ? null : __handleDone;
   VoidCallback? __handleDone;
 
-  _NodeSub<T, E>? previous;
-  _NodeSub<T, E>? next;
-  NodeList<E>? _parent;
+  _NodeSub<T, E>? _previous;
+  _NodeSub<T, E>? _next;
+  Reactive<E>? _parent;
 
   bool _paused = false;
 
@@ -381,23 +382,21 @@ class _NodeSub<T extends Function(E value), E> implements Subscription<E> {
   }
 
   _NodeSub<T, E>? _close() {
-    previous = _parent = null;
+    _previous = _parent = null;
     _handleDone?.call();
-    return next;
+    return _next;
   }
 
   @override
   void cancel() {
-    if (_parent == null) return;
+    if (identical(_parent, null)) return;
+    // TODO: maybe _parent!.onCancel ?
     _parent!._unlink(this);
-    // TODO: parent onCancel??
-    // TODO: maybe add this line to prevent memory leak?
-    // previous = next = null;
     _parent = null;
   }
 }
 
-class NodeList<T> {
+class Reactive<T> {
   T? _value;
   set value(T val) {
     if (_value != val) {
@@ -409,79 +408,145 @@ class NodeList<T> {
   _NodeSub<Function(T e), T>? _firstSubscrption;
   _NodeSub<Function(T e), T>? _lastSubscription;
 
-  bool get hasListeners => _firstSubscrption != null;
+  bool get hasListeners => !identical(_firstSubscrption, null);
 
-  NodeList([this._value]);
+  Reactive([this._value]);
+
+  Subscription<T> listen(Function(T value)? onData,
+      {ErrorCallBack? onError, VoidCallback? onDone, bool? cancelOnError}) {
+    final node = _NodeSub<Function(T value), T>(this, onData, onError, onDone);
+    if (identical(_firstSubscrption, null)) {
+      return _lastSubscription = _firstSubscrption = node;
+    }
+    node._previous = _lastSubscription;
+    return _lastSubscription = _lastSubscription!._next = node;
+  }
+
+  void emit() {
+    if (identical(_firstSubscrption, null)) return;
+    _NodeSub<Function(T e), T>? currentSubscription = _firstSubscrption
+      ?.._handleData?.call(_value as T);
+    try {
+      while (
+          !identical(currentSubscription = currentSubscription!._next, null)) {
+        currentSubscription!._handleData?.call(_value as T);
+      }
+    } catch (exception, trace) {
+      _reportError("emit", exception, trace);
+      // On stack overflow we break the loop
+      if (exception is StackOverflowError) return;
+      // recursive function to avoid try catching on every loop
+      _continueEmitting(currentSubscription!._next);
+    }
+  }
+
+  void addError(Object error, [StackTrace? trace]) {
+    if (identical(_firstSubscrption, null)) return;
+    _NodeSub<Function(T e), T>? currentSubscription = _firstSubscrption;
+    try {
+      while (
+          !identical(currentSubscription = currentSubscription!._next, null)) {
+        currentSubscription!._handleError?.call(error, trace);
+      }
+    } catch (exception, trace) {
+      _reportError("addError", exception, trace);
+      // On stack overflow we break the loop
+      if (exception is StackOverflowError) return;
+      // recursive function to avoid try catching on every loop
+      _continueAddingError(error, trace, currentSubscription!._next);
+    }
+  }
+
+  void close() {
+    // No need to close if we have no _firstSubscrption
+    if (identical(_firstSubscrption, null)) return;
+    _NodeSub<Function(T e), T>? currentSubscription = _firstSubscrption;
+    _firstSubscrption = _lastSubscription = null;
+    try {
+      while (!identical(
+          currentSubscription = currentSubscription!._close(), null)) {}
+    } catch (exception, trace) {
+      _reportError("close", exception, trace);
+      // StackOverflowError is impossible here
+      // recursive function to avoid try catching on every loop
+      _continueClosing(currentSubscription!._next);
+    }
+  }
+
+  void _continueEmitting(_NodeSub<Function(T e), T>? currentSubscription) {
+    try {
+      while (
+          !identical(currentSubscription = currentSubscription!._next, null)) {
+        currentSubscription!._handleData?.call(_value as T);
+      }
+    } catch (exception, trace) {
+      _reportError("emit", exception, trace);
+      // On stack overflow we break the loop
+      if (exception is StackOverflowError) return;
+      // recursive function to avoid try catching on every loop
+      _continueEmitting(currentSubscription!._next);
+    }
+  }
+
+  void _continueAddingError(Object error, StackTrace? trace,
+      _NodeSub<Function(T e), T>? currentSubscription) {
+    try {
+      while (
+          !identical(currentSubscription = currentSubscription!._next, null)) {
+        currentSubscription!._handleError?.call(error, trace);
+      }
+    } catch (exception, trace) {
+      _reportError("addError", exception, trace);
+      // On stack overflow we break the loop
+      if (exception is StackOverflowError) return;
+      // recursive function to avoid try catching on every loop
+      _continueAddingError(error, trace, currentSubscription!._next);
+    }
+  }
+
+  void _continueClosing(_NodeSub<Function(T e), T>? currentSubscription) {
+    try {
+      while (!identical(
+          currentSubscription = currentSubscription!._close(), null)) {}
+    } catch (exception, trace) {
+      _reportError("close", exception, trace);
+      // StackOverflowError is impossible here
+      // recursive function to avoid try catching on every loop
+      _continueClosing(currentSubscription!._next);
+    }
+  }
 
   void _unlink(_NodeSub<Function(T e), T> node) {
-    if (_firstSubscrption == node) {
-      if (_lastSubscription == node) {
+    if (identical(_firstSubscrption, node)) {
+      if (identical(_lastSubscription, node)) {
         // First = Last = Node
         _firstSubscrption = _lastSubscription = null;
         return;
       }
       // First = Node
-      _firstSubscrption = node.next;
-      _firstSubscrption!.previous = null;
+      _firstSubscrption = node._next;
+      _firstSubscrption!._previous = null;
       return;
     }
-    if (_lastSubscription == node) {
+    if (identical(_lastSubscription, node)) {
       // Last = Node
-      _lastSubscription = node.previous;
-      _lastSubscription!.next = null;
+      _lastSubscription = node._previous;
+      _lastSubscription!._next = null;
       return;
     }
     // Node = Random
-    node.next!.previous = node.previous;
-    node.previous!.next = node.next;
+    node._next!._previous = node._previous;
+    node._previous!._next = node._next;
   }
 
-  Subscription<T> listen(Function(T value)? onData,
-      {ErrorCallBack? onError, VoidCallback? onDone, bool? cancelOnError}) {
-    final node = _NodeSub<Function(T value), T>(this, onData, onError, onDone);
-    if (_firstSubscrption == null) {
-      return _lastSubscription = _firstSubscrption = node;
-    }
-    node.previous = _lastSubscription;
-    return _lastSubscription = _lastSubscription!.next = node;
-  }
-
-  void emit() {
-    if (_firstSubscrption == null) return;
-    _NodeSub<Function(T e), T>? first = _firstSubscrption
-      ?.._handleData?.call(_value as T);
-    try {
-      while (!identical(first = first!.next, null)) {
-        first!._handleData?.call(_value as T);
-      }
-    } catch (e) {
-      print("Got error mesire");
-      // Assert error is stack overlflow
-      // TODO: add resume on error
-    }
-  }
-
-  void addError(Object error, [StackTrace? trace]) {
-    if (_firstSubscrption == null) return;
-    _NodeSub<Function(T e), T>? first = _firstSubscrption;
-    try {
-      while (!identical(first = first!._close(), null)) {}
-    } catch (e) {
-      print("Got error mesire");
-      // Assert error is stack overlflow
-      // TODO: add resume on error
-    }
-  }
-
-  void close() {
-    if (_firstSubscrption == null) return;
-    _NodeSub<Function(T e), T>? first = _firstSubscrption;
-    _firstSubscrption = _lastSubscription = null;
-    try {
-      while (!identical(first = first!._close(), null)) {}
-    } catch (e) {
-      print("Got error mesire");
-      // TODO: resume closing on error
-    }
+  void _reportError(String kind, Object exception, [StackTrace? trace]) {
+    FlutterError.reportError(FlutterErrorDetails(
+      exception: exception,
+      stack: trace,
+      library: 'obx library',
+      silent: true,
+      context: ErrorSummary(
+          'dispatching $kind for $runtimeType\nThis error was catched to ensure that listener events are dispatched\nSome of your listeners for this Rx is throwing an exception\nMake sure that your listeners do not throw to ensure optimal performance'),
+    ));
   }
 }
