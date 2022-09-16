@@ -1,13 +1,9 @@
 import 'dart:async';
-import 'dart:collection';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart' as getx;
 import 'package:obx/obx.dart';
-
-import '../concurrent_implems/explicit_func.dart' hide VoidCallback;
-import '../concurrent_implems/implicit_func.dart' hide VoidCallback;
 
 void main() async {
   print(
@@ -17,14 +13,22 @@ void main() async {
     print("");
     int j = i;
     print("With ${i + 1} listeners");
-    await controlTest(i);
+    // await controlTest(i);
+    // await rxTrest(i);
     await notifierTest(j);
     await nexImplemTest(j);
-    await explicitTest(j);
     await notifierTest(j);
     await nexImplemTest(j);
-    await explicitTest(j);
-
+    await notifierTest(j);
+    await nexImplemTest(j);
+    await notifierTest(j);
+    await nexImplemTest(j);
+    await notifierTest(j);
+    await nexImplemTest(j);
+    await notifierTest(j);
+    await nexImplemTest(j);
+    await notifierTest(j);
+    await nexImplemTest(j);
     // await streamTest(i);
     // await getxTrest(i);
   }
@@ -48,20 +52,17 @@ void show(
   }
 }
 
-double adjust(int i) => 1; //linearcCoeff * (i + 1) + linearAffix;
-double adjust2(int i) => 1; //linearcCoeff2 * (i + 1) + linearAffix2;
+double adjust(int i) => linearcCoeff * (i + 1) + linearAffix;
 
 // Change does consts to get 0ns on remove
-const linearcCoeff = 14.8;
-const linearAffix = 562.6;
+const linearcCoeff = 1.783;
+const linearAffix = 33.31;
 
-const linearcCoeff2 = 5.025;
-const linearAffix2 = 515.2;
+// Change first linearCoeff and LinearAffix then,
+// When you get 0ns on remove control change this to get 0ns on add
+const adaptConst = 2;
 
-// const linearcCoeff = 1.783;
-// const linearAffix = 33.31;
-
-Future<void> controlTest(int i, [bool checkMode = false]) async {
+Future<void> controlTest(int i) async {
   final _completer = Completer<void>();
   final notifier = ValueNotifier<int?>(null);
   final callbackList = List<VoidCallback?>.filled(i + 1, null);
@@ -82,13 +83,11 @@ Future<void> controlTest(int i, [bool checkMode = false]) async {
     }
     stopWatch2.stop();
   }
-  final endInNs = checkMode
-      ? ((stopWatch.elapsedMicroseconds * 1000) / loops)
-      : ((stopWatch.elapsedMicroseconds * 1000) / loops - adjust(i)) / (0 + 1);
-  final endInNs2 = checkMode
-      ? ((stopWatch2.elapsedMicroseconds * 1000) / loops)
-      : ((stopWatch2.elapsedMicroseconds * 1000) / loops - adjust2(i)) /
-          (0 + 1);
+  final endInNs =
+      ((stopWatch.elapsedMicroseconds * 1000) / loops - adjust(i)) / (i + 1) -
+          adaptConst;
+  final endInNs2 =
+      ((stopWatch2.elapsedMicroseconds * 1000) / loops - adjust(i)) / (i + 1);
   for (int j = 0; j < i; j++) {
     notifier.addListener(listener);
   }
@@ -120,9 +119,10 @@ Future<void> notifierTest(int i) async {
     stopWatch2.stop();
   }
   final endInNs =
-      ((stopWatch.elapsedMicroseconds * 1000) / loops - adjust(i)) / (0 + 1);
+      ((stopWatch.elapsedMicroseconds * 1000) / loops - adjust(i)) / (i + 1) -
+          adaptConst;
   final endInNs2 =
-      ((stopWatch2.elapsedMicroseconds * 1000) / loops - adjust2(i)) / (0 + 1);
+      ((stopWatch2.elapsedMicroseconds * 1000) / loops - adjust(i)) / (i + 1);
   for (int j = 0; j < i; j++) {
     notifier.addListener(listener);
   }
@@ -163,8 +163,9 @@ Future<void> streamTest(int i) async {
   }
 
   final endInNs =
-      ((stopWatch.elapsedMicroseconds * 1000) / loops - adjust(i)) / (0 + 1);
-  final endInNs2 = (stopWatch2.elapsedMicroseconds * 1000) / (loops * (0 + 1));
+      ((stopWatch.elapsedMicroseconds * 1000) / loops - adjust(i)) / (i + 1) -
+          adaptConst;
+  final endInNs2 = (stopWatch2.elapsedMicroseconds * 1000) / (loops * (i + 1));
   for (int j = 0; j < i; j++) {
     streamController.stream.listen(listener);
   }
@@ -237,9 +238,10 @@ Future<void> rxTrest(int i) async {
   }
   stopWatch.stop();
   final endInNs =
-      ((stopWatch.elapsedMicroseconds * 1000) / loops - adjust2(i)) / (0 + 1);
+      ((stopWatch.elapsedMicroseconds * 1000) / loops - adjust(i)) / (i + 1) -
+          adaptConst;
   final endInNs2 =
-      ((stopWatch2.elapsedMicroseconds * 1000) / loops - adjust(i)) / (0 + 1);
+      ((stopWatch2.elapsedMicroseconds * 1000) / loops - adjust(i)) / (i + 1);
   for (int j = 0; j < i; j++) {
     rx.listen(listener);
   }
@@ -279,9 +281,10 @@ Future<void> nexImplemTest(int i) async {
   }
 
   final endInNs =
-      ((stopWatch.elapsedMicroseconds * 1000) / loops - adjust2(i)) / (0 + 1);
+      ((stopWatch.elapsedMicroseconds * 1000) / loops - adjust(i)) / (i + 1) -
+          adaptConst;
   final endInNs2 =
-      ((stopWatch2.elapsedMicroseconds * 1000) / loops - adjust(i)) / (0 + 1);
+      ((stopWatch2.elapsedMicroseconds * 1000) / loops - adjust(i)) / (i + 1);
   final callbackList2 = List<VoidCallback?>.filled(i, null);
   for (int j = 0; j < i; j++) {
     callbackList2[j] = notifier.listen((_) {
@@ -328,13 +331,6 @@ abstract class Subscription<T> {
   void resume();
   bool get isPaused;
   Future<E> asFuture<E>([E? futureValue]);
-}
-
-class Wrapper<E, T extends Function(E)> {
-  T? get call => _callback;
-  T? _callback;
-
-  Wrapper(this._callback);
 }
 
 // For some reason that explicit Function(E value) makes it way faster
@@ -433,7 +429,8 @@ class Reactive<T> {
       {ErrorCallBack? onError, VoidCallback? onDone, bool? cancelOnError}) {
     final node = _NodeSub<T, Function(T value)>(this, onData, onError, onDone);
     if (identical(_firstSubscrption, null)) {
-      return _lastSubscription = _firstSubscrption = node;
+      _lastSubscription = node;
+      return _firstSubscrption = node;
     }
     node._previous = _lastSubscription;
     return _lastSubscription = _lastSubscription!._next = node;
@@ -566,120 +563,4 @@ class Reactive<T> {
           'dispatching $kind for $runtimeType\nThis error was catched to ensure that listener events are dispatched\nSome of your listeners for this Rx is throwing an exception\nMake sure that your listeners do not throw to ensure optimal performance'),
     ));
   }
-}
-
-Future<void> implicitTest(int i) async {
-  final _completer = Completer<void>();
-  final notifier = ReactiveImplicit<int?>(0);
-  var notifierCounter = 0;
-  final callbackList = List<VoidCallback?>.filled(i + 1, null);
-  late final DateTime start;
-  listener(_) {}
-  final add = DateTime.now();
-  final stopWatch = Stopwatch();
-  final stopWatch2 = Stopwatch();
-  for (int k = 0; k < loops; k++) {
-    stopWatch.start();
-    for (int j = 0; j <= i; j++) {
-      callbackList[j] = notifier.listen(listener).cancel;
-    }
-    stopWatch.stop();
-    stopWatch2.start();
-    for (int j = 0; j <= i; j++) {
-      callbackList[j]!();
-    }
-    stopWatch2.stop();
-  }
-
-  final endInNs =
-      ((stopWatch.elapsedMicroseconds * 1000) / loops - adjust2(i)) / (0 + 1);
-  final endInNs2 =
-      ((stopWatch2.elapsedMicroseconds * 1000) / loops - adjust(i)) / (0 + 1);
-  final callbackList2 = List<VoidCallback?>.filled(i, null);
-  for (int j = 0; j < i; j++) {
-    callbackList2[j] = notifier.listen((_) {
-      // if (identical(notifierCounter, 3)) {
-      //   notifierCounter++;
-      //   final node = notifier.add(RxSubscription(notifier, (_) {}));
-      //   final otherNode = notifier.add(RxSubscription(notifier, (_) {}));
-      //   notifier.emit();
-      //   node.cancel();
-      //   otherNode.cancel();
-      // }
-    }).cancel;
-  }
-
-  // notifier.add(RxSubscription(notifier, (_) {
-  //   for (int j = 0; j < i; j++) {
-  //     callbackList2[j]!();
-  //   }
-  // }));
-  notifier.listen((_) {
-    notifierCounter++;
-    show("implicit: ", start, notifierCounter, _completer, endInNs, endInNs2);
-  });
-  start = DateTime.now();
-  for (int i = 0; i < loops; i++) {
-    notifier.value = 10;
-    notifier.emit();
-  }
-  return _completer.future;
-}
-
-Future<void> explicitTest(int i) async {
-  final _completer = Completer<void>();
-  final notifier = ReactiveExplicit<int?>(0);
-  var notifierCounter = 0;
-  final callbackList = List<VoidCallback?>.filled(i + 1, null);
-  late final DateTime start;
-  listener(_) {}
-  final add = DateTime.now();
-  final stopWatch = Stopwatch();
-  final stopWatch2 = Stopwatch();
-  for (int k = 0; k < loops; k++) {
-    stopWatch.start();
-    for (int j = 0; j <= i; j++) {
-      callbackList[j] = notifier.listen(listener).cancel;
-    }
-    stopWatch.stop();
-    stopWatch2.start();
-    for (int j = 0; j <= i; j++) {
-      callbackList[j]!();
-    }
-    stopWatch2.stop();
-  }
-
-  final endInNs =
-      ((stopWatch.elapsedMicroseconds * 1000) / loops - adjust2(i)) / (0 + 1);
-  final endInNs2 =
-      ((stopWatch2.elapsedMicroseconds * 1000) / loops - adjust(i)) / (0 + 1);
-  final callbackList2 = List<VoidCallback?>.filled(i, null);
-  for (int j = 0; j < i; j++) {
-    callbackList2[j] = notifier.listen((_) {
-      // if (identical(notifierCounter, 3)) {
-      //   notifierCounter++;
-      //   final node = notifier.add(RxSubscription(notifier, (_) {}));
-      //   final otherNode = notifier.add(RxSubscription(notifier, (_) {}));
-      //   notifier.emit();
-      //   node.cancel();
-      //   otherNode.cancel();
-      // }
-    }).cancel;
-  }
-
-  // notifier.add(RxSubscription(notifier, (_) {
-  //   for (int j = 0; j < i; j++) {
-  //     callbackList2[j]!();
-  //   }
-  // }));
-  notifier.listen((_) {
-    notifierCounter++;
-    show("explicit:  ", start, notifierCounter, _completer, endInNs, endInNs2);
-  });
-  start = DateTime.now();
-  for (int i = 0; i < loops; i++) {
-    notifier.value = 10;
-    notifier.emit();
-  }
-  return _completer.future;
 }
