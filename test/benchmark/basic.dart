@@ -2,6 +2,8 @@ import 'package:equatable/equatable.dart';
 import 'package:get/get.dart' as getx;
 import 'package:obx/obx.dart';
 
+import 'listen.dart';
+
 main() async {
   await getxBench();
 }
@@ -55,13 +57,13 @@ class Foo extends Equatable {
 
 Future<void> bench<S extends Object>(S value, S diff) async {
   final boolx = value.obs;
-  final rxbool = Rx(value);
+  final rxbool = Reactive(value);
   print("");
   print("Testing for $S");
   print("");
   print("Instantiation");
   await delay(() => value.obs);
-  await delay(() => Rx(value));
+  await delay(() => Reactive(value));
   print("");
   print("Accesss");
   await delay(() => boolx.value);
@@ -89,7 +91,7 @@ Future<void> bench<S extends Object>(S value, S diff) async {
     val.value = diff;
   });
   await delay(() {
-    final val = Rx(value);
+    final val = Reactive(value);
     final data = val.value;
     val.value = val.value;
     val.value = diff;
