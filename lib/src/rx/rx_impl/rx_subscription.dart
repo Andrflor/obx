@@ -4,21 +4,6 @@ part of '../../orchestrator.dart';
 typedef RxSubscription<T> = _NodeSub<T, Function(T value)>;
 typedef ErrorCallBack = void Function(Object error, [StackTrace? trace]);
 
-enum StreamFunctionType {
-  convert,
-  test,
-  autoRemoveTest,
-  autoCloseTest,
-  distinct
-}
-
-class StreamFunctionWrapper<T extends Function> {
-  T func;
-  StreamFunctionType type;
-
-  StreamFunctionWrapper(this.func, this.type);
-}
-
 // For some reason that explicit Function(E value) makes it way faster
 class _NodeSub<E, T extends Function(E value)>
     implements StreamSubscription<E> {
@@ -102,7 +87,7 @@ class _NodeSub<E, T extends Function(E value)>
   }
 
   // Faster cancel due to sync nature
-  void _syncCancel() {
+  void syncCancel() {
     if (identical(_parent, null)) return;
     // TODO: notify parent onCancel if needed
     _parent!._unlink(this);
@@ -111,7 +96,15 @@ class _NodeSub<E, T extends Function(E value)>
   }
 }
 
-class RxStream<T> extends _Stream<T> {
+extension SyncStream<T> on Stream<T> {
+  RxStream<T> sync() => _ReactiveStream._(this);
+}
+
+extension SyncCancel<T> on StreamSubscription<T> {
+  void syncCancel() => cancel();
+}
+
+class _RxStream<T> extends RxStream<T> {
   @override
   T? get _data => _parent._data;
   final Reactive<T> _parent;
@@ -119,7 +112,7 @@ class RxStream<T> extends _Stream<T> {
   @override
   bool get isBroadcast => true;
 
-  RxStream(this._parent);
+  _RxStream(this._parent);
 
   @override
   StreamSubscription<T> _listen(_NodeSub<T, Function(T value)> node) =>
@@ -130,14 +123,25 @@ class RxStream<T> extends _Stream<T> {
           {Function? onError, VoidCallback? onDone, bool? cancelOnError}) =>
       _parent.listen(onData,
           onError: onError, onDone: onDone, cancelOnError: cancelOnError);
+
+  @override
+  Stream<T> async() {
+    if (_parent._asyncStreamController != null) {
+      return _parent._asyncStreamController!.stream;
+    }
+    // Add the proper close
+    // Add the proper binding
+    return (_parent._asyncStreamController = StreamController<T>.broadcast())
+        .stream;
+  }
 }
 
-class _ReactiveStream<T> extends _Stream<T> {
+class _ReactiveStream<T> extends RxStream<T> {
   Function()? _disposer;
 
-  _ReactiveStream._(_Stream<T> parent) {
+  _ReactiveStream._(Stream<T> parent) {
     _disposer =
-        parent.listen(_add, onError: _addError, onDone: _close)._syncCancel;
+        parent.listen(_add, onError: _addError, onDone: _close).syncCancel;
   }
 
   _ReactiveStream();
@@ -312,9 +316,15 @@ class _ReactiveStream<T> extends _Stream<T> {
           'dispatching $kind for $runtimeType\nThis error was catched to ensure that listener events are dispatched\nSome of your listeners for this Rx is throwing an exception\nMake sure that your listeners do not throw to ensure optimal performance'),
     ));
   }
+
+  @override
+  Stream<T> async() {
+    // TODO: implement async
+    throw UnimplementedError();
+  }
 }
 
-abstract class _Stream<T> extends Stream<T> {
+abstract class RxStream<T> implements Stream<T> {
   T? _data;
   @override
   RxSubscription<T> listen(Function(T value)? onData,
@@ -323,52 +333,61 @@ abstract class _Stream<T> extends Stream<T> {
   StreamSubscription<T> _listen(_NodeSub<T, Function(T value)> node);
 
   @override
-  // TODO: Figure out the point of onListen and onCancel
-  Stream<T> asBroadcastStream(
+  Future<T> get first {
+    final completer = Completer<T>.sync();
+    late final RxSubscription<T> sub;
+    sub = listen((T val) {
+      completer.complete(val);
+      sub.cancel();
+    }, onDone: () {
+      completer.completeError(IterableElementError.noElement());
+      sub.cancel();
+    });
+    return completer.future;
+  }
+
+  /// As no effect since it is already a broadcast stream
+  @override
+  RxStream<T> asBroadcastStream(
           {void Function(StreamSubscription<T> subscription)? onListen,
           void Function(StreamSubscription<T> subscription)? onCancel}) =>
       this;
 
-  Stream<T> asAsync(
-          {void Function(StreamSubscription<T> subscription)? onListen,
-          void Function(StreamSubscription<T> subscription)? onCancel}) =>
-      super.asBroadcastStream(onListen: onListen, onCancel: onCancel);
-
-  // @override
-  // Stream<E> asyncExpand<E>(Stream<E>? Function(T event) convert) {
-  //   // TODO: implement asyncExpand
-  //   throw UnimplementedError();
-  // }
+  Stream<T> async();
 
   @override
-  Stream<E> asyncMap<E>(FutureOr<E> Function(T event) convert) =>
+  RxStream<E> asyncExpand<E>(Stream<E>? Function(T event) convert) =>
+      _AsyncExpandStream(this, convert);
+
+  @override
+  RxStream<E> asyncMap<E>(FutureOr<E> Function(T event) convert) =>
       convert is Future<E> Function(T event)
           ? _AsyncMapStream(this, convert)
           : _MapStream(this, convert as E Function(T event));
 
   @override
-  Stream<R> cast<R>() => _MapStream(this, (e) => e as R);
+  RxStream<R> cast<R>() => _MapStream(this, (e) => e as R);
 
   @override
-  Stream<T> distinct([bool Function(T previous, T next)? equals]) =>
+  RxStream<T> distinct([bool Function(T previous, T next)? equals]) =>
       _DistinctStream(this, equals);
 
-  // TODO: specify that event are delayed
   @override
-  Stream<S> expand<S>(Iterable<S> Function(T element) convert,
-			// add ExpandStream
-      [Duration delay = const Duration(milliseconds: 30)])
+  RxStream<S> expand<S>(
+    Iterable<S> Function(T element) convert,
+    // add ExpandStream
+  ) =>
+      _ExpandStream<S, T>(this, convert);
 
   @override
-  _ReactiveStream<S> map<S>(S Function(T event) convert) =>
-      _MapStream(this, convert);
+  RxStream<S> map<S>(S Function(T event) convert) => _MapStream(this, convert);
 
   @override
-  Stream<T> skipWhile(bool Function(T element) test) =>
+  RxStream<T> skipWhile(bool Function(T element) test) =>
       _SkipWhileStream(this, test);
 
   @override
-  Stream<T> skip(int count) {
+  RxStream<T> skip(int count) {
     int passed = 0;
     return skipWhile((_) {
       if (++passed > count) {
@@ -379,11 +398,11 @@ abstract class _Stream<T> extends Stream<T> {
   }
 
   @override
-  _ReactiveStream<T> takeWhile(bool Function(T element) test) =>
+  RxStream<T> takeWhile(bool Function(T element) test) =>
       _TakeWhileStream(this, test);
 
   @override
-  Stream<T> take(int count) {
+  RxStream<T> take(int count) {
     int passed = 0;
     return takeWhile((_) {
       if (++passed > count) {
@@ -393,48 +412,178 @@ abstract class _Stream<T> extends Stream<T> {
     });
   }
 
-  // @override
-  // Stream<T> timeout(Duration timeLimit,
-  //     {void Function(EventSink<T> sink)? onTimeout}) {
-  //   // TODO: implement timeout
-  //   throw UnimplementedError();
-  // }
+  @override
+  // TODO: implement single
+  Future<T> get single => throw UnimplementedError();
 
   @override
-  Stream<T> where(bool Function(T event) test) => _WhereStream(this, test);
-}
+  Stream<T> timeout(Duration timeLimit,
+      {void Function(EventSink<T> sink)? onTimeout}) {
+    // TODO: implement timeout
+    throw UnimplementedError();
+  }
 
-class _MapStream<S, T> extends _ReactiveStream<T> {
-  _MapStream(_Stream<S> parent, T Function(S event) convert) {
-    if (parent._data is S) {
-      _data = convert(parent._data as S);
-    }
-    _disposer = parent
-        .listen((S val) => _add(convert(val)),
-            onError: _addError, onDone: _close)
-        ._syncCancel;
+  @override
+  RxStream<T> where(bool Function(T event) test) => _WhereStream(this, test);
+
+  @override
+  Future<bool> any(bool Function(T element) test) {
+    // TODO: implement any
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<bool> contains(Object? needle) {
+    // TODO: implement contains
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<E> drain<E>([E? futureValue]) {
+    // TODO: implement drain
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<T> elementAt(int index) {
+    // TODO: implement elementAt
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<bool> every(bool Function(T element) test) {
+    // TODO: implement every
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<T> firstWhere(bool Function(T element) test, {T Function()? orElse}) {
+    // TODO: implement firstWhere
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<S> fold<S>(S initialValue, S Function(S previous, T element) combine) {
+    // TODO: implement fold
+    throw UnimplementedError();
+  }
+
+  @override
+  Future forEach(void Function(T element) action) {
+    // TODO: implement forEach
+    throw UnimplementedError();
+  }
+
+  @override
+  Stream<T> handleError(Function onError,
+      {bool Function(dynamic error)? test}) {
+    // TODO: implement handleError
+    throw UnimplementedError();
+  }
+
+  @override
+  // TODO: implement isBroadcast
+  bool get isBroadcast => throw UnimplementedError();
+
+  @override
+  // TODO: implement isEmpty
+  Future<bool> get isEmpty => throw UnimplementedError();
+
+  @override
+  Future<String> join([String separator = ""]) {
+    // TODO: implement join
+    throw UnimplementedError();
+  }
+
+  @override
+  // TODO: implement last
+  Future<T> get last => throw UnimplementedError();
+
+  @override
+  Future<T> lastWhere(bool Function(T element) test, {T Function()? orElse}) {
+    // TODO: implement lastWhere
+    throw UnimplementedError();
+  }
+
+  @override
+  // TODO: implement length
+  Future<int> get length => throw UnimplementedError();
+
+  @override
+  Future pipe(StreamConsumer<T> streamConsumer) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<T> reduce(T Function(T previous, T element) combine) {
+    // TODO: implement reduce
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<T> singleWhere(bool Function(T element) test, {T Function()? orElse}) {
+    // TODO: implement singleWhere
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<List<T>> toList() {
+    // TODO: implement toList
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Set<T>> toSet() {
+    // TODO: implement toSet
+    throw UnimplementedError();
+  }
+
+  @override
+  Stream<S> transform<S>(StreamTransformer<T, S> streamTransformer) {
+    // TODO: implement transform
+    throw UnimplementedError();
   }
 }
 
+class _MapStream<S, T> extends _ReactiveStream<T> {
+  _MapStream(RxStream<S> parent, T Function(S event) convert) {
+    if (parent._data is S) {
+      try {
+        _data = convert(parent._data as S);
+      } catch (e, stack) {
+        _addError(e, stack);
+      }
+    }
+    _disposer = parent.listen((S val) {
+      try {
+        _add(convert(val));
+      } catch (e, stack) {
+        _addError(e, stack);
+      }
+    }, onError: _addError, onDone: _close).syncCancel;
+  }
+}
+
+// Error handling
 class _AsyncMapStream<S, T> extends _ReactiveStream<T> {
-  _AsyncMapStream(_Stream<S> parent, Future<T> Function(S event) convert) {
+  _AsyncMapStream(RxStream<S> parent, Future<T> Function(S event) convert) {
     if (parent._data is S) {
       convert(parent._data as S).then((val) => _data = val).then((_) =>
           _disposer = parent
               .listen((S val) => convert(val).then(_add),
                   onError: _addError, onDone: _close)
-              ._syncCancel);
+              .syncCancel);
     } else {
       _disposer = parent
           .listen((S val) => convert(val).then(_add),
               onError: _addError, onDone: _close)
-          ._syncCancel;
+          .syncCancel;
     }
   }
 }
 
 class _WhereStream<T> extends _ReactiveStream<T> {
-  _WhereStream(_Stream<T> parent, bool Function(T event) test) {
+  _WhereStream(RxStream<T> parent, bool Function(T event) test) {
     if (parent._data is T && test(parent._data as T)) {
       _data = parent._data;
     }
@@ -442,12 +591,12 @@ class _WhereStream<T> extends _ReactiveStream<T> {
       if (test(val)) {
         _add(val);
       }
-    }, onError: _addError, onDone: _close)._syncCancel;
+    }, onError: _addError, onDone: _close).syncCancel;
   }
 }
 
 class _TakeWhileStream<T> extends _ReactiveStream<T> {
-  _TakeWhileStream(_Stream<T> parent, bool Function(T event) test) {
+  _TakeWhileStream(RxStream<T> parent, bool Function(T event) test) {
     if (parent._data is T && test(parent._data as T)) {
       _data = parent._data;
     }
@@ -457,12 +606,12 @@ class _TakeWhileStream<T> extends _ReactiveStream<T> {
       } else {
         _close();
       }
-    }, onError: _addError, onDone: _close)._syncCancel;
+    }, onError: _addError, onDone: _close).syncCancel;
   }
 }
 
 class _SkipWhileStream<T> extends _ReactiveStream<T> {
-  _SkipWhileStream(_Stream<T> parent, bool Function(T event) test) {
+  _SkipWhileStream(RxStream<T> parent, bool Function(T event) test) {
     if (parent._data is T && !test(parent._data as T)) {
       _data = parent._data;
     }
@@ -474,13 +623,13 @@ class _SkipWhileStream<T> extends _ReactiveStream<T> {
         sub.onData(_add);
       }
     }, onError: _addError, onDone: _close))
-        ._syncCancel;
+        .syncCancel;
   }
 }
 
 class _DistinctStream<T> extends _ReactiveStream<T> {
   _DistinctStream(
-      _Stream<T> parent, bool Function(T previous, T next)? equals) {
+      RxStream<T> parent, bool Function(T previous, T next)? equals) {
     _data = parent._data;
     final eq = equals ?? _eq;
     _disposer = parent.listen((T val) {
@@ -491,8 +640,47 @@ class _DistinctStream<T> extends _ReactiveStream<T> {
       } else {
         _add(val);
       }
-    }, onError: _addError, onDone: _close)._syncCancel;
+    }, onError: _addError, onDone: _close).syncCancel;
   }
 
   bool _eq(T previous, T next) => previous == next;
+}
+
+class _ExpandStream<T, S> extends _ReactiveStream<T> {
+  _ExpandStream(RxStream<S> parent, Iterable<T> Function(S element) convert) {
+    if (parent._data is S) {
+      for (var e in convert(parent._data as S)) {
+        _data = e;
+      }
+    }
+    _disposer = parent
+        .listen((S val) => convert(val).forEach(_add),
+            onError: _addError, onDone: _close)
+        .syncCancel;
+  }
+}
+
+class _AsyncExpandStream<T, S> extends _ReactiveStream<T> {
+  _AsyncExpandStream(
+      RxStream<S> parent, Stream<T>? Function(S element) convert) {
+    if (parent._data is S) {
+      convert(parent._data as S);
+    }
+    // _disposer = parent
+    //     .listen((S val) => _add(convert(val)),
+    //         onError: _addError, onDone: _close)
+    //     ._syncCancel;
+  }
+}
+
+/**
+ * Creates errors throw by [Iterable] when the element count is wrong.
+ */
+abstract class IterableElementError {
+  /** Error thrown thrown by, e.g., [Iterable.first] when there is no result. */
+  static StateError noElement() => StateError("No element");
+  /** Error thrown by, e.g., [Iterable.single] if there are too many results. */
+  static StateError tooMany() => StateError("Too many elements");
+  /** Error thrown by, e.g., [List.setRange] if there are too few elements. */
+  static StateError tooFew() => StateError("Too few elements");
 }

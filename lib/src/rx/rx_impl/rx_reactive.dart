@@ -13,6 +13,8 @@ class Reactive<T> implements EventSink<T> {
   _NodeSub<T, Function(T value)>? _firstSubscrption;
   _NodeSub<T, Function(T value)>? _lastSubscription;
 
+  StreamController<T>? _asyncStreamController;
+
   /// Retreive the data and add one if specified
   T call([T? value]) {
     if (value != null) {
@@ -67,10 +69,10 @@ class Reactive<T> implements EventSink<T> {
     emit();
   }
 
-  RxStream<T>? _stream;
+  _RxStream<T>? _stream;
   RxStream<T> get stream {
     if (_stream == null) {
-      return _stream = RxStream<T>(this);
+      return _stream = _RxStream<T>(this);
     }
     return _stream!;
   }

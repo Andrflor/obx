@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:equatable/equatable.dart';
 import 'package:get/get.dart' as getx;
 import 'package:obx/obx.dart';
@@ -5,13 +7,19 @@ import 'package:obx/obx.dart';
 main() async {
   // await getxBench();
   final rx = Rx("plopi");
-  rx.stream.map((e) => e.length).where((e) => e <= 3).listen(print);
-  rx.data = "plopi";
+  final controller = StreamController<String>.broadcast(sync: true);
+  (rx.stream.map((e) => e.length).where((e) => e != 3).distinct()
+        ..listen((e) => print("Rx got $e")))
+      .first
+      .then((e) => print("first for rx is $e"));
+  (controller.stream..listen((e) => print("Stream got $e")))
+      .first
+      .then((e) => print("first stream is $e"));
+  rx.data = "pl";
+  controller.add("plopi");
   rx.data = "plopia";
-  rx.data = "plo";
-  rx.data = "plap";
-  rx.data = "plip";
-  rx.data = "ploup";
+  controller.add("plopa");
+  rx.data = "plopio";
 }
 
 Future<void> getxBench() async {
