@@ -16,7 +16,7 @@ void main() async {
     // await controlTest(i);
     await notifierTest(j);
     await rxTrest(j);
-    // await streamTest(i);
+    await streamTest(i);
     // await getxTrest(i);
   }
 }
@@ -128,8 +128,21 @@ Future<void> notifierTest(int i) async {
 
 Future<void> streamTest(int i) async {
   final _completer = Completer<void>();
-  final streamController = StreamController.broadcast();
+  final streamController = StreamController<int>.broadcast();
   var streamCounter = 0;
+  final stream = streamController.stream
+      .map((e) => e - 2)
+      .map((e) => e + 10)
+      .map((e) => e + 30)
+      .map((e) => e)
+      .map((e) => e)
+      .map((e) => e)
+      .map((e) => e)
+      .map((e) => e)
+      .map((e) => e)
+      .map((e) => e)
+      .map((e) => e)
+      .map((e) => e);
   listener(_) {}
   final callbackList = List<Future Function()?>.filled(i + 1, null);
   late final DateTime start;
@@ -139,7 +152,7 @@ Future<void> streamTest(int i) async {
   for (int k = 0; k < loops; k++) {
     stopWatch.start();
     for (int j = 0; j <= i; j++) {
-      callbackList[j] = streamController.stream.listen(listener).cancel;
+      callbackList[j] = stream.listen(listener).cancel;
     }
     stopWatch.stop();
     stopWatch2.start();
@@ -154,9 +167,9 @@ Future<void> streamTest(int i) async {
           adaptConst;
   final endInNs2 = (stopWatch2.elapsedMicroseconds * 1000) / (loops * (i + 1));
   for (int j = 0; j < i; j++) {
-    streamController.stream.listen(listener);
+    stream.listen(listener);
   }
-  streamController.stream.listen((value) {
+  stream.listen((value) {
     streamCounter++;
     show("stream:    ", start, streamCounter, _completer, endInNs, endInNs2);
   });
@@ -208,13 +221,26 @@ Future<void> rxTrest(int i) async {
   final callbackList = List<VoidCallback?>.filled(i + 1, null);
   late final DateTime start;
   listener(_) {}
+  final newStream = rx.stream
+      .map((e) => e - 2)
+      .map((e) => e + 10)
+      .map((e) => e + 30)
+      .map((e) => e)
+      .map((e) => e)
+      .map((e) => e)
+      .map((e) => e)
+      .map((e) => e)
+      .map((e) => e)
+      .map((e) => e)
+      .map((e) => e)
+      .map((e) => e);
   final add = DateTime.now();
   final stopWatch = Stopwatch();
   final stopWatch2 = Stopwatch();
   for (int k = 0; k < loops; k++) {
     stopWatch.start();
     for (int j = 0; j <= i; j++) {
-      callbackList[j] = rx.listen(listener).cancel;
+      callbackList[j] = newStream.listen(listener).cancel;
     }
     stopWatch.stop();
     stopWatch2.start();
@@ -229,7 +255,7 @@ Future<void> rxTrest(int i) async {
           adaptConst;
   final endInNs2 =
       ((stopWatch2.elapsedMicroseconds * 1000) / loops - adjust(i)) / (i + 1);
-  final newStream = rx.stream.where((e) => true);
+
   for (int j = 0; j < i; j++) {
     newStream.listen(listener);
   }

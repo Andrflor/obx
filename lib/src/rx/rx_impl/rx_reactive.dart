@@ -2,7 +2,7 @@ part of '../../orchestrator.dart';
 
 /// This is the most basic reactive component
 /// This will just update the ui when it updates
-class Reactive<T> {
+class Reactive<T> implements EventSink<T> {
   T? _data;
   Object? _error;
 
@@ -75,9 +75,12 @@ class Reactive<T> {
     return _stream!;
   }
 
+  @override
+  void add(T event) => data = event;
+
   // Allow to listen and gives you a subscription in return
   // Like [StreamSubscription] except that cancel is synchronous
-  StreamSubscription<T> listen(Function(T value)? onData,
+  RxSubscription<T> listen(Function(T value)? onData,
       {Function? onError, VoidCallback? onDone, bool? cancelOnError}) {
     final node = _NodeSub<T, Function(T value)>(this, onData, onError, onDone);
     if (identical(_firstSubscrption, null)) {
@@ -91,8 +94,9 @@ class Reactive<T> {
   /// Emit the last data value
   void emit() {
     if (identical(_firstSubscrption, null)) return;
-    var currentSubscription = _firstSubscrption?.._handleData?.call(_data as T);
+    _NodeSub<T, Function(T value)>? currentSubscription;
     try {
+      currentSubscription = _firstSubscrption?.._handleData?.call(_data as T);
       while (
           !identical(currentSubscription = currentSubscription!._next, null)) {
         currentSubscription!._handleData?.call(_data as T);
@@ -102,7 +106,7 @@ class Reactive<T> {
       // On stack overflow we break the loop
       if (exception is StackOverflowError) return;
       // recursive function to avoid try catching on every loop
-      _continueEmitting(currentSubscription!._next);
+      _continueEmitting(currentSubscription?._next);
     }
   }
 
@@ -110,8 +114,10 @@ class Reactive<T> {
   void addError(Object error, [StackTrace? trace]) {
     _error = error;
     if (identical(_firstSubscrption, null)) return;
-    _NodeSub<T, Function(T e)>? currentSubscription = _firstSubscrption;
+    _NodeSub<T, Function(T e)>? currentSubscription;
     try {
+      currentSubscription = _firstSubscrption
+        ?.._handleError?.call(error, trace);
       while (
           !identical(currentSubscription = currentSubscription!._next, null)) {
         currentSubscription!._handleError?.call(error, trace);
@@ -121,13 +127,14 @@ class Reactive<T> {
       // On stack overflow we break the loop
       if (exception is StackOverflowError) return;
       // recursive function to avoid try catching on every loop
-      _continueAddingError(error, trace, currentSubscription!._next);
+      _continueAddingError(error, trace, currentSubscription?._next);
     }
   }
 
   /// Close the [Rx<T>] with proper cleanup
   ///
   /// You don't need to call this unless you don't have closed all subscriptions
+  @override
   void close() {
     // No need to close if we have no _firstSubscrption
     if (identical(_firstSubscrption, null)) return;
@@ -140,7 +147,7 @@ class Reactive<T> {
       _reportError("close", exception, trace);
       // StackOverflowError is impossible here
       // recursive function to avoid try catching on every loop
-      _continueClosing(currentSubscription!._next);
+      _continueClosing(currentSubscription?._next);
     }
   }
 
@@ -155,7 +162,7 @@ class Reactive<T> {
       // On stack overflow we break the loop
       if (exception is StackOverflowError) return;
       // recursive function to avoid try catching on every loop
-      _continueEmitting(currentSubscription!._next);
+      _continueEmitting(currentSubscription?._next);
     }
   }
 
@@ -171,7 +178,7 @@ class Reactive<T> {
       // On stack overflow we break the loop
       if (exception is StackOverflowError) return;
       // recursive function to avoid try catching on every loop
-      _continueAddingError(error, trace, currentSubscription!._next);
+      _continueAddingError(error, trace, currentSubscription?._next);
     }
   }
 
@@ -183,7 +190,7 @@ class Reactive<T> {
       _reportError("close", exception, trace);
       // StackOverflowError is impossible here
       // recursive function to avoid try catching on every loop
-      _continueClosing(currentSubscription!._next);
+      _continueClosing(currentSubscription?._next);
     }
   }
 
@@ -212,7 +219,7 @@ class Reactive<T> {
 
   // Allow to listen and gives you a subscription in return
   // Like [StreamSubscription] except that cancel is synchronous
-  StreamSubscription<T> _listen(_NodeSub<T, Function(T value)> node) {
+  RxSubscription<T> _listen(_NodeSub<T, Function(T value)> node) {
     if (identical(_firstSubscrption, null)) {
       _lastSubscription = node;
       return _firstSubscrption = node;

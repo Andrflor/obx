@@ -3,7 +3,15 @@ import 'package:get/get.dart' as getx;
 import 'package:obx/obx.dart';
 
 main() async {
-  await getxBench();
+  // await getxBench();
+  final rx = Rx("plopi");
+  rx.stream.map((e) => e.length).where((e) => e <= 3).listen(print);
+  rx.data = "plopi";
+  rx.data = "plopia";
+  rx.data = "plo";
+  rx.data = "plap";
+  rx.data = "plip";
+  rx.data = "ploup";
 }
 
 Future<void> getxBench() async {
