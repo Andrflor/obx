@@ -16,7 +16,7 @@ void main() async {
     // await controlTest(i);
     await notifierTest(j);
     await rxTrest(j);
-    await streamTest(i);
+    // await streamTest(i);
     // await getxTrest(i);
   }
 }
@@ -221,19 +221,7 @@ Future<void> rxTrest(int i) async {
   final callbackList = List<VoidCallback?>.filled(i + 1, null);
   late final DateTime start;
   listener(_) {}
-  final newStream = rx.stream
-      .map((e) => e - 2)
-      .map((e) => e + 10)
-      .map((e) => e + 30)
-      .map((e) => e)
-      .map((e) => e)
-      .map((e) => e)
-      .map((e) => e)
-      .map((e) => e)
-      .map((e) => e)
-      .map((e) => e)
-      .map((e) => e)
-      .map((e) => e);
+  final newStream = rx.stream.asyncMap((e) => e == 2);
   final add = DateTime.now();
   final stopWatch = Stopwatch();
   final stopWatch2 = Stopwatch();
