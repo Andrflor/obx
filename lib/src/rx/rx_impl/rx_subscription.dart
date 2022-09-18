@@ -341,7 +341,6 @@ abstract class RxStream<T> implements Stream<T> {
       sub.cancel();
     }, onDone: () {
       completer.completeError(IterableElementError.noElement());
-      sub.cancel();
     });
     return completer.future;
   }
@@ -428,14 +427,48 @@ abstract class RxStream<T> implements Stream<T> {
 
   @override
   Future<bool> any(bool Function(T element) test) {
-    // TODO: implement any
-    throw UnimplementedError();
+    final completer = Completer<bool>.sync();
+    late final RxSubscription<T> sub;
+    sub = listen((T val) {
+      try {
+        if (test(val)) {
+          completer.complete(true);
+          sub.cancel();
+        }
+      } catch (e) {
+        completer.completeError(e);
+        sub.cancel();
+      }
+    }, onError: (e) {
+      completer.completeError(e);
+      sub.cancel();
+    }, onDone: () {
+      completer.complete(false);
+    });
+    return completer.future;
   }
 
   @override
   Future<bool> contains(Object? needle) {
-    // TODO: implement contains
-    throw UnimplementedError();
+    final completer = Completer<bool>.sync();
+    late final RxSubscription<T> sub;
+    sub = listen((T val) {
+      try {
+        if (val == needle) {
+          completer.complete(true);
+          sub.cancel();
+        }
+      } catch (e) {
+        completer.completeError(e);
+        sub.cancel();
+      }
+    }, onError: (e) {
+      completer.completeError(e);
+      sub.cancel();
+    }, onDone: () {
+      completer.complete(false);
+    });
+    return completer.future;
   }
 
   @override
@@ -446,8 +479,24 @@ abstract class RxStream<T> implements Stream<T> {
 
   @override
   Future<T> elementAt(int index) {
-    // TODO: implement elementAt
-    throw UnimplementedError();
+    RangeError.checkNotNegative(index, "index");
+    final completer = Completer<T>.sync();
+    late final RxSubscription<T> sub;
+    int idx = 0;
+    sub = listen((T val) {
+      if (index == idx) {
+        completer.complete(val);
+        sub.cancel();
+      }
+      idx++;
+    }, onError: (e) {
+      completer.completeError(e);
+      sub.cancel();
+    }, onDone: () {
+      completer
+          .completeError(RangeError.index(index, this, "index", null, idx));
+    });
+    return completer.future;
   }
 
   @override

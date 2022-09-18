@@ -82,8 +82,12 @@ class Reactive<T> implements EventSink<T> {
 
   // Allow to listen and gives you a subscription in return
   // Like [StreamSubscription] except that cancel is synchronous
-  RxSubscription<T> listen(Function(T value)? onData,
-      {Function? onError, VoidCallback? onDone, bool? cancelOnError}) {
+  RxSubscription<T> listen(
+    Function(T value)? onData, {
+    Function? onError,
+    VoidCallback? onDone,
+    bool? cancelOnError,
+  }) {
     final node = _NodeSub<T, Function(T value)>(this, onData, onError, onDone);
     if (identical(_firstSubscrption, null)) {
       _lastSubscription = node;
