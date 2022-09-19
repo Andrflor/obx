@@ -209,7 +209,7 @@ Future<void> rxTrest(int i) async {
   final callbackList = List<VoidCallback?>.filled(i + 1, null);
   late final DateTime start;
   listener(_) {}
-  final newStream = rx.stream.async();
+  final newStream = rx;
   final add = DateTime.now();
   final stopWatch = Stopwatch();
   final stopWatch2 = Stopwatch();

@@ -5,21 +5,7 @@ import 'package:get/get.dart' as getx;
 import 'package:obx/obx.dart';
 
 main() async {
-  // await getxBench();
-  final rx = Rx("plopi");
-  final controller = StreamController<String>.broadcast(sync: true);
-  (rx.stream.map((e) => e.length).where((e) => e != 3).distinct()
-        ..listen((e) => print("Rx got $e")))
-      .first
-      .then((e) => print("first for rx is $e"));
-  (controller.stream..listen((e) => print("Stream got $e")))
-      .first
-      .then((e) => print("first stream is $e"));
-  rx.data = "pl";
-  controller.add("plopi");
-  rx.data = "plopia";
-  controller.add("plopa");
-  rx.data = "plopio";
+  await getxBench();
 }
 
 Future<void> getxBench() async {

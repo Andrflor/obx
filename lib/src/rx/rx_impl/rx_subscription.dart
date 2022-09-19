@@ -115,7 +115,7 @@ class _RxStream<T> extends RxStream<T> {
   _RxStream(this._parent);
 
   @override
-  StreamSubscription<T> _listen(_NodeSub<T, Function(T value)> node) =>
+  RxSubscription<T> _listen(_NodeSub<T, Function(T value)> node) =>
       _parent._listen(node);
 
   @override
@@ -123,17 +123,6 @@ class _RxStream<T> extends RxStream<T> {
           {Function? onError, VoidCallback? onDone, bool? cancelOnError}) =>
       _parent.listen(onData,
           onError: onError, onDone: onDone, cancelOnError: cancelOnError);
-
-  @override
-  Stream<T> async() {
-    if (_parent._asyncStreamController != null) {
-      return _parent._asyncStreamController!.stream;
-    }
-    // Add the proper close
-    // Add the proper binding
-    return (_parent._asyncStreamController = StreamController<T>.broadcast())
-        .stream;
-  }
 }
 
 class _ReactiveStream<T> extends RxStream<T> {
@@ -316,43 +305,58 @@ class _ReactiveStream<T> extends RxStream<T> {
           'dispatching $kind for $runtimeType\nThis error was catched to ensure that listener events are dispatched\nSome of your listeners for this Rx is throwing an exception\nMake sure that your listeners do not throw to ensure optimal performance'),
     ));
   }
-
-  @override
-  Stream<T> async() {
-    // TODO: implement async
-    throw UnimplementedError();
-  }
 }
 
-abstract class RxStream<T> implements Stream<T> {
+abstract class RxStream<T> extends Stream<T> {
   T? _data;
   @override
   RxSubscription<T> listen(Function(T value)? onData,
       {Function? onError, VoidCallback? onDone, bool? cancelOnError});
 
-  StreamSubscription<T> _listen(_NodeSub<T, Function(T value)> node);
+  RxSubscription<T> _listen(_NodeSub<T, Function(T value)> node);
+
+  StreamController<T>? _asyncStreamController;
+
+  /// Gives you a normal async stream
+  Stream<T> async() {
+    if (_asyncStreamController != null) {
+      return _asyncStreamController!.stream;
+    }
+
+    _asyncStreamController = StreamController<T>.broadcast();
+    listen(
+      _asyncStreamController!.add,
+      onError: _asyncStreamController!.addError,
+      onDone: () {
+        _asyncStreamController!.close();
+        _asyncStreamController = null;
+      },
+      cancelOnError: false,
+    );
+    return _asyncStreamController!.stream;
+  }
 
   @override
   Future<T> get first {
     final completer = Completer<T>.sync();
     late final RxSubscription<T> sub;
-    sub = listen((T val) {
-      completer.complete(val);
-      sub.cancel();
-    }, onDone: () {
-      completer.completeError(IterableElementError.noElement());
-    });
+    sub = listen(
+      (T val) {
+        completer.complete(val);
+        sub.syncCancel();
+      },
+      onError: completer.completeError,
+      onDone: () {
+        try {
+          throw IterableElementError.noElement();
+        } catch (e, s) {
+          completer.completeError(e, s);
+        }
+      },
+      cancelOnError: true,
+    );
     return completer.future;
   }
-
-  /// As no effect since it is already a broadcast stream
-  @override
-  RxStream<T> asBroadcastStream(
-          {void Function(StreamSubscription<T> subscription)? onListen,
-          void Function(StreamSubscription<T> subscription)? onCancel}) =>
-      this;
-
-  Stream<T> async();
 
   @override
   RxStream<E> asyncExpand<E>(Stream<E>? Function(T event) convert) =>
@@ -412,14 +416,41 @@ abstract class RxStream<T> implements Stream<T> {
   }
 
   @override
-  // TODO: implement single
-  Future<T> get single => throw UnimplementedError();
-
-  @override
-  Stream<T> timeout(Duration timeLimit,
-      {void Function(EventSink<T> sink)? onTimeout}) {
-    // TODO: implement timeout
-    throw UnimplementedError();
+  Future<T> get single {
+    final completer = Completer<T>.sync();
+    late final RxSubscription<T> sub;
+    late T result;
+    bool foundResult = false;
+    sub = listen(
+      (T value) {
+        if (foundResult) {
+          try {
+            throw IterableElementError.tooMany();
+          } catch (e, s) {
+            completer.completeError(e, s);
+          }
+          sub.syncCancel();
+        } else {
+          foundResult = true;
+          result = value;
+        }
+      },
+      onError: completer.completeError,
+      onDone: () {
+        if (foundResult) {
+          completer.complete(result);
+        } else {
+          completer.completeError(IterableElementError.tooFew());
+          try {
+            throw IterableElementError.noElement();
+          } catch (e, s) {
+            completer.completeError(e, s);
+          }
+        }
+      },
+      cancelOnError: true,
+    );
+    return completer.future;
   }
 
   @override
@@ -429,22 +460,24 @@ abstract class RxStream<T> implements Stream<T> {
   Future<bool> any(bool Function(T element) test) {
     final completer = Completer<bool>.sync();
     late final RxSubscription<T> sub;
-    sub = listen((T val) {
-      try {
-        if (test(val)) {
-          completer.complete(true);
-          sub.cancel();
+    sub = listen(
+      (T val) {
+        try {
+          if (test(val)) {
+            completer.complete(true);
+            sub.syncCancel();
+          }
+        } catch (e, s) {
+          completer.completeError(e, s);
+          sub.syncCancel();
         }
-      } catch (e) {
-        completer.completeError(e);
-        sub.cancel();
-      }
-    }, onError: (e) {
-      completer.completeError(e);
-      sub.cancel();
-    }, onDone: () {
-      completer.complete(false);
-    });
+      },
+      onError: completer.completeError,
+      onDone: () {
+        completer.complete(false);
+      },
+      cancelOnError: true,
+    );
     return completer.future;
   }
 
@@ -452,29 +485,30 @@ abstract class RxStream<T> implements Stream<T> {
   Future<bool> contains(Object? needle) {
     final completer = Completer<bool>.sync();
     late final RxSubscription<T> sub;
-    sub = listen((T val) {
-      try {
-        if (val == needle) {
-          completer.complete(true);
-          sub.cancel();
+    sub = listen(
+      (T val) {
+        try {
+          if (val == needle) {
+            completer.complete(true);
+            sub.syncCancel();
+          }
+        } catch (e, s) {
+          completer.completeError(e, s);
+          sub.syncCancel();
         }
-      } catch (e) {
-        completer.completeError(e);
-        sub.cancel();
-      }
-    }, onError: (e) {
-      completer.completeError(e);
-      sub.cancel();
-    }, onDone: () {
-      completer.complete(false);
-    });
+      },
+      onError: completer.completeError,
+      onDone: () {
+        completer.complete(false);
+      },
+      cancelOnError: true,
+    );
     return completer.future;
   }
 
   @override
   Future<E> drain<E>([E? futureValue]) {
-    // TODO: implement drain
-    throw UnimplementedError();
+    return listen(null, cancelOnError: true).asFuture<E>(futureValue);
   }
 
   @override
@@ -483,114 +517,403 @@ abstract class RxStream<T> implements Stream<T> {
     final completer = Completer<T>.sync();
     late final RxSubscription<T> sub;
     int idx = 0;
-    sub = listen((T val) {
-      if (index == idx) {
-        completer.complete(val);
-        sub.cancel();
-      }
-      idx++;
-    }, onError: (e) {
-      completer.completeError(e);
-      sub.cancel();
-    }, onDone: () {
-      completer
-          .completeError(RangeError.index(index, this, "index", null, idx));
-    });
+    sub = listen(
+      (T val) {
+        if (index == idx) {
+          completer.complete(val);
+          sub.syncCancel();
+        }
+        idx++;
+      },
+      onError: completer.completeError,
+      onDone: () {
+        try {
+          throw RangeError.index(index, this, "index", null, idx);
+        } catch (e, s) {
+          completer.completeError(e, s);
+        }
+      },
+      cancelOnError: true,
+    );
     return completer.future;
   }
 
   @override
   Future<bool> every(bool Function(T element) test) {
-    // TODO: implement every
-    throw UnimplementedError();
+    final completer = Completer<bool>.sync();
+    late final RxSubscription<T> sub;
+    sub = listen(
+      (T val) {
+        try {
+          if (!test(val)) {
+            completer.complete(false);
+            sub.syncCancel();
+          }
+        } catch (e, s) {
+          completer.completeError(e, s);
+          sub.syncCancel();
+        }
+      },
+      onError: completer.completeError,
+      onDone: () {
+        completer.complete(true);
+      },
+      cancelOnError: true,
+    );
+
+    return completer.future;
   }
 
   @override
-  Future<T> firstWhere(bool Function(T element) test, {T Function()? orElse}) {
-    // TODO: implement firstWhere
-    throw UnimplementedError();
+  Future<T> reduce(T Function(T previous, T element) combine) {
+    final completer = Completer<T>.sync();
+    late T value;
+    bool seenFirst = false;
+    late final RxSubscription<T> sub;
+    sub = listen(
+      (T val) {
+        if (seenFirst) {
+          try {
+            value = combine(value, val);
+            seenFirst = true;
+          } catch (e, s) {
+            completer.completeError(e, s);
+            sub.syncCancel();
+          }
+        } else {
+          value = val;
+          seenFirst = true;
+        }
+      },
+      onError: completer.completeError,
+      onDone: () {
+        if (!seenFirst) {
+          try {
+            throw IterableElementError.noElement();
+          } catch (e, s) {
+            completer.completeError(e, s);
+          }
+        } else {
+          completer.complete(value);
+        }
+      },
+      cancelOnError: true,
+    );
+
+    return completer.future;
   }
 
   @override
   Future<S> fold<S>(S initialValue, S Function(S previous, T element) combine) {
-    // TODO: implement fold
-    throw UnimplementedError();
+    final completer = Completer<S>.sync();
+    late final RxSubscription<T> sub;
+    sub = listen(
+      (T val) {
+        try {
+          initialValue = combine(initialValue, val);
+        } catch (e, s) {
+          completer.completeError(e, s);
+          sub.syncCancel();
+        }
+      },
+      onError: completer.completeError,
+      onDone: () {
+        completer.complete(initialValue);
+      },
+      cancelOnError: true,
+    );
+
+    return completer.future;
+  }
+
+  @override
+  Future<T> firstWhere(bool Function(T element) test, {T Function()? orElse}) {
+    final completer = Completer<T>.sync();
+    late final RxSubscription<T> sub;
+    sub = listen(
+        (T value) {
+          try {
+            if (test(value)) {
+              completer.complete(value);
+              sub.syncCancel();
+            }
+          } catch (e, s) {
+            completer.completeError(e, s);
+            sub.syncCancel();
+          }
+        },
+        onError: completer.completeError,
+        onDone: () {
+          if (orElse != null) {
+            try {
+              completer.complete(orElse());
+            } catch (e, s) {
+              completer.completeError(e, s);
+            }
+            return;
+          }
+          try {
+            // Sets stackTrace on error.
+            throw IterableElementError.noElement();
+          } catch (e, s) {
+            completer.completeError(e, s);
+          }
+        },
+        cancelOnError: true);
+    return completer.future;
+  }
+
+  @override
+  Future<T> singleWhere(bool Function(T element) test, {T Function()? orElse}) {
+    final completer = Completer<T>.sync();
+    late T last;
+    bool found = false;
+    late final RxSubscription<T> sub;
+    sub = listen(
+        (T value) {
+          try {
+            if (found) {
+              try {
+                throw IterableElementError.tooMany();
+              } catch (e, s) {
+                completer.completeError(e, s);
+                sub.syncCancel();
+              }
+              return;
+            }
+            if (test(value)) {
+              last = value;
+              found = true;
+            }
+          } catch (e, s) {
+            completer.completeError(e, s);
+            sub.syncCancel();
+          }
+        },
+        onError: completer.completeError,
+        onDone: () {
+          if (found) {
+            return completer.complete(last);
+          }
+          if (orElse != null) {
+            try {
+              completer.complete(orElse());
+            } catch (e, s) {
+              completer.completeError(e, s);
+            }
+            return;
+          }
+          try {
+            throw IterableElementError.noElement();
+          } catch (e, s) {
+            completer.completeError(e, s);
+          }
+        },
+        cancelOnError: true);
+    return completer.future;
+  }
+
+  @override
+  Future<T> lastWhere(bool Function(T element) test, {T Function()? orElse}) {
+    final completer = Completer<T>.sync();
+    late T last;
+    bool found = false;
+    late final RxSubscription<T> sub;
+    sub = listen(
+        (T value) {
+          try {
+            if (test(value)) {
+              last = value;
+              found = true;
+            }
+          } catch (e, s) {
+            completer.completeError(e, s);
+            sub.syncCancel();
+          }
+        },
+        onError: completer.completeError,
+        onDone: () {
+          if (found) {
+            return completer.complete(last);
+          }
+          if (orElse != null) {
+            try {
+              completer.complete(orElse());
+            } catch (e, s) {
+              completer.completeError(e, s);
+            }
+            return;
+          }
+          try {
+            throw IterableElementError.noElement();
+          } catch (e, s) {
+            completer.completeError(e, s);
+          }
+        },
+        cancelOnError: true);
+    return completer.future;
   }
 
   @override
   Future forEach(void Function(T element) action) {
-    // TODO: implement forEach
+    final completer = Completer.sync();
+    late final RxSubscription<T> sub;
+    sub = listen(
+      (T val) {
+        try {
+          action(val);
+        } catch (e) {
+          completer.completeError(e);
+          sub.syncCancel();
+        }
+      },
+      onError: completer.completeError,
+      onDone: () {
+        completer.complete(null);
+      },
+      cancelOnError: true,
+    );
+
+    return completer.future;
+  }
+
+  /// As no effect since it is already a broadcast stream
+  // TODO: make a proper implementation of this
+  @override
+  RxStream<T> asBroadcastStream(
+          {void Function(StreamSubscription<T> subscription)? onListen,
+          void Function(StreamSubscription<T> subscription)? onCancel}) =>
+      this;
+
+  @override
+  RxStream<T> timeout(Duration timeLimit,
+      {void Function(EventSink<T> sink)? onTimeout}) {
+    // TODO: implement timeout
     throw UnimplementedError();
   }
 
   @override
-  Stream<T> handleError(Function onError,
+  RxStream<T> handleError(Function onError,
       {bool Function(dynamic error)? test}) {
     // TODO: implement handleError
     throw UnimplementedError();
   }
 
   @override
-  // TODO: implement isBroadcast
-  bool get isBroadcast => throw UnimplementedError();
+  bool get isBroadcast => true;
 
   @override
-  // TODO: implement isEmpty
-  Future<bool> get isEmpty => throw UnimplementedError();
+  Future<bool> get isEmpty {
+    final completer = Completer<bool>.sync();
+
+    late final RxSubscription<T> sub;
+    sub = listen(
+      (_) {
+        completer.complete(false);
+        sub.syncCancel();
+      },
+      onError: completer.completeError,
+      onDone: () {
+        completer.complete(true);
+      },
+      cancelOnError: true,
+    );
+    return completer.future;
+  }
 
   @override
   Future<String> join([String separator = ""]) {
-    // TODO: implement join
-    throw UnimplementedError();
+    final completer = Completer<String>();
+    final buffer = StringBuffer();
+    bool first = true;
+    listen(
+        separator.isEmpty
+            ? (T element) {
+                try {
+                  buffer.write(element);
+                } catch (e, s) {
+                  completer.completeError(e, s);
+                }
+              }
+            : (T element) {
+                if (!first) {
+                  buffer.write(separator);
+                }
+                first = false;
+                try {
+                  buffer.write(element);
+                } catch (e, s) {
+                  completer.completeError(e, s);
+                }
+              },
+        onError: completer.completeError, onDone: () {
+      completer.complete(buffer.toString());
+    }, cancelOnError: true);
+    return completer.future;
   }
 
   @override
-  // TODO: implement last
-  Future<T> get last => throw UnimplementedError();
-
-  @override
-  Future<T> lastWhere(bool Function(T element) test, {T Function()? orElse}) {
-    // TODO: implement lastWhere
-    throw UnimplementedError();
+  Future<T> get last {
+    final completer = Completer<T>.sync();
+    listen(
+      null,
+      onError: completer.completeError,
+      onDone: () {
+        completer.complete(_data);
+      },
+      cancelOnError: true,
+    );
+    return completer.future;
   }
 
   @override
-  // TODO: implement length
-  Future<int> get length => throw UnimplementedError();
-
-  @override
-  Future pipe(StreamConsumer<T> streamConsumer) {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<T> reduce(T Function(T previous, T element) combine) {
-    // TODO: implement reduce
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<T> singleWhere(bool Function(T element) test, {T Function()? orElse}) {
-    // TODO: implement singleWhere
-    throw UnimplementedError();
+  Future<int> get length {
+    final completer = Completer<int>.sync();
+    int count = 0;
+    listen(
+      (T val) {
+        count++;
+      },
+      onError: completer.completeError,
+      onDone: () {
+        completer.complete(count);
+      },
+      cancelOnError: true,
+    );
+    return completer.future;
   }
 
   @override
   Future<List<T>> toList() {
-    // TODO: implement toList
-    throw UnimplementedError();
+    List<T> result = [];
+    final completer = Completer<List<T>>();
+    listen(
+      (T data) {
+        result.add(data);
+      },
+      onError: completer.completeError,
+      onDone: () {
+        completer.complete(result);
+      },
+      cancelOnError: true,
+    );
+    return completer.future;
   }
 
   @override
   Future<Set<T>> toSet() {
-    // TODO: implement toSet
-    throw UnimplementedError();
-  }
-
-  @override
-  Stream<S> transform<S>(StreamTransformer<T, S> streamTransformer) {
-    // TODO: implement transform
-    throw UnimplementedError();
+    Set<T> result = {};
+    final completer = Completer<Set<T>>();
+    listen(
+        (T data) {
+          result.add(data);
+        },
+        onError: completer.completeError,
+        onDone: () {
+          completer.complete(result);
+        },
+        cancelOnError: true);
+    return completer.future;
   }
 }
 
