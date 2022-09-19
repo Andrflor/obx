@@ -115,10 +115,6 @@ class _RxStream<T> extends RxStream<T> {
   _RxStream(this._parent);
 
   @override
-  RxSubscription<T> _listen(_NodeSub<T, Function(T value)> node) =>
-      _parent._listen(node);
-
-  @override
   RxSubscription<T> listen(Function(T value)? onData,
           {Function? onError, VoidCallback? onDone, bool? cancelOnError}) =>
       _parent.listen(onData,
@@ -144,18 +140,6 @@ class _ReactiveStream<T> extends RxStream<T> {
   RxSubscription<T> listen(Function(T value)? onData,
       {Function? onError, VoidCallback? onDone, bool? cancelOnError}) {
     final node = _NodeSub<T, Function(T value)>(this, onData, onError, onDone);
-    if (identical(_firstSubscrption, null)) {
-      _lastSubscription = node;
-      return _firstSubscrption = node;
-    }
-    node._previous = _lastSubscription;
-    return _lastSubscription = _lastSubscription!._next = node;
-  }
-
-  // Allow to listen and gives you a subscription in return
-  // Like [StreamSubscription] except that cancel is synchronous
-  @override
-  RxSubscription<T> _listen(_NodeSub<T, Function(T value)> node) {
     if (identical(_firstSubscrption, null)) {
       _lastSubscription = node;
       return _firstSubscrption = node;
@@ -313,8 +297,6 @@ abstract class RxStream<T> extends Stream<T> {
   RxSubscription<T> listen(Function(T value)? onData,
       {Function? onError, VoidCallback? onDone, bool? cancelOnError});
 
-  RxSubscription<T> _listen(_NodeSub<T, Function(T value)> node);
-
   StreamController<T>? _asyncStreamController;
 
   /// Gives you a normal async stream
@@ -359,13 +341,13 @@ abstract class RxStream<T> extends Stream<T> {
   }
 
   @override
-  RxStream<E> asyncExpand<E>(Stream<E>? Function(T event) convert) =>
-      _AsyncExpandStream(this, convert);
+  Stream<E> asyncExpand<E>(Stream<E>? Function(T event) convert) =>
+      async().asyncExpand(convert);
 
   @override
-  RxStream<E> asyncMap<E>(FutureOr<E> Function(T event) convert) =>
+  Stream<E> asyncMap<E>(FutureOr<E> Function(T event) convert) =>
       convert is Future<E> Function(T event)
-          ? _AsyncMapStream(this, convert)
+          ? async().asyncMap(convert)
           : _MapStream(this, convert as E Function(T event));
 
   @override
@@ -631,35 +613,36 @@ abstract class RxStream<T> extends Stream<T> {
     final completer = Completer<T>.sync();
     late final RxSubscription<T> sub;
     sub = listen(
-        (T value) {
-          try {
-            if (test(value)) {
-              completer.complete(value);
-              sub.syncCancel();
-            }
-          } catch (e, s) {
-            completer.completeError(e, s);
+      (T value) {
+        try {
+          if (test(value)) {
+            completer.complete(value);
             sub.syncCancel();
           }
-        },
-        onError: completer.completeError,
-        onDone: () {
-          if (orElse != null) {
-            try {
-              completer.complete(orElse());
-            } catch (e, s) {
-              completer.completeError(e, s);
-            }
-            return;
-          }
+        } catch (e, s) {
+          completer.completeError(e, s);
+          sub.syncCancel();
+        }
+      },
+      onError: completer.completeError,
+      onDone: () {
+        if (orElse != null) {
           try {
-            // Sets stackTrace on error.
-            throw IterableElementError.noElement();
+            completer.complete(orElse());
           } catch (e, s) {
             completer.completeError(e, s);
           }
-        },
-        cancelOnError: true);
+          return;
+        }
+        try {
+          // Sets stackTrace on error.
+          throw IterableElementError.noElement();
+        } catch (e, s) {
+          completer.completeError(e, s);
+        }
+      },
+      cancelOnError: true,
+    );
     return completer.future;
   }
 
@@ -670,46 +653,47 @@ abstract class RxStream<T> extends Stream<T> {
     bool found = false;
     late final RxSubscription<T> sub;
     sub = listen(
-        (T value) {
-          try {
-            if (found) {
-              try {
-                throw IterableElementError.tooMany();
-              } catch (e, s) {
-                completer.completeError(e, s);
-                sub.syncCancel();
-              }
-              return;
-            }
-            if (test(value)) {
-              last = value;
-              found = true;
-            }
-          } catch (e, s) {
-            completer.completeError(e, s);
-            sub.syncCancel();
-          }
-        },
-        onError: completer.completeError,
-        onDone: () {
+      (T value) {
+        try {
           if (found) {
-            return completer.complete(last);
-          }
-          if (orElse != null) {
             try {
-              completer.complete(orElse());
+              throw IterableElementError.tooMany();
             } catch (e, s) {
               completer.completeError(e, s);
+              sub.syncCancel();
             }
             return;
           }
+          if (test(value)) {
+            last = value;
+            found = true;
+          }
+        } catch (e, s) {
+          completer.completeError(e, s);
+          sub.syncCancel();
+        }
+      },
+      onError: completer.completeError,
+      onDone: () {
+        if (found) {
+          return completer.complete(last);
+        }
+        if (orElse != null) {
           try {
-            throw IterableElementError.noElement();
+            completer.complete(orElse());
           } catch (e, s) {
             completer.completeError(e, s);
           }
-        },
-        cancelOnError: true);
+          return;
+        }
+        try {
+          throw IterableElementError.noElement();
+        } catch (e, s) {
+          completer.completeError(e, s);
+        }
+      },
+      cancelOnError: true,
+    );
     return completer.future;
   }
 
@@ -720,37 +704,38 @@ abstract class RxStream<T> extends Stream<T> {
     bool found = false;
     late final RxSubscription<T> sub;
     sub = listen(
-        (T value) {
+      (T value) {
+        try {
+          if (test(value)) {
+            last = value;
+            found = true;
+          }
+        } catch (e, s) {
+          completer.completeError(e, s);
+          sub.syncCancel();
+        }
+      },
+      onError: completer.completeError,
+      onDone: () {
+        if (found) {
+          return completer.complete(last);
+        }
+        if (orElse != null) {
           try {
-            if (test(value)) {
-              last = value;
-              found = true;
-            }
-          } catch (e, s) {
-            completer.completeError(e, s);
-            sub.syncCancel();
-          }
-        },
-        onError: completer.completeError,
-        onDone: () {
-          if (found) {
-            return completer.complete(last);
-          }
-          if (orElse != null) {
-            try {
-              completer.complete(orElse());
-            } catch (e, s) {
-              completer.completeError(e, s);
-            }
-            return;
-          }
-          try {
-            throw IterableElementError.noElement();
+            completer.complete(orElse());
           } catch (e, s) {
             completer.completeError(e, s);
           }
-        },
-        cancelOnError: true);
+          return;
+        }
+        try {
+          throw IterableElementError.noElement();
+        } catch (e, s) {
+          completer.completeError(e, s);
+        }
+      },
+      cancelOnError: true,
+    );
     return completer.future;
   }
 
@@ -781,10 +766,12 @@ abstract class RxStream<T> extends Stream<T> {
   // TODO: make a proper implementation of this
   @override
   RxStream<T> asBroadcastStream(
-          {void Function(StreamSubscription<T> subscription)? onListen,
-          void Function(StreamSubscription<T> subscription)? onCancel}) =>
-      this;
+      {void Function(StreamSubscription<T> subscription)? onListen,
+      void Function(StreamSubscription<T> subscription)? onCancel}) {
+    throw UnimplementedError();
+  }
 
+  // TODO: make a proper implementation of this
   @override
   RxStream<T> timeout(Duration timeLimit,
       {void Function(EventSink<T> sink)? onTimeout}) {
@@ -794,10 +781,8 @@ abstract class RxStream<T> extends Stream<T> {
 
   @override
   RxStream<T> handleError(Function onError,
-      {bool Function(dynamic error)? test}) {
-    // TODO: implement handleError
-    throw UnimplementedError();
-  }
+          {bool Function(dynamic error)? test}) =>
+      _ErrorStream(this, test);
 
   @override
   bool get isBroadcast => true;
@@ -827,28 +812,31 @@ abstract class RxStream<T> extends Stream<T> {
     final buffer = StringBuffer();
     bool first = true;
     listen(
-        separator.isEmpty
-            ? (T element) {
-                try {
-                  buffer.write(element);
-                } catch (e, s) {
-                  completer.completeError(e, s);
-                }
+      separator.isEmpty
+          ? (T element) {
+              try {
+                buffer.write(element);
+              } catch (e, s) {
+                completer.completeError(e, s);
               }
-            : (T element) {
-                if (!first) {
-                  buffer.write(separator);
-                }
-                first = false;
-                try {
-                  buffer.write(element);
-                } catch (e, s) {
-                  completer.completeError(e, s);
-                }
-              },
-        onError: completer.completeError, onDone: () {
-      completer.complete(buffer.toString());
-    }, cancelOnError: true);
+            }
+          : (T element) {
+              if (!first) {
+                buffer.write(separator);
+              }
+              first = false;
+              try {
+                buffer.write(element);
+              } catch (e, s) {
+                completer.completeError(e, s);
+              }
+            },
+      onError: completer.completeError,
+      onDone: () {
+        completer.complete(buffer.toString());
+      },
+      cancelOnError: true,
+    );
     return completer.future;
   }
 
@@ -905,14 +893,15 @@ abstract class RxStream<T> extends Stream<T> {
     Set<T> result = {};
     final completer = Completer<Set<T>>();
     listen(
-        (T data) {
-          result.add(data);
-        },
-        onError: completer.completeError,
-        onDone: () {
-          completer.complete(result);
-        },
-        cancelOnError: true);
+      (T data) {
+        result.add(data);
+      },
+      onError: completer.completeError,
+      onDone: () {
+        completer.complete(result);
+      },
+      cancelOnError: true,
+    );
     return completer.future;
   }
 }
@@ -936,65 +925,65 @@ class _MapStream<S, T> extends _ReactiveStream<T> {
   }
 }
 
-// Error handling
-class _AsyncMapStream<S, T> extends _ReactiveStream<T> {
-  _AsyncMapStream(RxStream<S> parent, Future<T> Function(S event) convert) {
-    if (parent._data is S) {
-      convert(parent._data as S).then((val) => _data = val).then((_) =>
-          _disposer = parent
-              .listen((S val) => convert(val).then(_add),
-                  onError: _addError, onDone: _close)
-              .syncCancel);
-    } else {
-      _disposer = parent
-          .listen((S val) => convert(val).then(_add),
-              onError: _addError, onDone: _close)
-          .syncCancel;
-    }
-  }
-}
-
 class _WhereStream<T> extends _ReactiveStream<T> {
   _WhereStream(RxStream<T> parent, bool Function(T event) test) {
-    if (parent._data is T && test(parent._data as T)) {
-      _data = parent._data;
-    }
-    _disposer = parent.listen((T val) {
-      if (test(val)) {
-        _add(val);
+    try {
+      if (parent._data is T && test(parent._data as T)) {
+        _data = parent._data;
       }
-    }, onError: _addError, onDone: _close).syncCancel;
+    } catch (_) {}
+    _disposer = parent.listen((T val) {
+      try {
+        if (test(val)) {
+          _add(val);
+        }
+      } catch (e, stack) {
+        _addError(e, stack);
+      }
+    }, onError: _addError, onDone: _close, cancelOnError: false).syncCancel;
   }
 }
 
 class _TakeWhileStream<T> extends _ReactiveStream<T> {
   _TakeWhileStream(RxStream<T> parent, bool Function(T event) test) {
-    if (parent._data is T && test(parent._data as T)) {
-      _data = parent._data;
-    }
-    _disposer = parent.listen((T val) {
-      if (test(val)) {
-        _add(val);
-      } else {
-        _close();
+    try {
+      if (parent._data is T && test(parent._data as T)) {
+        _data = parent._data;
       }
-    }, onError: _addError, onDone: _close).syncCancel;
+    } catch (_) {}
+    _disposer = parent.listen((T val) {
+      try {
+        if (test(val)) {
+          _add(val);
+        } else {
+          _close();
+        }
+      } catch (e, s) {
+        _addError(e, s);
+      }
+    }, onError: _addError, onDone: _close, cancelOnError: false).syncCancel;
   }
 }
 
 class _SkipWhileStream<T> extends _ReactiveStream<T> {
   _SkipWhileStream(RxStream<T> parent, bool Function(T event) test) {
-    if (parent._data is T && !test(parent._data as T)) {
-      _data = parent._data;
-    }
+    try {
+      if (parent._data is T && !test(parent._data as T)) {
+        _data = parent._data;
+      }
+    } catch (_) {}
     late final RxSubscription<T> sub;
     _disposer = (sub = parent.listen((T val) {
-      if (test(val)) {
-      } else {
-        _add(val);
-        sub.onData(_add);
+      try {
+        if (test(val)) {
+        } else {
+          _add(val);
+          sub.onData(_add);
+        }
+      } catch (e, s) {
+        _addError(e, s);
       }
-    }, onError: _addError, onDone: _close))
+    }, onError: _addError, onDone: _close, cancelOnError: false))
         .syncCancel;
   }
 }
@@ -1006,13 +995,17 @@ class _DistinctStream<T> extends _ReactiveStream<T> {
     final eq = equals ?? _eq;
     _disposer = parent.listen((T val) {
       if (_data is T) {
-        if (!eq(_data as T, val)) {
-          _add(val);
+        try {
+          if (!eq(_data as T, val)) {
+            _add(val);
+          }
+        } catch (e, s) {
+          _addError(e, s);
         }
       } else {
         _add(val);
       }
-    }, onError: _addError, onDone: _close).syncCancel;
+    }, onError: _addError, onDone: _close, cancelOnError: false).syncCancel;
   }
 
   bool _eq(T previous, T next) => previous == next;
@@ -1021,38 +1014,38 @@ class _DistinctStream<T> extends _ReactiveStream<T> {
 class _ExpandStream<T, S> extends _ReactiveStream<T> {
   _ExpandStream(RxStream<S> parent, Iterable<T> Function(S element) convert) {
     if (parent._data is S) {
-      for (var e in convert(parent._data as S)) {
-        _data = e;
-      }
+      try {
+        for (var e in convert(parent._data as S)) {
+          _data = e;
+        }
+      } catch (_) {}
     }
     _disposer = parent
         .listen((S val) => convert(val).forEach(_add),
-            onError: _addError, onDone: _close)
+            onError: _addError, onDone: _close, cancelOnError: false)
         .syncCancel;
   }
 }
 
-class _AsyncExpandStream<T, S> extends _ReactiveStream<T> {
-  _AsyncExpandStream(
-      RxStream<S> parent, Stream<T>? Function(S element) convert) {
-    if (parent._data is S) {
-      convert(parent._data as S);
-    }
-    // _disposer = parent
-    //     .listen((S val) => _add(convert(val)),
-    //         onError: _addError, onDone: _close)
-    //     ._syncCancel;
+class _ErrorStream<T> extends _ReactiveStream<T> {
+  _ErrorStream(RxStream<T> parent, bool Function(Object error)? test) {
+    _disposer = parent
+        .listen(null,
+            onError: (test == null)
+                ? _addError
+                : (Object error, [StackTrace? trace]) {
+                    if (test(error)) {
+                      _addError(error, trace);
+                    }
+                  },
+            onDone: _close,
+            cancelOnError: false)
+        .syncCancel;
   }
 }
 
-/**
- * Creates errors throw by [Iterable] when the element count is wrong.
- */
 abstract class IterableElementError {
-  /** Error thrown thrown by, e.g., [Iterable.first] when there is no result. */
   static StateError noElement() => StateError("No element");
-  /** Error thrown by, e.g., [Iterable.single] if there are too many results. */
   static StateError tooMany() => StateError("Too many elements");
-  /** Error thrown by, e.g., [List.setRange] if there are too few elements. */
   static StateError tooFew() => StateError("Too few elements");
 }

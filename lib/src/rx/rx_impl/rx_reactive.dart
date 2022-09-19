@@ -13,8 +13,6 @@ class Reactive<T> implements EventSink<T> {
   _NodeSub<T, Function(T value)>? _firstSubscrption;
   _NodeSub<T, Function(T value)>? _lastSubscription;
 
-  StreamController<T>? _asyncStreamController;
-
   /// Retreive the data and add one if specified
   T call([T? value]) {
     if (value != null) {
@@ -22,6 +20,9 @@ class Reactive<T> implements EventSink<T> {
     }
     return data;
   }
+
+  /// Chekc if this rx has a value
+  bool get hasValue => _data is T;
 
   Reactive({T? initial, Equality eq = const Equality()})
       : _data = initial,
@@ -70,6 +71,14 @@ class Reactive<T> implements EventSink<T> {
   }
 
   _RxStream<T>? _stream;
+
+  /// The stream associated with this Rx
+  ///
+  /// Returns a Fast Sync Broadcast [Stream<T>]
+  /// This is a full reimplementation of Stream
+  /// If you what this stream to be async
+  /// Just call the `async()` method
+  /// Be aware that async() stream is 10-100x slower
   RxStream<T> get stream {
     if (_stream == null) {
       return _stream = _RxStream<T>(this);

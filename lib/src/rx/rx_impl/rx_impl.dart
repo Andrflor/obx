@@ -5,9 +5,7 @@ class RxImpl<T> extends Reactive<T> {
 
   Rx<S> _clone<S>({bool? distinct, S Function(T e)? convert, Equality? eq}) =>
       Rx.withEq(
-          // TODO: add back this with hasValue
-          // init: hasValue ? (convert?.call(_data as T) ?? _data as S) : null,
-          init: (convert?.call(_data as T) ?? _data as S),
+          init: hasValue ? (convert?.call(_data as T) ?? _data as S) : null,
           eq: eq ??
               (distinct == null
                   ? _eq
@@ -23,19 +21,17 @@ class RxImpl<T> extends Reactive<T> {
   ///
   /// Avoid chaining this operator
   /// To do common operation, prefer the other `pipe` operators
-  /// Those are not based on stream, so much faster
   /// See also:
   /// - [pipeMap]
   /// - [pipeWhere]
   /// - [pipeMapWhere]
   Rx<S> pipe<S>(StreamTransformation<S, T> transformer,
-          {S Function(T e)? init, bool? distinct}) =>
+          {S Function(T e)? init, bool? distinct, Equality? eq}) =>
       _clone(
         convert: init,
+        eq: eq,
         distinct: distinct,
-      );
-  // TODO: add back this
-  // )..bindStream(transformer(stream));
+      )..bindStream(transformer(stream));
 
   /// Maps this [Rx<T>] into a new [Rx<S>]
   ///
@@ -45,12 +41,13 @@ class RxImpl<T> extends Reactive<T> {
   /// [pipeMap] is a lightWeight operator since it does not need stream
   ///
   /// If you have more complex operation to do, use [pipe] instead
-  Rx<S> pipeMap<S>(S Function(T e) transform, {bool? distinct, Equality? eq}) {
-    final res = _clone(distinct: distinct, convert: transform, eq: eq);
-    // TODO: add back this
-    // res._addDisposeListener(listen((T data) => res.data = transform(data)));
-    return res;
-  }
+  Rx<S> pipeMap<S>(S Function(T e) transform, {bool? distinct, Equality? eq}) =>
+      pipe<S>(
+        (e) => e.map(transform),
+        init: transform,
+        distinct: distinct,
+        eq: eq,
+      );
 
   /// Create a [Rx<T>] from this [Rx<T>] discarding elements based on a `test`
   ///
@@ -60,16 +57,13 @@ class RxImpl<T> extends Reactive<T> {
   /// [pipeWhere] is a lightWeight operator since it does not need stream
   ///
   /// If you have more complex operation to do, use [pipe] instead
-  Rx<T> pipeWhere(bool Function(T e) test, {bool? distinct, Equality? eq}) {
-    final res = _clone<T>(distinct: distinct, eq: eq);
-    // TODO: add back this
-    // res._addDisposeListener(listen((T data) {
-    //   if (test(data)) {
-    //     res.data = data;
-    //   }
-    // }));
-    return res;
-  }
+  Rx<T> pipeWhere(bool Function(T e) test, {bool? distinct, Equality? eq}) =>
+      pipe<T>(
+        (e) => e.where(test),
+        init: hasValue && test(_data as T) ? (e) => e : null,
+        distinct: distinct,
+        eq: eq,
+      );
 
   /// Maps this [Rx<T>] into [Rx<T>] discarding elements based on a `test`
   ///
@@ -81,16 +75,13 @@ class RxImpl<T> extends Reactive<T> {
   ///
   /// If you have more complex operation to do, use [pipe] instead
   Rx<S> pipeMapWhere<S>(S Function(T e) transform, bool Function(T e) test,
-      {bool? distinct, Equality? eq}) {
-    final res = _clone(distinct: distinct, eq: eq, convert: transform);
-    // TODO: add back this
-    // res._addDisposeListener(listen((T data) {
-    //   if (test(data)) {
-    //     res.data = transform(data);
-    //   }
-    // }));
-    return res;
-  }
+          {bool? distinct, Equality? eq}) =>
+      pipe<S>(
+        (e) => e.where(test).map(transform),
+        init: hasValue && test(_data as T) ? transform : null,
+        distinct: distinct,
+        eq: eq,
+      );
 
   /// Create an exact copy of the [Rx<T>]
   ///
@@ -110,33 +101,6 @@ class RxImpl<T> extends Reactive<T> {
   /// Be aware that even if this observable is indistinct
   /// The value it recieves from the parent will match parent policy
   Rx<T> indistinct() => dupe(eq: const NeverEquality());
-
-  /// The stream associated with this Rx
-  ///
-  /// Returns a Broadcast [Stream<T>]
-  /// The [StreamController] is lazy loaded
-  ///
-  /// Only use it if you really need it
-  /// Streams are 10 to 100 times slower
-  /// And use more ressources
-  ///
-  /// Furthermore [Rx] is not based on stream
-  // TODO: add back this
-  // Stream<T> get stream {
-  //   if (_hasController) return _streamController!.stream;
-  //   _streamController = StreamController<T>.broadcast();
-  //   _addListener(_streamController!.add);
-  //   _streamController!.onCancel = () {
-  //     if (!_streamController!.hasListener) {
-  //       _removeListener(_streamController!.add);
-  //       _streamController!.close();
-  //       _streamController = null;
-  //       _toggleHasController();
-  //     }
-  //   };
-  //   _toggleHasController();
-  //   return _streamController!.stream;
-  // }
 
   @override
   String toString() => data.toString();
@@ -158,22 +122,13 @@ class RxImpl<T> extends Reactive<T> {
   /// You can bind multiple sources to update the value.
   /// Once a stream closes the subscription will cancel itself
   /// You can also cancel the sub with the provided callback
-  Disposer bindStream(Stream<T> stream, [StreamFilter<T>? filter]) {
-    final sub = (filter?.call(stream) ?? stream).listen((e) {
-      data = e;
-    }, cancelOnError: false);
-
-    // TODO: add back this
-    // _addDisposeListener(sub.cancel);
-    clean() {
-      // TODO: add back this
-      // _removeDisposeListener(sub.cancel);
-      sub.cancel();
-    }
-
-    sub.onDone(clean);
-    return clean;
-  }
+  StreamSubscription<T> bindStream(Stream<T> stream,
+          [StreamFilter<T>? filter]) =>
+      (filter?.call(stream) ?? stream).listen(
+        add,
+        onError: addError,
+        cancelOnError: false,
+      );
 
   /// Binding to this [Rx<T>] to any other [Rx<T>]
   ///
@@ -183,24 +138,12 @@ class RxImpl<T> extends Reactive<T> {
   /// It's impossible to know when a [ValueListenable] is done
   /// You will have to clean it up yourself
   /// For that you can call the provided [Disposer]
-  Disposer bindRx(RxImpl<T> rx, [StreamFilter<T>? filter]) {
-    final sub = rx.listen(
-      (e) {
-        data = e;
-      },
-      // TODO: add back this
-      // filter: filter,
-    );
-    // TODO: add back this
-    // _addDisposeListener(sub);
-    clean() {
-      // TODO: add back this
-      // _removeDisposeListener(sub);
-      // sub();
-    }
-
-    return clean;
-  }
+  StreamSubscription<T> bindRx(RxImpl<T> rx, [StreamFilter<T>? filter]) =>
+      (filter?.call(rx.stream) ?? rx.stream).listen(
+        add,
+        onError: addError,
+        cancelOnError: false,
+      );
 
   /// Binding to any listener with callback
   ///
@@ -210,7 +153,7 @@ class RxImpl<T> extends Reactive<T> {
   /// It's impossible to know when a [ValueListenable] is done
   /// You will have to clean it up yourself
   /// For that you can call the provided [Disposer]
-  Disposer bindValueListenable(
+  RxSubscription<T> bindValueListenable(
     ValueListenable<T> listenable,
   ) {
     closure() {
@@ -218,16 +161,10 @@ class RxImpl<T> extends Reactive<T> {
     }
 
     listenable.addListener(closure);
-    cancel() => listenable.removeListener(closure);
 
-    // TODO: add back this
-    // _addDisposeListener(cancel);
-
-    return () {
-      // TODO: add back this
-      // _removeDisposeListener(cancel);
-      cancel();
-    };
+    return listen(null, onDone: () {
+      listenable.removeListener(closure);
+    });
   }
 
   /// Binding to any listener with provided `onEvent` callback
@@ -238,19 +175,14 @@ class RxImpl<T> extends Reactive<T> {
   /// It's impossible to know when a [Listenable] is done
   /// You will have to clean it up yourself
   /// For that you can call the provided [Disposer]
-  Disposer bindListenable(Listenable listenable,
+  RxSubscription<T> bindListenable(Listenable listenable,
       {required T Function() onEvent}) {
     closure() => data = onEvent();
     listenable.addListener(closure);
-    cancel() => listenable.removeListener(closure);
-    // TODO: add back this
-    // _addDisposeListener(cancel);
 
-    return () {
-      // TODO: add back this
-      // _removeDisposeListener(cancel);
-      cancel();
-    };
+    return listen(null, onDone: () {
+      listenable.removeListener(closure);
+    });
   }
 }
 

@@ -130,7 +130,7 @@ Future<void> streamTest(int i) async {
   final _completer = Completer<void>();
   final streamController = StreamController<int>.broadcast(sync: true);
   var streamCounter = 0;
-  final stream = streamController.stream.asBroadcastStream();
+  final stream = streamController.stream;
   listener(_) {}
   final callbackList = List<Future Function()?>.filled(i + 1, null);
   late final DateTime start;
@@ -216,7 +216,7 @@ Future<void> rxTrest(int i) async {
   for (int k = 0; k < loops; k++) {
     stopWatch.start();
     for (int j = 0; j <= i; j++) {
-      callbackList[j] = newStream.listen(listener).cancel;
+      callbackList[j] = newStream.listen(listener).syncCancel;
     }
     stopWatch.stop();
     stopWatch2.start();
