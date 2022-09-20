@@ -34,7 +34,7 @@ class _NodeSub<E, T extends Function(E value)>
     onDone(() => completer.complete(futureValue as S));
     onError((Object error, [StackTrace? trace]) {
       completer.completeError(error, trace);
-      cancel();
+      syncCancel();
     });
     return completer.future;
   }
@@ -80,7 +80,6 @@ class _NodeSub<E, T extends Function(E value)>
   @override
   Future<void> cancel() async {
     if (identical(_parent, null)) return;
-    // TODO: notify parent onCancel if needed
     _parent!._unlink(this);
     _parent = null;
     _paused = false;
@@ -89,7 +88,6 @@ class _NodeSub<E, T extends Function(E value)>
   // Faster cancel due to sync nature
   void syncCancel() {
     if (identical(_parent, null)) return;
-    // TODO: notify parent onCancel if needed
     _parent!._unlink(this);
     _parent = null;
     _paused = false;
@@ -124,6 +122,9 @@ class _RxStream<T> extends RxStream<T> {
 class _ReactiveStream<T> extends RxStream<T> {
   Function()? _disposer;
 
+  FutureOr<void> Function()? _onCancel;
+  void Function()? _onListen;
+
   _ReactiveStream._(Stream<T> parent) {
     _disposer =
         parent.listen(_add, onError: _addError, onDone: _close).syncCancel;
@@ -141,6 +142,7 @@ class _ReactiveStream<T> extends RxStream<T> {
       {Function? onError, VoidCallback? onDone, bool? cancelOnError}) {
     final node = _NodeSub<T, Function(T value)>(this, onData, onError, onDone);
     if (identical(_firstSubscrption, null)) {
+      _onListen?.call();
       _lastSubscription = node;
       return _firstSubscrption = node;
     }
@@ -261,6 +263,7 @@ class _ReactiveStream<T> extends RxStream<T> {
       if (identical(_lastSubscription, node)) {
         // First = Last = Node
         _firstSubscrption = _lastSubscription = null;
+        _onCancel?.call();
         return;
       }
       // First = Node
@@ -762,22 +765,16 @@ abstract class RxStream<T> extends Stream<T> {
     return completer.future;
   }
 
-  /// As no effect since it is already a broadcast stream
-  // TODO: make a proper implementation of this
   @override
   RxStream<T> asBroadcastStream(
-      {void Function(StreamSubscription<T> subscription)? onListen,
-      void Function(StreamSubscription<T> subscription)? onCancel}) {
-    throw UnimplementedError();
-  }
+          {void Function(StreamSubscription<T> subscription)? onListen,
+          void Function(StreamSubscription<T> subscription)? onCancel}) =>
+      _ReactiveStream._(this);
 
-  // TODO: make a proper implementation of this
   @override
   RxStream<T> timeout(Duration timeLimit,
-      {void Function(EventSink<T> sink)? onTimeout}) {
-    // TODO: implement timeout
-    throw UnimplementedError();
-  }
+          {void Function(EventSink<T> sink)? onTimeout}) =>
+      _TimeoutStream(this, timeLimit, onTimeout: onTimeout);
 
   @override
   RxStream<T> handleError(Function onError,
@@ -1042,6 +1039,56 @@ class _ErrorStream<T> extends _ReactiveStream<T> {
             cancelOnError: false)
         .syncCancel;
   }
+}
+
+class _TimeoutStream<T> extends _ReactiveStream<T> {
+  late Timer Function() _createTimer;
+
+  _TimeoutStream(RxStream<T> parent, Duration timeLimit,
+      {void Function(EventSink<T> sink)? onTimeout}) {
+    _createTimer = () => Timer(
+        timeLimit,
+        onTimeout == null
+            ? () => _addError(TimeoutException("No stream event", timeLimit))
+            : () => onTimeout(_EventSink(this)));
+
+    late final RxSubscription<T> sub;
+    Timer timer = _createTimer();
+    _onListen = () {
+      sub = parent.listen((T value) {
+        timer.cancel();
+        timer = _createTimer();
+        _add(value);
+      }, onError: (Object e, [StackTrace? s]) {
+        timer.cancel();
+        timer = _createTimer();
+        _addError(e, s);
+      }, onDone: () {
+        timer.cancel();
+        _close();
+      });
+    };
+
+    _onCancel = () {
+      timer.cancel();
+      return sub.syncCancel();
+    };
+  }
+}
+
+class _EventSink<T> implements EventSink<T> {
+  final _ReactiveStream<T> _parent;
+
+  _EventSink(this._parent);
+
+  @override
+  void add(T event) => _parent._add;
+
+  @override
+  void addError(Object error, [StackTrace? stackTrace]) => _parent._addError;
+
+  @override
+  void close() => _parent._close;
 }
 
 abstract class IterableElementError {

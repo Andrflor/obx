@@ -89,6 +89,9 @@ class Reactive<T> implements EventSink<T> {
   @override
   void add(T event) => data = event;
 
+  void Function()? _onListen;
+  void Function()? _onCancel;
+
   // Allow to listen and gives you a subscription in return
   // Like [StreamSubscription] except that cancel is synchronous
   RxSubscription<T> listen(
@@ -100,6 +103,7 @@ class Reactive<T> implements EventSink<T> {
     final node = _NodeSub<T, Function(T value)>(this, onData, onError, onDone);
     if (identical(_firstSubscrption, null)) {
       _lastSubscription = node;
+      _onListen?.call();
       return _firstSubscrption = node;
     }
     node._previous = _lastSubscription;
@@ -214,6 +218,7 @@ class Reactive<T> implements EventSink<T> {
       if (identical(_lastSubscription, node)) {
         // First = Last = Node
         _firstSubscrption = _lastSubscription = null;
+        _onCancel?.call();
         return;
       }
       // First = Node
@@ -230,17 +235,6 @@ class Reactive<T> implements EventSink<T> {
     // Node = Random
     node._next!._previous = node._previous;
     node._previous!._next = node._next;
-  }
-
-  // Allow to listen and gives you a subscription in return
-  // Like [StreamSubscription] except that cancel is synchronous
-  RxSubscription<T> _listen(_NodeSub<T, Function(T value)> node) {
-    if (identical(_firstSubscrption, null)) {
-      _lastSubscription = node;
-      return _firstSubscrption = node;
-    }
-    node._previous = _lastSubscription;
-    return _lastSubscription = _lastSubscription!._next = node;
   }
 
   @protected
