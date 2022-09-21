@@ -193,14 +193,7 @@ class RxImpl<T> extends Reactive<T> {
 /// Then it fire once, and then it dies
 /// So it really has a "single shot"
 class SingleShot<T> extends Reactive<T> {
-  SingleShot() : super() {
-    Orchestrator.element!.singles.add(this);
-  }
-
   final VoidCallback update = Orchestrator.element!.markNeedsBuild;
-
-  @override
-  T get data => _data as T;
 
   @override
   set data(T val) {

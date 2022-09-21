@@ -4,9 +4,14 @@ part of '../../orchestrator.dart';
 typedef RxSubscription<T> = _NodeSub<T, Function(T value)>;
 typedef ErrorCallBack = void Function(Object error, [StackTrace? trace]);
 
+abstract class Subscription<E> extends StreamSubscription<E> {
+  // We explicitly use dynamic here because otherwise we would need mixins
+  // And mixins are slow for some reason...
+  dynamic _parent;
+}
+
 // For some reason that explicit Function(E value) makes it way faster
-class _NodeSub<E, T extends Function(E value)>
-    implements StreamSubscription<E> {
+class _NodeSub<E, T extends Function(E value)> implements Subscription<E> {
   T? get _handleData => _paused ? null : __handleData;
   T? __handleData;
 
@@ -19,11 +24,13 @@ class _NodeSub<E, T extends Function(E value)>
   // We explicitly use dynamic here because it gives faster unlink
   dynamic _previous;
   _NodeSub<E, T>? _next;
-  // We explicitly use dynamic here because otherwise we would need mixins
-  // And mixins are slow for some reason...
-  dynamic _parent;
 
   bool _paused = false;
+
+  // We explicitly use dynamic here because otherwise we would need mixins
+  // And mixins are slow for some reason...
+  @override
+  dynamic _parent;
 
   _NodeSub(this._parent,
       [this.__handleData, this.__handleError, this.__handleDone]);

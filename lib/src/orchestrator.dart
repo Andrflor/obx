@@ -48,6 +48,15 @@ abstract class Orchestrator {
     notifyData = null;
   }
 
+  static void read<T>(Reactive<T> reactive) {
+    for (int i = 0; i < reactives.length; i++) {
+      if (reactives[i] == reactive) {
+        return;
+      }
+    }
+    notifyData!.disposers.add(reactive.listen(notifyData!.updater).syncCancel);
+  }
+
   static T observe<T>(T Function() builder) {
     final base = SingleShot<T>();
     _internal(builder, base);
@@ -88,8 +97,7 @@ class ObxError {
 
 /// Component that can track changes in a reactive variable
 mixin StatelessObserverComponent on StatelessElement {
-  List<Reactive> reactives = [];
-  List<SingleShot> singles = [];
+  List<Subscription> reactives = [];
 
   void refresh(_) => markNeedsBuild();
 
@@ -98,7 +106,7 @@ mixin StatelessObserverComponent on StatelessElement {
     Orchestrator.element = this;
     final result = super.build();
     assert(() {
-      if (reactives.isEmpty && singles.isEmpty) {
+      if (reactives.isEmpty) {
         throw const ObxError();
       }
       return true;
@@ -110,18 +118,16 @@ mixin StatelessObserverComponent on StatelessElement {
   @override
   void unmount() {
     super.unmount();
-    clean();
     for (int i = 0; i < reactives.length; i++) {
-      // TODO: add  back cleanup
-      // reactives[i]._unsafeRemoveListener(refresh);
+      reactives[i].syncCancel();
     }
     reactives = [];
   }
 
-  void clean() {
-    for (int i = 0; i < singles.length; i++) {
-      singles[i].close();
+  void read<T>(Reactive<T> reactive) {
+    for (int i = 0; i < reactives.length; i++) {
+      if (reactives[i]._parent == reactive) return;
     }
-    singles = [];
+    reactives.add(reactive.listen(refresh));
   }
 }

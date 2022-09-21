@@ -116,7 +116,6 @@ T observe<T>(T Function() builder) {
 /// It takes a [StreamFilter<T>] aka [Stream<T> Function(Stream<T>)]
 /// It allows you to make any stream filtering operation
 /// Example: (stream) => stream.skip(1).skipWhile(//someCondition).take(5)
-// TODO: add back this
 // Disposer ever<T>(
 //   Object observable,
 //   Function(T value) onData, {

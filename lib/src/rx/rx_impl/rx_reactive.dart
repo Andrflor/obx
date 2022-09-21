@@ -240,24 +240,9 @@ class Reactive<T> implements EventSink<T> {
   @protected
   void _reportRead() {
     if (Orchestrator.notInObserve) {
-      final reactives = Orchestrator.element!.reactives;
-      for (int i = 0; i < reactives.length; i++) {
-        if (reactives[i] == this) return;
-      }
-      reactives.add(this);
-      // TODO: add back
-      // _addListener(Orchestrator.element!.refresh);
+      Orchestrator.element!.read(this);
     } else {
-      final reactives = Orchestrator.reactives;
-      for (int i = 0; i < reactives.length; i++) {
-        if (reactives[i] == this) return;
-      }
-      final listener = Orchestrator.notifyData!.updater;
-      reactives.add(this);
-      // TODO: add back
-      // _addListener(listener);
-      // Orchestrator.notifyData!.disposers
-      // .add(() => _unsafeRemoveListener(listener));
+      Orchestrator.read(this);
     }
   }
 
