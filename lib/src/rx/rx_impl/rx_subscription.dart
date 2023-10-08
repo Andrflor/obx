@@ -4,7 +4,7 @@ part of '../../orchestrator.dart';
 typedef RxSubscription<T> = _NodeSub<T, Function(T value)>;
 typedef ErrorCallBack = void Function(Object error, [StackTrace? trace]);
 
-abstract class Subscription<E> extends StreamSubscription<E> {
+abstract class Subscription<E> implements StreamSubscription<E> {
   // We explicitly use dynamic here because otherwise we would need mixins
   // And mixins are slow for some reason...
   dynamic _parent;
@@ -147,9 +147,9 @@ class _ReactiveStream<T> extends RxStream<T> {
   @override
   RxSubscription<T> listen(Function(T value)? onData,
       {Function? onError, VoidCallback? onDone, bool? cancelOnError}) {
+    _onListen?.call();
     final node = _NodeSub<T, Function(T value)>(this, onData, onError, onDone);
     if (identical(_firstSubscrption, null)) {
-      _onListen?.call();
       _lastSubscription = node;
       return _firstSubscrption = node;
     }

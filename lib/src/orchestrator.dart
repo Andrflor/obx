@@ -97,16 +97,19 @@ class ObxError {
 
 /// Component that can track changes in a reactive variable
 mixin StatelessObserverComponent on StatelessElement {
-  List<Subscription> reactives = [];
+  List<Subscription>? reactives = [];
 
-  void refresh(_) => markNeedsBuild();
+  void refresh(_) {
+    print("Rebuilding");
+    markNeedsBuild();
+  }
 
   @override
   Widget build() {
     Orchestrator.element = this;
     final result = super.build();
     assert(() {
-      if (reactives.isEmpty) {
+      if (reactives!.isEmpty) {
         throw const ObxError();
       }
       return true;
@@ -118,16 +121,16 @@ mixin StatelessObserverComponent on StatelessElement {
   @override
   void unmount() {
     super.unmount();
-    for (int i = 0; i < reactives.length; i++) {
-      reactives[i].syncCancel();
+    for (int i = 0; i < reactives!.length; i++) {
+      reactives![i].syncCancel();
     }
-    reactives = [];
+    reactives = null;
   }
 
   void read<T>(Reactive<T> reactive) {
-    for (int i = 0; i < reactives.length; i++) {
-      if (reactives[i]._parent == reactive) return;
+    for (int i = 0; i < reactives!.length; i++) {
+      if (reactives![i]._parent == reactive) return;
     }
-    reactives.add(reactive.listen(refresh));
+    reactives!.add(reactive.listen(refresh));
   }
 }

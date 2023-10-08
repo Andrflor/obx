@@ -16,7 +16,7 @@ void main() async {
     // await controlTest(i);
     await notifierTest(j);
     await rxTrest(j);
-    await streamTest(i);
+    // await streamTest(i);
     // await getxTrest(i);
   }
 }

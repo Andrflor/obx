@@ -10,7 +10,7 @@ class Reactive<T> implements EventSink<T> {
   Equality get equalizer =>
       _eq is CacheWrapper<T> ? (_eq as CacheWrapper<T>).eq : _eq;
 
-  _NodeSub<T, Function(T value)>? _firstSubscrption;
+  _NodeSub<T, Function(T value)>? _firstSubscription;
   _NodeSub<T, Function(T value)>? _lastSubscription;
 
   /// Retreive the data and add one if specified
@@ -101,21 +101,22 @@ class Reactive<T> implements EventSink<T> {
     bool? cancelOnError,
   }) {
     final node = _NodeSub<T, Function(T value)>(this, onData, onError, onDone);
-    if (identical(_firstSubscrption, null)) {
-      _lastSubscription = node;
+    if (_firstSubscription == null) {
+      _lastSubscription = _firstSubscription = node;
       _onListen?.call();
-      return _firstSubscrption = node;
+      return node;
     }
     node._previous = _lastSubscription;
-    return _lastSubscription = _lastSubscription!._next = node;
+    _lastSubscription = _lastSubscription!._next = node;
+    return node;
   }
 
   /// Emit the last data value
   void emit() {
-    if (identical(_firstSubscrption, null)) return;
+    if (identical(_firstSubscription, null)) return;
     _NodeSub<T, Function(T value)>? currentSubscription;
     try {
-      currentSubscription = _firstSubscrption?.._handleData?.call(_data as T);
+      currentSubscription = _firstSubscription?.._handleData?.call(_data as T);
       while (
           !identical(currentSubscription = currentSubscription!._next, null)) {
         currentSubscription!._handleData?.call(_data as T);
@@ -132,10 +133,10 @@ class Reactive<T> implements EventSink<T> {
   /// Allow to add an error with an optional [StackTrace]
   void addError(Object error, [StackTrace? trace]) {
     _error = error;
-    if (identical(_firstSubscrption, null)) return;
+    if (identical(_firstSubscription, null)) return;
     _NodeSub<T, Function(T e)>? currentSubscription;
     try {
-      currentSubscription = _firstSubscrption
+      currentSubscription = _firstSubscription
         ?.._handleError?.call(error, trace);
       while (
           !identical(currentSubscription = currentSubscription!._next, null)) {
@@ -156,9 +157,9 @@ class Reactive<T> implements EventSink<T> {
   @override
   void close() {
     // No need to close if we have no _firstSubscrption
-    if (identical(_firstSubscrption, null)) return;
-    _NodeSub<T, Function(T e)>? currentSubscription = _firstSubscrption;
-    _firstSubscrption = _lastSubscription = null;
+    if (identical(_firstSubscription, null)) return;
+    _NodeSub<T, Function(T e)>? currentSubscription = _firstSubscription;
+    _firstSubscription = _lastSubscription = null;
     try {
       while (!identical(
           currentSubscription = currentSubscription!._close(), null)) {}
@@ -214,16 +215,16 @@ class Reactive<T> implements EventSink<T> {
   }
 
   void _unlink(node) {
-    if (identical(_firstSubscrption, node)) {
+    if (identical(_firstSubscription, node)) {
       if (identical(_lastSubscription, node)) {
         // First = Last = Node
-        _firstSubscrption = _lastSubscription = null;
+        _firstSubscription = _lastSubscription = null;
         _onCancel?.call();
         return;
       }
       // First = Node
-      _firstSubscrption = node._next;
-      _firstSubscrption!._previous = null;
+      _firstSubscription = node._next;
+      _firstSubscription!._previous = null;
       return;
     }
     if (identical(_lastSubscription, node)) {

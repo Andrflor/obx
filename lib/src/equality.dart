@@ -15,6 +15,33 @@ class NeverEquality<E> implements Equality<E> {
   bool isValidKey(Object? o) => o is E;
 }
 
+class PropEquality<E, F> implements Equality<E> {
+  final F Function(E) _comparisonKey;
+
+  final Equality<F> _inner;
+
+  const PropEquality(F Function(E) comparisonKey,
+      [Equality<F> inner = const DefaultEquality<Never>()])
+      : _comparisonKey = comparisonKey,
+        _inner = inner;
+
+  @override
+  bool equals(E e1, E e2) =>
+      _inner.equals(_comparisonKey(e1), _comparisonKey(e2));
+
+  @override
+  int hash(E e) => _inner.hash(_comparisonKey(e));
+
+  @override
+  bool isValidKey(Object? o) {
+    if (o is E) {
+      final value = _comparisonKey(o);
+      return _inner.isValidKey(value);
+    }
+    return false;
+  }
+}
+
 class CallbackEquality<E> implements Equality<E> {
   final bool Function(E? e1, E? e2) callback;
   const CallbackEquality(this.callback);
