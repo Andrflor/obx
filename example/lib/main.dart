@@ -6,6 +6,10 @@ import 'package:get/get.dart' as getx;
 
 void main() => runApp(const App());
 
+class AppConfig {}
+
+abstract class Nav {}
+
 class App extends StatelessWidget {
   const App({super.key});
 
@@ -17,11 +21,29 @@ class App extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() => Localizations(delegates: const [
+    return Obx(
+      () => Localizations(
+        delegates: const [
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
-        ], locale: locale(), child: Theme(data: theme(), child: Test())));
+        ],
+        locale: locale(),
+        child: Theme(
+          data: theme(),
+          child: Scaffold(
+            appBar: AppBar(
+              title: Obx(() => Text(router.currentConfig.data.uri.toString())),
+            ),
+            body: Obx(() => Test()),
+          ),
+        ),
+      ),
+    );
   }
+}
+
+abstract class Intent {
+  Future<bool> execute(AppState state);
 }
 
 class AppState {}
@@ -40,7 +62,7 @@ extension _LastFunc on RxList<RouteConfig> {
   RouteConfig _last() => data.last;
 }
 
-String _compareRoute(RouteConfig conf) => conf.url;
+String _compareRoute(RouteConfig conf) => conf.uri.toString();
 const routeConfigEquality = PropEquality(_compareRoute);
 
 class RouterState {
@@ -50,7 +72,6 @@ class RouterState {
 }
 
 class RouteConfig {
-  String get url => uri.path;
   final Uri uri;
   RouteConfig(this.uri);
 }
@@ -91,8 +112,7 @@ class Test extends StatelessWidget {
             );
           }),
           ElevatedButton(
-              onPressed: () => appState.locale(Locale('fr')),
-              child: Text("Click")),
+              onPressed: () => App.locale(Locale('fr')), child: Text("Click")),
           // getx.Obx(() {
           //   trolil++;
           //   if (trolil < loops) {
