@@ -4,31 +4,27 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:obx/obx.dart';
 import 'package:get/get.dart' as getx;
 
-// void main() => runApp(MaterialApp.router(
-//       routerConfig: AppRouterConfig(),
-//     ));
-
 void main() => runApp(const App());
 
 class App extends StatelessWidget {
   const App({super.key});
 
+  static final state = AppState();
+  static final locale = Rx<Locale>(Locale('en'));
+  static final theme =
+      Rx<ThemeData>(ThemeData(scaffoldBackgroundColor: Colors.red));
+  static final router = RouterState();
+
   @override
   Widget build(BuildContext context) {
-    return Obx(() => Localizations(
-            delegates: const [
-              GlobalMaterialLocalizations.delegate,
-              GlobalWidgetsLocalizations.delegate,
-            ],
-            locale: appState.locale(),
-            child: Theme(data: appState.theme(), child: Test())));
+    return Obx(() => Localizations(delegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+        ], locale: locale(), child: Theme(data: theme(), child: Test())));
   }
 }
 
-class AppState {
-  final locale = Rx<Locale>(Locale('en'));
-  final theme = Rx<ThemeData>(ThemeData(scaffoldBackgroundColor: Colors.red));
-}
+class AppState {}
 
 Uri _startingUri() => Uri.parse(kIsWeb
     ? Uri.base
@@ -47,16 +43,8 @@ extension _LastFunc on RxList<RouteConfig> {
 String _compareRoute(RouteConfig conf) => conf.url;
 const routeConfigEquality = PropEquality(_compareRoute);
 
-class AppRouterConfig extends RouterConfig<RouteConfig> {
-  AppRouterConfig()
-      : super(
-          routerDelegate: AppRouterDelegate(),
-          routeInformationParser: AppRouteInformationParser(),
-        );
-}
-
 class RouterState {
-  final RxList<RouteConfig> routes = Rx([]);
+  final RxList<RouteConfig> routes = Rx([RouteConfig(_startingUri())]);
   late final Rx<RouteConfig> currentConfig =
       Rx.fuse(routes._last, eq: routeConfigEquality);
 }
@@ -65,39 +53,6 @@ class RouteConfig {
   String get url => uri.path;
   final Uri uri;
   RouteConfig(this.uri);
-}
-
-class AppRouterDelegate extends RouterDelegate<RouteConfig> {
-  @override
-  void addListener(VoidCallback listener) {}
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: ElevatedButton(
-        onPressed: () {},
-        child: Text(MaterialLocalizations.of(context).backButtonTooltip),
-      ),
-    );
-  }
-
-  @override
-  Future<bool> popRoute() {
-    throw UnimplementedError();
-  }
-
-  @override
-  void removeListener(VoidCallback listener) {}
-
-  @override
-  Future<void> setNewRoutePath(RouteConfig configuration) async {}
-}
-
-class AppRouteInformationParser extends RouteInformationParser<RouteConfig> {
-  @override
-  Future<RouteConfig> parseRouteInformation(RouteInformation routeInformation) {
-    return SynchronousFuture(RouteConfig(routeInformation.uri));
-  }
 }
 
 final rxInt = RxnInt();
