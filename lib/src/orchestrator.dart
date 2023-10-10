@@ -31,6 +31,8 @@ abstract class Orchestrator {
 
   static void _internal<T, S extends Reactive<T>>(
       T Function() builder, S base) {
+    //TODO: use something more optimized and un a timeout debouncer instead of that one
+    // maybe the debouncer may be a view parameter so you may have very reactive views ?
     final debouncer = EveryDebouncer(
         delay: const Duration(milliseconds: 5), retries: 4, enabled: false);
     notifyData = NotifyData(

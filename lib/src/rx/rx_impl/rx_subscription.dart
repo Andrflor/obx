@@ -448,6 +448,8 @@ abstract class RxStream<T> extends Stream<T> {
   @override
   RxStream<T> where(bool Function(T event) test) => _WhereStream(this, test);
 
+  RxStream<S> whereType<S>() => _WhereTypeStream<T, S>(this);
+
   @override
   Future<bool> any(bool Function(T element) test) {
     final completer = Completer<bool>.sync();
@@ -924,6 +926,19 @@ class _MapStream<S, T> extends _ReactiveStream<T> {
         _add(convert(val));
       } catch (e, stack) {
         _addError(e, stack);
+      }
+    }, onError: _addError, onDone: _close).syncCancel;
+  }
+}
+
+class _WhereTypeStream<S, T> extends _ReactiveStream<T> {
+  _WhereTypeStream(RxStream<S> parent) {
+    if (parent._data is T) {
+      _data = parent._data as T;
+    }
+    _disposer = parent.listen((S val) {
+      if (val is T) {
+        _add(val);
       }
     }, onError: _addError, onDone: _close).syncCancel;
   }

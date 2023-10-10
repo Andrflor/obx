@@ -4,7 +4,7 @@ class RxImpl<T> extends Reactive<T> {
   RxImpl({super.initial, super.eq});
 
   Rx<S> _clone<S>({bool? distinct, S Function(T e)? convert, Equality? eq}) =>
-      Rx.withEq(
+      Rx<S>.withEq(
           init: hasValue ? (convert?.call(_data as T) ?? _data as S) : null,
           eq: eq ??
               (distinct == null
@@ -26,62 +26,11 @@ class RxImpl<T> extends Reactive<T> {
   /// - [pipeWhere]
   /// - [pipeMapWhere]
   Rx<S> pipe<S>(StreamTransformation<S, T> transformer,
-          {S Function(T e)? init, bool? distinct, Equality? eq}) =>
-      _clone(
-        convert: init,
+          {bool? distinct, Equality? eq}) =>
+      _clone<S>(
         eq: eq,
         distinct: distinct,
       )..bindStream(transformer(stream));
-
-  /// Maps this [Rx<T>] into a new [Rx<S>]
-  ///
-  /// The provided `transfrom` parameter will be applied to each element
-  /// If you want to change the `distinct` property on the result [Rx<S>]
-  /// Provide the [bool] paramterer `distinct`
-  /// [pipeMap] is a lightWeight operator since it does not need stream
-  ///
-  /// If you have more complex operation to do, use [pipe] instead
-  Rx<S> pipeMap<S>(S Function(T e) transform, {bool? distinct, Equality? eq}) =>
-      pipe<S>(
-        (e) => e.map(transform),
-        init: transform,
-        distinct: distinct,
-        eq: eq,
-      );
-
-  /// Create a [Rx<T>] from this [Rx<T>] discarding elements based on a `test`
-  ///
-  /// Provided `test` parameter will be applied to each element to filter them
-  /// If you want to change the `distinct` property on the result [Rx<T>]
-  /// Provide the [bool] paramterer `distinct`
-  /// [pipeWhere] is a lightWeight operator since it does not need stream
-  ///
-  /// If you have more complex operation to do, use [pipe] instead
-  Rx<T> pipeWhere(bool Function(T e) test, {bool? distinct, Equality? eq}) =>
-      pipe<T>(
-        (e) => e.where(test),
-        init: hasValue && test(_data as T) ? (e) => e : null,
-        distinct: distinct,
-        eq: eq,
-      );
-
-  /// Maps this [Rx<T>] into [Rx<T>] discarding elements based on a `test`
-  ///
-  /// The provided `transfrom` parameter will be applied to each element
-  /// Provided `test` parameter will be applied to each element to filter them
-  /// If you want to change the `distinct` property on the result [Rx<S>]
-  /// Provide the [bool] paramterer `distinct`
-  /// [pipeMapWhere] is a lightWeight operator since it does not need stream
-  ///
-  /// If you have more complex operation to do, use [pipe] instead
-  Rx<S> pipeMapWhere<S>(S Function(T e) transform, bool Function(T e) test,
-          {bool? distinct, Equality? eq}) =>
-      pipe<S>(
-        (e) => e.where(test).map(transform),
-        init: hasValue && test(_data as T) ? transform : null,
-        distinct: distinct,
-        eq: eq,
-      );
 
   /// Create an exact copy of the [Rx<T>]
   ///
