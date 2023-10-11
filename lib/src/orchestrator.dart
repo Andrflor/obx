@@ -102,7 +102,6 @@ mixin StatelessObserverComponent on StatelessElement {
   List<Subscription>? reactives = [];
 
   void refresh(_) {
-    print("Rebuilding");
     markNeedsBuild();
   }
 

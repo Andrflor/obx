@@ -14,8 +14,6 @@ class AppConfig {}
 class App extends StatelessWidget {
   const App({super.key});
 
-  static final productBloc = ProductBloc();
-
   static final state = AppState();
   static final locale = Rx<Locale>(const Locale('en'));
   static final theme =
@@ -37,7 +35,7 @@ class App extends StatelessWidget {
             appBar: AppBar(
               title: Obx(() => Text(router.currentConfig.data.uri.toString())),
             ),
-            body: Obx(() => Test()),
+            body: const TestView(),
           ),
         ),
       ),
@@ -47,6 +45,8 @@ class App extends StatelessWidget {
 
 abstract class Event {}
 
+abstract class Intent extends Event {}
+
 abstract class Action<T extends Store> {
   FutureOr<void> execute(T store);
 }
@@ -54,12 +54,19 @@ abstract class Action<T extends Store> {
 typedef EventHandler<E extends Event, S extends Store> = FutureOr<void>
     Function(
   E event,
-  Emitter<S> emit,
+  ActionEmitter<S> emit,
 );
 
-typedef Emitter<S extends Store> = void Function(Action<S>);
+typedef ActionEmitter<S extends Store> = void Function(Action<S>);
 
-abstract class Orchestrator<S extends Store, E extends Event> {
+typedef EventEmitter<E extends Event> = void Function(E);
+
+class DuplicateEventHandlerException implements Exception {
+  final String message;
+  DuplicateEventHandlerException(this.message);
+}
+
+abstract class Compositor<S extends Store, E extends Event> {
   S createStore();
   Rx<E> createEvent() => Rx<E>.indistinct();
 
@@ -70,8 +77,10 @@ abstract class Orchestrator<S extends Store, E extends Event> {
   @mustCallSuper
   void dispose() {
     _eventChannel.close();
+    for (final childEventChannel in _childEventChannels) {
+      childEventChannel.close();
+    }
     _store.dispose();
-    // Dispose logic for _childEventChannels
   }
 
   void _consume(E e) => _eventChannel(e);
@@ -80,28 +89,69 @@ abstract class Orchestrator<S extends Store, E extends Event> {
 
   @protected
   @nonVirtual
-  void on<T extends E>(EventHandler<T, S> handler) {
+  void on<T extends E>(EventHandler<T, S> handler,
+      {RxTransformer<T>? transformer}) {
     if (_childEventChannels.any((e) => e is Rx<T>)) {
-      throw "Duplicate registration for event handler of type ${T.toString()}";
+      throw DuplicateEventHandlerException(
+          "Duplicate registration for event handler of type ${T.toString()}");
     }
-    _childEventChannels.add(_eventChannel.pipe<T>((e) => e.whereType<T>())
+    _childEventChannels.add(_eventChannel.pipe<T>((e) =>
+        transformer == null ? e.whereType<T>() : transformer(e.whereType<T>()))
       ..listen((v) => handler(v, _emit)));
   }
 }
 
-extension WhereType<T> on Stream<T> {
-  Stream<S> whereType<S>() => throw "unimplemented";
-}
+class TestView extends StatelessWidget {
+  const TestView({super.key});
 
-sealed class ProductEvents extends Event {}
-
-class ProductStore extends Store {
-  final product = Rx<int>();
-}
-
-class ProductOrchestrator extends Orchestrator<ProductStore, ProductEvents> {
   @override
-  ProductStore createStore() => ProductStore();
+  Widget build(BuildContext context) {
+    final compositor = SettingsCompositor();
+    return Column(
+      children: [
+        Obx(() => Text(compositor._store.locale.toString())),
+        ElevatedButton(
+            onPressed: () =>
+                compositor._consume(ChangeLocaleEvent(Locale('en'))),
+            child: Text("Click me"))
+      ],
+    );
+  }
+}
+
+sealed class SettingsEvent extends Event {}
+
+class ChangeLocaleEvent extends SettingsEvent {
+  final Locale locale;
+
+  ChangeLocaleEvent(this.locale);
+}
+
+sealed class SettingsAction extends Action<SettingsStore> {}
+
+class ChangeLocaleAction extends SettingsAction {
+  final Locale locale;
+
+  ChangeLocaleAction(this.locale);
+
+  @override
+  FutureOr<void> execute(SettingsStore store) {
+    store.locale(locale);
+  }
+}
+
+class SettingsStore extends Store {
+  final locale = Rx<Locale>(Locale('fr'));
+}
+
+class SettingsCompositor extends Compositor<SettingsStore, SettingsEvent> {
+  @override
+  SettingsStore createStore() => SettingsStore();
+
+  SettingsCompositor() {
+    on<ChangeLocaleEvent>(
+        (event, emit) => emit(ChangeLocaleAction(event.locale)));
+  }
 }
 
 class Store {
@@ -112,7 +162,7 @@ class Store {
 void markDispose(Rx rx) =>
     throw "autoDispose should only be used inside a store";
 
-class View<T extends Orchestrator> {}
+class View<T extends Compositor> {}
 
 @immutable
 abstract class Intent {

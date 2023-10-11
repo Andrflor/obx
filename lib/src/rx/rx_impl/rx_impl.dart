@@ -25,7 +25,7 @@ class RxImpl<T> extends Reactive<T> {
   /// - [pipeMap]
   /// - [pipeWhere]
   /// - [pipeMapWhere]
-  Rx<S> pipe<S>(StreamTransformation<S, T> transformer,
+  Rx<S> pipe<S>(RxStreamTransformation<S, T> transformer,
           {bool? distinct, Equality? eq}) =>
       _clone<S>(
         eq: eq,
@@ -60,7 +60,7 @@ class RxImpl<T> extends Reactive<T> {
   /// Simple listen to an [Rx]
   ///
   /// Allow to pass a StreamFilter to modify the stream
-  /// If no [StreamFilter] is provided no [Stream] will be used
+  /// If no [StreamTransformer] is provided no [Stream] will be used
   /// Thus resulting in up to 90x faster results
   /// So only use a StreamFilter if you really need it
   ///
@@ -72,7 +72,7 @@ class RxImpl<T> extends Reactive<T> {
   /// Once a stream closes the subscription will cancel itself
   /// You can also cancel the sub with the provided callback
   StreamSubscription<T> bindStream(Stream<T> stream,
-          [StreamFilter<T>? filter]) =>
+          [StreamTransformer<T>? filter]) =>
       (filter?.call(stream) ?? stream).listen(
         add,
         onError: addError,
@@ -87,7 +87,8 @@ class RxImpl<T> extends Reactive<T> {
   /// It's impossible to know when a [ValueListenable] is done
   /// You will have to clean it up yourself
   /// For that you can call the provided [Disposer]
-  StreamSubscription<T> bindRx(RxImpl<T> rx, [StreamFilter<T>? filter]) =>
+  StreamSubscription<T> bindRx(RxImpl<T> rx,
+          [RxStreamTransformer<T>? filter]) =>
       (filter?.call(rx.stream) ?? rx.stream).listen(
         add,
         onError: addError,

@@ -2,6 +2,8 @@ library obx;
 
 import 'dart:async';
 
+import 'package:obx/src/orchestrator.dart';
+
 import 'rx_core.dart';
 
 typedef Rxn<T> = Rx<T?>;
@@ -28,8 +30,11 @@ typedef RxnSet<T> = Rxn<Set>;
 typedef RxnMap<K, V> = Rxn<Map<K, V>>;
 typedef RxnMapEntry<K, V> = Rxn<MapEntry<K, V>>;
 
+typedef RxTransformation<S, T> = Stream<S> Function(RxStream<T> stream);
+typedef RxTransformer<T> = RxTransformation<T, T>;
+
 typedef StreamTransformation<S, T> = Stream<S> Function(Stream<T> stream);
-typedef StreamFilter<T> = StreamTransformation<T, T>;
+typedef StreamTransformer<T> = StreamTransformation<T, T>;
 
 // TODO: write README.md
 // TODO: write CHANGELOG.md
