@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:collection';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -45,16 +44,36 @@ class App extends StatelessWidget {
 
 abstract class Event {}
 
-abstract class Intent extends Event {}
+@immutable
+abstract class State {}
 
-abstract class Action<T extends Store> {
-  FutureOr<void> execute(T store);
+abstract class Intent extends Event implements Command {}
+
+class Result<T, E extends Error> {
+  final T? _data;
+  final E? _error;
+
+  Result.error(E error)
+      : _error = error,
+        _data = null;
+  Result.ok(T data)
+      : _error = null,
+        _data = data;
+
+  V match<V>({required V Function(T) onData, required V Function(E) onError}) =>
+      _data == null ? onError(_error!) : onData(_data!);
 }
 
-typedef EventHandler<E extends Event, S extends Store> = FutureOr<void>
-    Function(
+typedef Response<T, E extends Error> = FutureOr<Result<T, E>>;
+
+abstract interface class Command<T, E extends Error> {
+  Response<T, E> excecute();
+}
+
+class Bloc<S extends State, E extends Event> {}
+
+typedef EventHandler<E extends Event, S extends State> = S Function(
   E event,
-  ActionEmitter<S> emit,
 );
 
 typedef ActionEmitter<S extends Store> = void Function(Action<S>);
@@ -66,11 +85,42 @@ class DuplicateEventHandlerException implements Exception {
   DuplicateEventHandlerException(this.message);
 }
 
-abstract class Compositor<S extends Store, E extends Event> {
-  S createStore();
+// abstract class Compositor<S extends Store, E extends Event> {
+//   S createStore();
+//   Rx<E> createEvent() => Rx<E>.indistinct();
+
+//   late final _store = createStore();
+//   late final _eventChannel = createEvent();
+//   final _childEventChannels = <Rx<E>>[];
+
+//   @mustCallSuper
+//   void dispose() {
+//     _eventChannel.close();
+//     for (final childEventChannel in _childEventChannels) {
+//       childEventChannel.close();
+//     }
+//     _store.dispose();
+//   }
+
+//   void _consume(E e) => _eventChannel(e);
+
+//   @protected
+//   @nonVirtual
+//   void on<T extends E>(EventHandler<T, S> handler,
+//       {RxTransformer<T>? transformer}) {
+//     if (_childEventChannels.any((e) => e is Rx<T>)) {
+//       throw DuplicateEventHandlerException(
+//           "Duplicate registration for event handler of type ${T.toString()}");
+//     }
+//     _childEventChannels.add(_eventChannel.pipe<T>((e) =>
+//         transformer == null ? e.whereType<T>() : transformer(e.whereType<T>()))
+//       ..listen((v) => handler(v, _emit)));
+//   }
+// }
+
+abstract class Compositor<S extends State, E extends Event> {
   Rx<E> createEvent() => Rx<E>.indistinct();
 
-  late final _store = createStore();
   late final _eventChannel = createEvent();
   final _childEventChannels = <Rx<E>>[];
 
@@ -80,24 +130,21 @@ abstract class Compositor<S extends Store, E extends Event> {
     for (final childEventChannel in _childEventChannels) {
       childEventChannel.close();
     }
-    _store.dispose();
   }
 
   void _consume(E e) => _eventChannel(e);
 
-  FutureOr<void> _emit(Action<S> e) => e.execute(_store);
-
   @protected
   @nonVirtual
-  void on<T extends E>(EventHandler<T, S> handler,
-      {RxTransformer<T>? transformer}) {
+  void on<T extends E>({EventHandler<T, S>? handler,
+      RxTransformer<T>? transformer, IntentEmmiter<T, S, I>? emiter, StateNotifier<>}) {
     if (_childEventChannels.any((e) => e is Rx<T>)) {
       throw DuplicateEventHandlerException(
           "Duplicate registration for event handler of type ${T.toString()}");
     }
     _childEventChannels.add(_eventChannel.pipe<T>((e) =>
         transformer == null ? e.whereType<T>() : transformer(e.whereType<T>()))
-      ..listen((v) => handler(v, _emit)));
+      ..listen( handler != null ? (v) => handler(v)));
   }
 }
 
@@ -159,79 +206,7 @@ class Store {
   void dispose() {}
 }
 
-void markDispose(Rx rx) =>
-    throw "autoDispose should only be used inside a store";
-
 class View<T extends Compositor> {}
-
-@immutable
-abstract class Intent {
-  const Intent();
-
-  FutureOr<bool> execute();
-
-  static final _executor = _Executor();
-  static push(Intent e) => _executor.enqueue(e);
-}
-
-class IntentExecutor {
-  final _intentQueue = Queue<Intent>();
-  bool locked = false;
-
-  void process() async {
-    while (_intentQueue.isNotEmpty) {
-      if (!locked) {
-        final intent = _intentQueue.removeFirst();
-        locked = true;
-
-        try {
-          // Execute the intent
-          final success = await intent.execute();
-
-          // Check the result of the execution
-          if (success) {
-            // If successful, unlock after execution
-            locked = false;
-          } else {
-            // Handle failure if necessary
-          }
-        } catch (e) {
-          // Handle exceptions thrown during execution
-          // Unlock after handling the exception if needed
-          locked = false;
-        }
-      }
-    }
-  }
-
-  addIntent(Intent i) => _intentQueue.add(i);
-}
-
-class _Executor {
-  final Queue<Intent> _queue = Queue<Intent>();
-  bool _isExecuting = false;
-
-  void enqueue(Intent intent) {
-    _queue.add(intent);
-    if (!_isExecuting) {
-      _executeNext();
-    }
-  }
-
-  Future<void> _executeNext() async {
-    if (_queue.isEmpty) {
-      _isExecuting = false;
-      return;
-    }
-
-    _isExecuting = true;
-    final intent = _queue.removeFirst();
-    await intent.execute();
-    _isExecuting = false;
-
-    _executeNext();
-  }
-}
 
 class ChangeLocaleIntent extends Intent {
   final Locale locale;
