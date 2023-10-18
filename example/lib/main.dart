@@ -1,8 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:obx/obx.dart';
 
 void main() => runApp(const App());
@@ -14,14 +12,15 @@ class App extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Obx(
-      () => Localizations(
-        delegates: const [
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-        ],
-        locale: Locale('fr'),
-        child: Container(),
+    return MaterialApp(
+      home: BlocBuilder(
+        bloc: LelBloc(),
+        child: Builder(builder: (context) {
+          return Text(() {
+            ProfileEvent1().dispatch(context);
+            return "lel";
+          }());
+        }),
       ),
     );
   }
@@ -41,50 +40,42 @@ class UserStore extends Store {
 }
 
 sealed class ProfileState extends State {}
-class ProfileSuccess extends ProfileState{
+
+class ProfileSuccess extends ProfileState {
   final User user;
 
   ProfileSuccess({required this.user});
 }
-class ProfileLoading extends ProfileState{}
-class ProfileError extends ProfileState{
+
+class ProfileLoading extends ProfileState {}
+
+class ProfileError extends ProfileState {
   final String error;
 
   ProfileError({required this.error});
 }
 
-
 sealed class ProfileEvent extends Event {}
 
-class ProfileCompositor extends Compositor<ProfileState, ProfileEvent> {
+class ProfileEvent1 extends ProfileEvent {}
 
+class OtherEvent extends Event {}
+
+@immutable
+class Event extends Notification {
+  @override
+  // ignore: avoid_renaming_method_parameters
+  void dispatch(BuildContext? context) {
+    super.dispatch(context);
+  }
 }
-
-
-abstract class Event {}
 
 @immutable
 abstract class State {}
 
+class LelState extends State {}
+
 abstract class Intent extends Event implements Command {}
-
-class Result<T, E extends Error> {
-  final T? _data;
-  final E? _error;
-
-  Result.error(E error)
-      : _error = error,
-        _data = null;
-  Result.ok(T data)
-      : _error = null,
-        _data = data;
-
-  T get data => _data!;
-  E get err => _error!;
-
-  V match<V>({required V Function(T) onData, required V Function(E) onError}) =>
-      _data == null ? onError(_error!) : onData(data);
-}
 
 typedef Response<T, E extends Error> = FutureOr<Result<T, E>>;
 
@@ -92,7 +83,18 @@ abstract interface class Command<T, E extends Error> {
   Response<T, E> excecute();
 }
 
-class Bloc<S extends State, E extends Event> {}
+abstract class Bloc<E extends Event, S extends State> {
+  Rx<E> createEvent() => Rx<E>.indistinct();
+  late final _eventChannel = createEvent();
+
+  S get initialState;
+  late final _stateChannel = Rx<S>(initialState);
+}
+
+class LelBloc extends Bloc<ProfileEvent, LelState> {
+  @override
+  LelState get initialState => LelState();
+}
 
 typedef EventHandler<E extends Event, S extends State> = S Function(
   E event,
@@ -119,17 +121,87 @@ abstract class Compositor<S extends State, E extends Event> {
 
   void _consume(E e) => _eventChannel(e);
 
-  @protected
-  @nonVirtual
-  void on<T extends E>({EventHandler<T, S>? handler,
-      RxTransformer<T>? transformer, IntentEmmiter<T, S, I>? emiter, StateNotifier<>}) {
-    if (_childEventChannels.any((e) => e is Rx<T>)) {
-      throw DuplicateEventHandlerException(
-          "Duplicate registration for event handler of type ${T.toString()}");
-    }
-    _childEventChannels.add(_eventChannel.pipe<T>((e) =>
-        transformer == null ? e.whereType<T>() : transformer(e.whereType<T>()))
-      ..listen( handler != null ? (v) => handler(v)));
+  (EventHandler<T, S> handler, RxTransformer<T>? transformer)
+      handle<T extends E>(E e);
+
+  // @protected
+  // @nonVirtual
+  // void on<T extends E>(
+  //     {required EventHandler<T, S> handler, RxTransformer<T>? transformer}) {
+  //   if (_childEventChannels.any((e) => e is Rx<T>)) {
+  //     throw DuplicateEventHandlerException(
+  //         "Duplicate registration for event handler of type ${T.toString()}");
+  //   }
+  //   _childEventChannels.add(_eventChannel.pipe<T>((e) =>
+  //       transformer == null ? e.whereType<T>() : transformer(e.whereType<T>()))
+  //     ..listen(handler(v)));
+  // }
+}
+
+sealed class EventTest extends Event {}
+
+class EventA extends EventTest {}
+
+class EventB extends EventTest {}
+
+void test() {
+  final res = show(0);
+  final b = switch (res) { Success() => 2, Failure() => 2 };
+
+  print(b);
+}
+
+Result<String, String> show(int num) {
+  if (num % 2 == 0) {
+    return Success("Wow");
+  } else {
+    return Failure("yioh");
   }
 }
 
+sealed class Result<T, E> {}
+
+class Success<T, E> extends Result<T, E> {
+  T data;
+  Success(this.data);
+}
+
+class Failure<T, E> extends Result<T, E> {
+  E err;
+  Failure(this.err);
+}
+
+class InheritedState<S extends State> extends InheritedWidget {
+  final Rx<S> _stateChannel;
+  const InheritedState(
+      {super.key, required super.child, required Rx<S> stateChannel})
+      : _stateChannel = stateChannel,
+        super();
+
+  @override
+  bool updateShouldNotify(covariant InheritedState<S> oldWidget) =>
+      oldWidget._stateChannel != _stateChannel;
+}
+
+class BlocBuilder<E extends Event, S extends State>
+    extends NotificationListener<E> {
+  final Bloc<E, S> bloc;
+
+  @override
+  NotificationListenerCallback<E> get onNotification {
+    return (E e) {
+      print("got $e");
+      return true;
+    };
+  }
+
+  const BlocBuilder({required super.child, required this.bloc, super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return InheritedState<S>(
+      stateChannel: bloc._stateChannel,
+      child: child,
+    );
+  }
+}

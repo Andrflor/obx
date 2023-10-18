@@ -25,7 +25,7 @@ class RxImpl<T> extends Reactive<T> {
   /// - [pipeMap]
   /// - [pipeWhere]
   /// - [pipeMapWhere]
-  Rx<S> pipe<S>(RxStreamTransformation<S, T> transformer,
+  Rx<S> pipe<S>(RxTransformation<S, T> transformer,
           {bool? distinct, Equality? eq}) =>
       _clone<S>(
         eq: eq,
@@ -87,8 +87,7 @@ class RxImpl<T> extends Reactive<T> {
   /// It's impossible to know when a [ValueListenable] is done
   /// You will have to clean it up yourself
   /// For that you can call the provided [Disposer]
-  StreamSubscription<T> bindRx(RxImpl<T> rx,
-          [RxStreamTransformer<T>? filter]) =>
+  StreamSubscription<T> bindRx(RxImpl<T> rx, [RxTransformer<T>? filter]) =>
       (filter?.call(rx.stream) ?? rx.stream).listen(
         add,
         onError: addError,
