@@ -13,13 +13,24 @@ class App extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: BlocBuilder(
+      home: BlocAdapter(
         bloc: LelBloc(),
         child: Builder(builder: (context) {
-          return Text(() {
-            ProfileEvent1().dispatch(context);
-            return "lel";
-          }());
+          return Column(
+            children: [
+              Consumer<LelState>(
+                (ctx, state) => Text(switch (state) {
+                  LelState1() => 'State 1',
+                  LelState2() => 'State 2',
+                }),
+              ),
+              ElevatedButton(
+                  onPressed: () {
+                    ProfileEvent1().dispatch(context);
+                  },
+                  child: Text('click')),
+            ],
+          );
         }),
       ),
     );
@@ -73,7 +84,11 @@ class Event extends Notification {
 @immutable
 abstract class State {}
 
-class LelState extends State {}
+sealed class LelState extends State {}
+
+class LelState1 extends LelState {}
+
+class LelState2 extends LelState {}
 
 abstract class Intent extends Event implements Command {}
 
@@ -89,11 +104,23 @@ abstract class Bloc<E extends Event, S extends State> {
 
   S get initialState;
   late final _stateChannel = Rx<S>(initialState);
+  emit<T extends S>(T state) => _stateChannel.data = state;
 }
 
 class LelBloc extends Bloc<ProfileEvent, LelState> {
   @override
-  LelState get initialState => LelState();
+  LelState get initialState => LelState2();
+
+  LelBloc() {
+    _eventChannel.listen((value) {
+      print(value);
+      if (value is ProfileEvent1) {
+        print("Profile 1");
+        _stateChannel.add(LelState1());
+      }
+    });
+    _stateChannel.listen((value) => print("new state $value"));
+  }
 }
 
 typedef EventHandler<E extends Event, S extends State> = S Function(
@@ -183,25 +210,61 @@ class InheritedState<S extends State> extends InheritedWidget {
       oldWidget._stateChannel != _stateChannel;
 }
 
-class BlocBuilder<E extends Event, S extends State>
-    extends NotificationListener<E> {
+class BlocAdapter<E extends Event, S extends State> extends StatelessWidget {
   final Bloc<E, S> bloc;
+  final Widget child;
 
-  @override
-  NotificationListenerCallback<E> get onNotification {
-    return (E e) {
-      print("got $e");
-      return true;
-    };
+  const BlocAdapter({super.key, required this.bloc, required this.child});
+
+  bool _handle(E e) {
+    bloc._eventChannel.data = e;
+    return true;
   }
 
-  const BlocBuilder({required super.child, required this.bloc, super.key});
+  @override
+  Widget build(BuildContext context) => NotificationListener<E>(
+        onNotification: _handle,
+        child: InheritedState<S>(
+          stateChannel: bloc._stateChannel,
+          child: child,
+        ),
+      );
+}
+
+class Consumer<S extends State> extends Widget {
+  final Widget Function(BuildContext context, S state) builder;
+  const Consumer(this.builder, {super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return InheritedState<S>(
-      stateChannel: bloc._stateChannel,
-      child: child,
-    );
+  InheritedStateElement<S> createElement() => InheritedStateElement<S>(this);
+}
+
+class InheritedStateElement<S extends State> extends ComponentElement {
+  S? state;
+  RxSubscription<S>? _sub;
+
+  InheritedStateElement(super.widget);
+
+  @override
+  void attachNotificationTree() {
+    super.attachNotificationTree();
+    final channel =
+        dependOnInheritedWidgetOfExactType<InheritedState<S>>()!._stateChannel;
+    state = channel.data;
+    _sub?.syncCancel();
+    _sub = channel.listen((value) {
+      state = value;
+      markNeedsBuild();
+    });
   }
+
+  @override
+  void unmount() {
+    super.unmount();
+    _sub?.syncCancel();
+    state = null;
+  }
+
+  @override
+  Widget build() => (widget as Consumer<S>).builder(this, state!);
 }
