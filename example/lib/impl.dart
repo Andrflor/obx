@@ -7,6 +7,8 @@ typedef Response<T, E extends Error> = FutureOr<Result<T, E>>;
 
 sealed class Result<T, E> {}
 
+abstract class Store {}
+
 class Success<T, E> extends Result<T, E> {
   T data;
   Success(this.data);
@@ -33,6 +35,8 @@ abstract class Bloc<E extends Event, S extends Object> {
   late final _stateChannel = Rx<S>(initialState);
   emit<T extends S>(T state) => _stateChannel.data = state;
   S get state => _stateChannel.data;
+
+  List<Rx> get dependencies => <Rx>[];
 }
 
 class InheritedState<S extends Object> extends InheritedWidget {
@@ -104,4 +108,13 @@ class InheritedStateElement<S extends Object> extends ComponentElement {
 
   @override
   Widget build() => (widget as Consumer<S>).builder(this, state!);
+}
+
+abstract class Dep {
+  static final Map<Type, dynamic Function()> _factories = {};
+  static final Map<Type, dynamic> _intances = {};
+
+  static T put<T>(T Function() builder) => _intances[T] = builder();
+  static T find<T>() => _intances[T] ?? put<T>(_factories[T] as T Function());
+  static void lazy<T>(T Function() builder) => _factories[T] = builder;
 }

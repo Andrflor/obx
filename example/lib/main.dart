@@ -2,9 +2,10 @@ import 'package:example/impl.dart';
 import 'package:flutter/material.dart';
 import 'package:obx/obx.dart';
 
-void main() => runApp(const App());
-
-class AppConfig {}
+void main() {
+  Dep.lazy(UserStore.new);
+  runApp(const App());
+}
 
 class App extends StatelessWidget {
   const App({super.key});
@@ -13,19 +14,20 @@ class App extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       home: BlocAdapter(
-        bloc: LelBloc(),
+        bloc: ProfileBloc(),
         child: Builder(builder: (context) {
           return Column(
             children: [
-              Consumer<LelState>(
-                (ctx, state) => Text(switch (state) {
-                  LelState1() => 'State 1',
-                  LelState2(data: String data) => data,
-                }),
-              ),
+              Consumer<ProfileState>((ctx, state) => switch (state) {
+                    ProfileLoading() => const CircularProgressIndicator(),
+                    ProfileSuccess(user: User user) => Text(
+                        'You are ${user.name} and you are ${user.age} years old'),
+                    ProfileError(error: String error) =>
+                      Text('Error $error happended'),
+                  }),
               ElevatedButton(
                   onPressed: () {
-                    ProfileEvent1().dispatch(context);
+                    NameChange().dispatch(context);
                   },
                   child: Text('click')),
             ],
@@ -43,10 +45,8 @@ class User {
   User({required this.name, required this.age});
 }
 
-abstract class Store {}
-
 class UserStore extends Store {
-  final user = Rx<User>();
+  final userChannel = Rx<User>();
 }
 
 sealed class ProfileState {}
@@ -61,33 +61,21 @@ class ProfileLoading extends ProfileState {}
 
 class ProfileError extends ProfileState {
   final String error;
-
   ProfileError({required this.error});
 }
 
 sealed class ProfileEvent extends Event {}
 
-class ProfileEvent1 extends ProfileEvent {}
+class NameChange extends ProfileEvent {}
 
-class OtherEvent extends Event {}
+class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
+  final _userChannel = Dep.find<UserStore>().userChannel;
 
-sealed class LelState {}
-
-class LelState1 extends LelState {}
-
-class LelState2 extends LelState {
-  final String data;
-
-  LelState2({required this.data});
-}
-
-abstract class Intent extends Event implements Command {}
-
-abstract interface class Command<T, E extends Error> {
-  Response<T, E> excecute();
-}
-
-class LelBloc extends Bloc<ProfileEvent, LelState> {
   @override
-  LelState get initialState => LelState2(data: 'iw');
+  List<Rx> get dependencies => [_userChannel];
+
+  @override
+  ProfileState get initialState => _userChannel.hasValue
+      ? ProfileSuccess(user: _userChannel.data)
+      : ProfileLoading();
 }
