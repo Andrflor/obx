@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:obx/obx.dart';
 
-typedef Response<T, E extends Error> = FutureOr<Result<T, E>>;
+typedef Response<T, E> = FutureOr<Result<T, E>>;
 
 sealed class Result<T, E> {}
 
@@ -112,9 +112,10 @@ class InheritedStateElement<S extends Object> extends ComponentElement {
 
 abstract class Dep {
   static final Map<Type, dynamic Function()> _factories = {};
-  static final Map<Type, dynamic> _intances = {};
+  static final Map<Type, dynamic> _instances = {};
 
-  static T put<T>(T Function() builder) => _intances[T] = builder();
-  static T find<T>() => _intances[T] ?? put<T>(_factories[T] as T Function());
+  static T put<T>(T Function() builder) => _instances[T] = builder();
+  static T find<T>() => _instances[T] ?? put<T>(_factories[T] as T Function());
   static void lazy<T>(T Function() builder) => _factories[T] = builder;
+  static T remove<T>() => _instances.remove(T);
 }

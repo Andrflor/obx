@@ -13,26 +13,30 @@ class App extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: BlocAdapter(
-        bloc: ProfileBloc(),
-        child: Builder(builder: (context) {
-          return Column(
-            children: [
-              Consumer<ProfileState>((ctx, state) => switch (state) {
-                    ProfileLoading() => const CircularProgressIndicator(),
-                    ProfileSuccess(user: User user) => Text(
-                        'You are ${user.name} and you are ${user.age} years old'),
-                    ProfileError(error: String error) =>
-                      Text('Error $error happended'),
-                  }),
-              ElevatedButton(
-                  onPressed: () {
-                    NameChange().dispatch(context);
-                  },
-                  child: Text('click')),
-            ],
-          );
-        }),
+      home: Scaffold(
+        body: BlocAdapter(
+          bloc: ProfileBloc(),
+          child: Builder(builder: (context) {
+            return Column(
+              children: [
+                Consumer<ProfileState>((ctx, state) => switch (state) {
+                      ProfileLoading() => const CircularProgressIndicator(),
+                      ProfileSuccess(user: User user) => Text(
+                          'You are ${user.name} and you are ${user.age} years old'),
+                      ProfileError(error: String error) =>
+                        Text('Error $error happended'),
+                    }),
+                TextFormField(),
+                TextFormField(),
+                ElevatedButton(
+                    onPressed: () {
+                      NameChange().dispatch(context);
+                    },
+                    child: Text('Create User')),
+              ],
+            );
+          }),
+        ),
       ),
     );
   }
