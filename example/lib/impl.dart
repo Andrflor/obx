@@ -7,7 +7,7 @@ typedef Response<T, E> = FutureOr<Result<T, E>>;
 
 sealed class Result<T, E> {}
 
-abstract class Store {}
+abstract class RxStore {}
 
 class Success<T, E> extends Result<T, E> {
   T data;
@@ -31,12 +31,17 @@ class Event extends Notification {
 abstract class Bloc<E extends Event, S extends Object> {
   Rx<E> createEvent() => Rx<E>.indistinct();
   late final _eventChannel = createEvent();
+
   S get initialState;
-  late final _stateChannel = Rx<S>(initialState);
-  emit<T extends S>(T state) => _stateChannel.data = state;
+  Rx<S> createState(S initialState) => Rx<S>(initialState);
+  late final _stateChannel = createState(initialState);
   S get state => _stateChannel.data;
 
+  emit<T extends S>(T state) => _stateChannel.data = state;
+
   List<Rx> get dependencies => <Rx>[];
+
+  on<E extends Event>() {}
 }
 
 class InheritedState<S extends Object> extends InheritedWidget {
@@ -114,8 +119,9 @@ abstract class Dep {
   static final Map<Type, dynamic Function()> _factories = {};
   static final Map<Type, dynamic> _instances = {};
 
-  static T put<T>(T Function() builder) => _instances[T] = builder();
-  static T find<T>() => _instances[T] ?? put<T>(_factories[T] as T Function());
+  static T find<T>() => _instances[T] ?? _factories[T]!();
   static void lazy<T>(T Function() builder) => _factories[T] = builder;
   static T remove<T>() => _instances.remove(T);
+  static T put<T>(T Function() builder) =>
+      _instances[T] = (_factories[T] = builder)();
 }
