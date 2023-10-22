@@ -15,35 +15,32 @@ class App extends HookWidget {
   Widget build(BuildContext context) {
     final nameController = useTextEditingController();
     final ageController = useTextEditingController();
+    print("built");
     return MaterialApp(
       home: Scaffold(
-        body: BlocAdapter(
-          bloc: ProfileBloc(),
-          child: Builder(builder: (context) {
-            return Column(
-              children: [
-                Consumer<ProfileState>((ctx, state) => switch (state) {
-                      ProfileLoading() => const CircularProgressIndicator(),
-                      ProfileSuccess(user: User user) => Text(
-                          'You are ${user.name} and you are ${user.age} years old'),
-                      ProfileError(error: String error) =>
-                        Text('Error $error happended'),
-                    }),
-                TextFormField(
-                  controller: nameController,
-                ),
-                TextFormField(controller: ageController),
-                ElevatedButton(
-                    onPressed: () {
-                      UserChange(
-                              name: nameController.text,
-                              age: ageController.text)
-                          .dispatch(context);
-                    },
-                    child: Text('Create User')),
-              ],
-            );
-          }),
+        body: BlocAdapter.builder(
+          create: (_) => ProfileBloc(),
+          builder: (context) => Column(
+            children: [
+              Consumer<ProfileState>((ctx, state) => switch (state) {
+                    ProfileLoading() => const CircularProgressIndicator(),
+                    ProfileSuccess(user: User user) => Text(
+                        'You are ${user.name} and you are ${user.age} years old'),
+                    ProfileError(error: String error) => Text(error),
+                  }),
+              TextFormField(
+                controller: nameController,
+              ),
+              TextFormField(controller: ageController),
+              ElevatedButton(
+                  onPressed: () {
+                    UserChanged(
+                            name: nameController.text, age: ageController.text)
+                        .dispatch(context);
+                  },
+                  child: Text('Create User')),
+            ],
+          ),
         ),
       ),
     );
@@ -78,11 +75,11 @@ class ProfileError extends ProfileState {
 
 sealed class ProfileEvent extends Event {}
 
-class UserChange extends ProfileEvent {
+class UserChanged extends ProfileEvent {
   final String name;
   final String age;
 
-  UserChange({required this.name, required this.age});
+  UserChanged({required this.name, required this.age});
 }
 
 class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
@@ -91,13 +88,21 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
   @override
   List<Rx> get dependencies => [_userChannel];
 
-
   @override
   ProfileState get initialState => _userChannel.hasValue
       ? ProfileSuccess(user: _userChannel.data)
       : ProfileLoading();
 
   ProfileBloc() {
-    on
+    on<UserChanged>(_handleUserChanged);
+  }
+
+  void _handleUserChanged(UserChanged event, StateEmitter<ProfileState> emit) {
+    final age = int.tryParse(event.age);
+    if (age == null) {
+      emit(ProfileError(error: 'Please enter a valid age'));
+    } else {
+      emit(ProfileSuccess(user: User(name: event.name, age: age)));
+    }
   }
 }

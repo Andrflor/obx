@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:obx/obx.dart';
 
@@ -19,6 +20,18 @@ class Failure<T, E> extends Result<T, E> {
   Failure(this.err);
 }
 
+class DuplicateEventHandlerException implements Exception {
+  final String message;
+  DuplicateEventHandlerException(this.message);
+}
+
+typedef StateEmitter<S> = void Function(S);
+
+typedef EventHandler<E extends Event, S extends Object> = void Function(
+  E event,
+  StateEmitter<S> emit,
+);
+
 @immutable
 class Event extends Notification {
   @override
@@ -31,17 +44,31 @@ class Event extends Notification {
 abstract class Bloc<E extends Event, S extends Object> {
   Rx<E> createEvent() => Rx<E>.indistinct();
   late final _eventChannel = createEvent();
+  final _childEventChannels = <Rx<E>>[];
 
   S get initialState;
   Rx<S> createState(S initialState) => Rx<S>(initialState);
   late final _stateChannel = createState(initialState);
   S get state => _stateChannel.data;
 
-  emit<T extends S>(T state) => _stateChannel.data = state;
-
   List<Rx> get dependencies => <Rx>[];
 
-  on<E extends Event>() {}
+  @protected
+  @nonVirtual
+  void on<T extends E>(EventHandler<T, S> handler,
+      {RxTransformer<T>? transformer}) {
+    assert(() {
+      if (_childEventChannels.any((e) => e is Rx<T>)) {
+        throw DuplicateEventHandlerException(
+            'on<$E> was called multiple times. '
+            'Duplicate registration for event handler of type ${T.toString()}');
+      }
+      return true;
+    }());
+    _childEventChannels.add(_eventChannel.pipe<T>((e) =>
+        transformer == null ? e.whereType<T>() : transformer(e.whereType<T>()))
+      ..listen((v) => handler(v, _stateChannel.add)));
+  }
 }
 
 class InheritedState<S extends Object> extends InheritedWidget {
@@ -56,11 +83,31 @@ class InheritedState<S extends Object> extends InheritedWidget {
       oldWidget._stateChannel != _stateChannel;
 }
 
-class BlocAdapter<E extends Event, S extends Object> extends StatelessWidget {
-  final Bloc<E, S> bloc;
+class BlocAdapter<E extends Event, S extends Object> extends StatefulWidget {
+  final Bloc<E, S> Function(BuildContext) create;
   final Widget child;
 
-  const BlocAdapter({super.key, required this.bloc, required this.child});
+  const BlocAdapter({super.key, required this.create, required this.child});
+
+  BlocAdapter.builder(
+      {super.key,
+      required this.create,
+      required Widget Function(BuildContext context) builder})
+      : child = Builder(builder: builder);
+
+  BlocAdapter.consumer(
+      {super.key,
+      required this.create,
+      required Widget Function(BuildContext context, S state) builder})
+      : child = Consumer(builder);
+
+  @override
+  State<BlocAdapter<E, S>> createState() => _BlocAdapterState<E, S>();
+}
+
+class _BlocAdapterState<E extends Event, S extends Object>
+    extends State<BlocAdapter<E, S>> {
+  late final Bloc<E, S> bloc = widget.create(context);
 
   bool _handle(E e) {
     bloc._eventChannel.data = e;
@@ -72,7 +119,7 @@ class BlocAdapter<E extends Event, S extends Object> extends StatelessWidget {
         onNotification: _handle,
         child: InheritedState<S>(
           stateChannel: bloc._stateChannel,
-          child: child,
+          child: widget.child,
         ),
       );
 }
