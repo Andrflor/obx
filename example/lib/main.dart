@@ -1,3 +1,4 @@
+import 'package:equatable/equatable.dart';
 import 'package:example/impl.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -15,7 +16,6 @@ class App extends HookWidget {
   Widget build(BuildContext context) {
     final nameController = useTextEditingController();
     final ageController = useTextEditingController();
-    print("built");
     return MaterialApp(
       home: Scaffold(
         body: BlocAdapter.builder(
@@ -33,11 +33,9 @@ class App extends HookWidget {
               ),
               TextFormField(controller: ageController),
               ElevatedButton(
-                  onPressed: () {
-                    UserChanged(
-                            name: nameController.text, age: ageController.text)
-                        .dispatch(context);
-                  },
+                  onPressed: () => UserChanged(
+                          name: nameController.text, age: ageController.text)
+                      .dispatch(context),
                   child: Text('Create User')),
             ],
           ),
@@ -47,39 +45,48 @@ class App extends HookWidget {
   }
 }
 
-class User {
+class User extends Equatable {
   final String name;
   final int age;
 
-  User({required this.name, required this.age});
+  const User({required this.name, required this.age});
+
+  @override
+  List<Object?> get props => [name, age];
 }
 
 class UserStore extends RxStore {
   final userChannel = Rx<User>();
 }
 
-sealed class ProfileState {}
+sealed class ProfileState {
+  const ProfileState();
+}
 
-class ProfileSuccess extends ProfileState {
+class ProfileSuccess extends ProfileState with EquatableMixin {
   final User user;
+  const ProfileSuccess({required this.user});
 
-  ProfileSuccess({required this.user});
+  @override
+  List<Object?> get props => [user];
 }
 
 class ProfileLoading extends ProfileState {}
 
 class ProfileError extends ProfileState {
   final String error;
-  ProfileError({required this.error});
+  const ProfileError({required this.error});
 }
 
-sealed class ProfileEvent extends Event {}
+sealed class ProfileEvent extends Event {
+  const ProfileEvent();
+}
 
 class UserChanged extends ProfileEvent {
   final String name;
   final String age;
 
-  UserChanged({required this.name, required this.age});
+  const UserChanged({required this.name, required this.age});
 }
 
 class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
@@ -100,7 +107,7 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
   void _handleUserChanged(UserChanged event, StateEmitter<ProfileState> emit) {
     final age = int.tryParse(event.age);
     if (age == null) {
-      emit(ProfileError(error: 'Please enter a valid age'));
+      emit(const ProfileError(error: 'Please enter a valid age'));
     } else {
       emit(ProfileSuccess(user: User(name: event.name, age: age)));
     }

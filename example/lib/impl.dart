@@ -34,6 +34,8 @@ typedef EventHandler<E extends Event, S extends Object> = void Function(
 
 @immutable
 class Event extends Notification {
+  const Event();
+
   @override
   // ignore: avoid_renaming_method_parameters
   void dispatch(BuildContext? context) {
