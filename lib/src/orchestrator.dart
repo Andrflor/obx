@@ -22,11 +22,8 @@ typedef Disposer = void Function();
 typedef StateUpdate = void Function();
 
 abstract class Orchestrator {
-  static bool get notInBuild => element == null;
-  static bool get notInObserve => notifyData == null;
-  static bool get notObserving => notInBuild || notifyData != null;
+  static bool get observing => element != null || notifyData != null;
   static StatelessObserverComponent? element;
-  static List<Reactive> reactives = [];
   static NotifyData? notifyData;
 
   static void _internal<T, S extends Reactive<T>>(
@@ -38,7 +35,6 @@ abstract class Orchestrator {
     notifyData = NotifyData(
         updater: (_) => debouncer(() => base.data = builder()),
         disposers: [debouncer.cancel]);
-    reactives = [];
     base._data = builder();
     debouncer.start();
     final disposers = notifyData!.disposers;
@@ -51,11 +47,6 @@ abstract class Orchestrator {
   }
 
   static void read<T>(Reactive<T> reactive) {
-    for (int i = 0; i < reactives.length; i++) {
-      if (reactives[i] == reactive) {
-        return;
-      }
-    }
     notifyData!.disposers.add(reactive.listen(notifyData!.updater).syncCancel);
   }
 

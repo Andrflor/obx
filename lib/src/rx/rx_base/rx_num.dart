@@ -730,7 +730,7 @@ extension RxIntExt on Rx<int> {
   ///
   /// For any integer `x`, the result is the same as `x < 0 ? -x : x`.
   int abs() =>
-      Orchestrator.notObserving ? data.abs() : Orchestrator.observe(data.abs);
+      Orchestrator.observing ? data.abs() : Orchestrator.observe(data.abs);
 
   /// Returns the sign of this integer.
   ///
@@ -1004,7 +1004,7 @@ extension RxDoubleExt on Rx<double> {
 
   /// Returns the absolute value of this [double].
   double abs() =>
-      Orchestrator.notObserving ? data.abs() : Orchestrator.observe(data.abs);
+      Orchestrator.observing ? data.abs() : Orchestrator.observe(data.abs);
 
   /// Returns the sign of the double's numerical value.
   ///

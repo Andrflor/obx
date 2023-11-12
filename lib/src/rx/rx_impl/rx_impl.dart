@@ -197,7 +197,7 @@ class Emitter extends Reactive<Null> {
 
   @override
   Null get data {
-    if (!Orchestrator.notInBuild) _reportRead();
+    if (Orchestrator.observing) _reportRead();
     return null;
   }
 
@@ -209,7 +209,7 @@ class Emitter extends Reactive<Null> {
   /// Obx(() => Text(emiter.bundle(myVariable)));
   /// ```
   T bundle<T>(T value) {
-    if (!Orchestrator.notInBuild) _reportRead();
+    if (Orchestrator.observing) _reportRead();
     return value;
   }
 }

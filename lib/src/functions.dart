@@ -64,7 +64,7 @@ or you may have wrongly typed $inner in the onData [Function($inner value)] func
 /// In some senarios you may even end up with uncatched inifite loops
 /// That's why I would avoid it...
 T observe<T>(T Function() builder) {
-  return Orchestrator.notObserving ? builder() : Orchestrator.observe(builder);
+  return Orchestrator.observing ? builder() : Orchestrator.observe(builder);
 }
 
 /// Run a calback each time the observable [Object] changes
@@ -161,11 +161,11 @@ T observe<T>(T Function() builder) {
 //     listener() {
 //       onData((observable as ValueListenable<T>).value);
 //     }
-// 
+//
 //     observable.addListener(listener);
 //     return () => (observable as ValueListenable<T>).removeListener(listener);
 //   }
-// 
+//
 //   assert(_debugAssertObservableType(observable, T, 'ever'));
 //   return () {};
 // }
@@ -225,18 +225,18 @@ T observe<T>(T Function() builder) {
 //     listener() {
 //       onData((observable as ValueListenable<T>).value);
 //     }
-// 
+//
 //     observable.addListener(listener);
 //     return () => (observable as ValueListenable<T>).removeListener(listener);
 //   }
-// 
+//
 //   _debugAssertObservableType(observable, T, 'everNow');
 //   return () {};
 // }
-// 
+//
 // // TODO: implem [everDiff] [onceDiff] [debounceDiff]
 // // TODO: MAYBE implem [interval] [intervalNow] [intervalDiff]
-// 
+//
 // void _debugAssertObservableType<S>(S value, Type inner, String name) {
 //   assert(() {
 //     throw FlutterError(
@@ -245,7 +245,7 @@ T observe<T>(T Function() builder) {
 // or you may have wrongly typed $inner in the onData [Function($inner value)] function''');
 //   }());
 // }
-// 
+//
 // /// Runs a calback once the observable [Object] changes
 // ///
 // /// Like the [ever] function but the callback is only run once
@@ -271,7 +271,7 @@ T observe<T>(T Function() builder) {
 //       onDone: onDone,
 //       cancelOnError: cancelOnError,
 //     );
-// 
+//
 // /// Runs a calback once the observable [Object] changes and now
 // ///
 // /// Like the [ever] function but the callback runs only once and now
@@ -300,7 +300,7 @@ T observe<T>(T Function() builder) {
 //       cancelOnError: cancelOnError,
 //       forceDistinct: forceDistinct,
 //     );
-// 
+//
 // /// Runs a calback with debounce dalay when the observable [Object] changes
 // ///
 // /// Like the [ever] function but the callback has a debouncer
@@ -336,7 +336,7 @@ T observe<T>(T Function() builder) {
 //     forceDistinct: forceDistinct,
 //   );
 // }
-// 
+//
 // /// Runs a calback with debounce dalay when observable [Object] changes and now
 // ///
 // /// Like the [ever] function but the callback has a debouncer

@@ -30,7 +30,7 @@ class Reactive<T> implements EventSink<T> {
 
   /// You should make sure to not call this if there is no value
   T get data {
-    if (!Orchestrator.notInBuild) _reportRead();
+    if (Orchestrator.observing) _reportRead();
     return _data as T;
   }
 
@@ -46,7 +46,7 @@ class Reactive<T> implements EventSink<T> {
   // Retrieve the current error
   // You should not call this if there is no error
   Object get error {
-    if (!Orchestrator.notInBuild) _reportRead();
+    if (Orchestrator.observing) _reportRead();
     return _error!;
   }
 
@@ -239,13 +239,8 @@ class Reactive<T> implements EventSink<T> {
   }
 
   @protected
-  void _reportRead() {
-    if (Orchestrator.notInObserve) {
-      Orchestrator.element!.read(this);
-    } else {
-      Orchestrator.read(this);
-    }
-  }
+  void _reportRead() =>
+      (Orchestrator.element?..read(this)) ?? Orchestrator.read(this);
 
   void _reportError(String kind, Object exception, [StackTrace? trace]) {
     FlutterError.reportError(FlutterErrorDetails(
